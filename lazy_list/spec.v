@@ -19,6 +19,8 @@ Fixpoint list_equiv (L: list Z) (node: val) : iProp Σ :=
   | h :: t => ∃ (k: Z) (n: loc) (m: bool) (l: val) (v': val) (γ: gname),
               ⌜ node = rep_to_node (k, n, m, l) ⌝
               ∗
+              ⌜ k = h ⌝
+              ∗
               n ↦ v'
               ∗
               (* is_lock γ l ???
