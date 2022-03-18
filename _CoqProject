@@ -3,3 +3,4 @@
 lib/lock.v
 
 lazy_list/code.v
+lazy_list/spec.v

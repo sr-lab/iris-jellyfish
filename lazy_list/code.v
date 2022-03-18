@@ -11,10 +11,10 @@ Module Type LAZYLIST_PARAMS.
 End LAZYLIST_PARAMS.
 
 (* Node representative *)
-Definition node_rep : Type := Z * loc * val * val.
+Definition node_rep : Type := Z * loc * bool * val.
 Definition node_key (n: node_rep) : Z := n.1.1.1.
 Definition node_next (n: node_rep) : loc := n.1.1.2.
-Definition node_mark (n: node_rep) : val := n.1.2.
+Definition node_mark (n: node_rep) : bool := n.1.2.
 Definition node_lock (n: node_rep) : val := n.2.
 
 (* Functions to access node fields *)
@@ -25,7 +25,7 @@ Definition nodeLock : val := λ: "l", Snd (Snd (Snd "l")).
 
 (* Convert a node representative to a HeapLang value *)
 Definition rep_to_node (n: node_rep) : val :=
-  (#(node_key n), (#(node_next n), (node_mark n, (node_lock n)))).
+  (#(node_key n), (#(node_next n), (#(node_mark n), (node_lock n)))).
 
 Module Lazylist (Params: LAZYLIST_PARAMS).
   Import Params.
@@ -42,7 +42,7 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
   Definition new : val :=
     λ: "_", ref (
       #INT_MIN, 
-      ref (#INT_MAX, ref NONE, #false, newlock #()), (* points to tail node *)
+      ref (#INT_MAX, ref NONEV, #false, newlock #()), (* points to tail node *)
       #false, 
       newlock #()
     ).
