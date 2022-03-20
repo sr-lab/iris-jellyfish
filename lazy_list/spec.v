@@ -9,70 +9,88 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
   Module Code := Lazylist Params.
   Export Code.
 
-  Context `{!heapGS Σ} (N : namespace).
+  Section Proofs.
+    Context `{!heapGS Σ} (N : namespace).
 
-  (* 
-  * The sequence of keys must be the same and
-  * the lock invariant must hold in all nodes.
-  *)
-  Fixpoint list_equiv (L: list Z) (node: val) : iProp Σ :=
-    match L with
-    | nil => ⌜ node = NONEV ⌝
-    | h :: t => ∃ (k: Z) (n: loc) (m: bool) (l: val) (v': val) (γ: gname),
-                ⌜ node = rep_to_node (k, n, m, l) ⌝
-                ∗
-                ⌜ k = h ⌝
-                ∗
-                n ↦ v'
-                ∗
-                (* is_lock γ l ???
-                ∗ *)
-                ▷list_equiv t v'
-    end.
+    (* 
+    * The sequence of keys must be the same and
+    * the lock invariant must hold in all nodes.
+    *)
+    Fixpoint list_equiv (L: list Z) (node: val) : iProp Σ :=
+      match L with
+      | nil => ⌜ node = NONEV ⌝
+      | h :: t => ∃ (k: Z) (n: loc) (m: bool) (l: val) (v': val),
+                  ⌜ node = SOMEV (#k, #n, #m, l) ⌝
+                  ∗
+                  ⌜ k = h ⌝
+                  ∗
+                  n ↦ v'
+                  ∗
+                  (* is_lock γ l ???
+                  ∗ *)
+                  ▷list_equiv t v'
+      end.
 
-  (* 
-  * The invariant for the lazy list asserts that
-  * the underlying set S is sorted and must contain
-  * the same elements as S.
-  *)
-  Definition lazy_list_inv (S: gset Z) (l: loc) : iProp Σ := 
-    ∃ (L: list Z) (head: val),
-    ⌜ Permutation L (elements S) ⌝
-    ∗
-    (* ⌜ Sorted Zlt L ⌝
-    ∗ *)
-    l ↦ head
-    ∗
-    list_equiv ([INT_MIN] ++ L ++ [INT_MAX]) head
-  .
-
-  (* 
-  * Asserts that l points to a heap cell that 
-  * represents the set S as a lazy list.
-  *)
-  Definition is_lazy_list (S: gset Z) (v: val) : iProp Σ := 
-    ∃ (l: loc), ⌜v = #l⌝ ∗ inv N (lazy_list_inv S l).
-
-  Theorem new_spec (S: gset Z) :
-    {{{ True }}}
-      new #()
-    {{{ (v: val), RET v; 
-      is_lazy_list ∅ v 
-    }}}.
-  Proof.
-  Admitted.
-
-  (* Theorem contains_spec (S: gset Z) (v: val) (key: Z) :
-    {{{ is_lazy_list S v }}}
-      contains !v #key
-    {{{ (b: bool), RET b; 
-      is_lazy_list S v
+    (* 
+    * The invariant for the lazy list asserts that
+    * the underlying set S is sorted and must contain
+    * the same elements as S.
+    *)
+    Definition lazy_list_inv (S: gset Z) (v: val) : iProp Σ := 
+      ∃ (l: loc) (L: list Z) (head: val),
+      ⌜v = #l⌝
       ∗
-      ⌜ (b = false ∧ ¬ key ∈ S)
-      ∨
-      (b = true ∧ key ∈ S) ⌝
-    }}}.
-  Proof.
-  Admitted. *)
+      ⌜ Permutation L (elements S) ⌝
+      ∗
+      (* ⌜ Sorted Zlt L ⌝
+      ∗ *)
+      l ↦ head
+      ∗
+      list_equiv ([INT_MIN] ++ L ++ [INT_MAX]) head
+    .
 
+    (* 
+    * Asserts that l points to a heap cell that 
+    * represents the set S as a lazy list.
+    *)
+    Definition is_lazy_list (S: gset Z) (v: val) : iProp Σ := 
+      inv N (lazy_list_inv S v).
+
+    Theorem new_spec :
+      {{{ True }}}
+        new #()
+      {{{ v, RET v; 
+        is_lazy_list ∅ v 
+      }}}.
+    Proof.
+      iIntros (Φ) "_ HPost".
+      wp_lam. 
+      wp_alloc n as "Hn"; wp_alloc t as "Ht"; wp_alloc h as "Hh".
+      iMod (inv_alloc N ⊤ (lazy_list_inv ∅ #h) with "[Hh Ht Hn]") as "Hinv".
+      + iNext.
+        iExists h, nil, (SOMEV (#INT_MIN, #t, #false, dummy_lock)). 
+        iFrame. iSplit. done. iSplit. done. simpl.
+        iExists INT_MIN, t, false, dummy_lock.
+        iExists (SOMEV (#INT_MAX, #n, #false, dummy_lock)).
+        iFrame. iSplit. done. iSplit. done.
+        iNext.
+        iExists INT_MAX, n, false, dummy_lock.
+        iExists NONEV.
+        iFrame. iSplit. done. iSplit; done.
+      + by iApply "HPost".
+    Qed.
+
+    Theorem contains_spec (S: gset Z) (v: val) (key: Z) :
+      {{{ is_lazy_list S v }}}
+        contains !v #key
+      {{{ b, RET b; 
+        is_lazy_list S v
+        ∗
+        ⌜ (b = #false ∧ ¬ key ∈ S)
+        ∨
+        (b = #true ∧ key ∈ S) ⌝
+      }}}.
+    Proof.
+    Admitted.
+  End Proofs.
 End LazyListSpec.

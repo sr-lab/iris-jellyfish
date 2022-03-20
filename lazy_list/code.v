@@ -37,15 +37,18 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
       let: "pred_mark" := (nodeMark "pred") in
       let: "curr_mark" := (nodeMark "curr") in
       ("pred_mark" = #false) && ("curr_mark" = #false) && ("next" = SOME "curr").
-  
+
+  (* FIXME remove this and replace with newlock #() *)
+  Definition dummy_lock : val := #1.
+
   (* Lazy list creation *)
-  Definition new : val :=
-    λ: "_", ref (
+  Definition new : val := 
+    λ: "_", ref (SOME (
       #INT_MIN, 
-      ref (#INT_MAX, ref NONEV, #false, newlock #()), (* points to tail node *)
+      ref (SOME (#INT_MAX, ref NONEV, #false, dummy_lock)), 
       #false, 
-      newlock #()
-    ).
+      dummy_lock
+    )).
   
   (* Lazy list lookup *)
   Definition contains : val := 
