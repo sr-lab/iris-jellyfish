@@ -15,20 +15,30 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     (* 
     * The sequence of keys must be the same and
     * the lock invariant must hold in all nodes.
+    * The current key is separated from the list
+    * in order to make the recursion possible.
     *)
-    Fixpoint list_equiv (L: list Z) (node: val) : iProp Σ :=
+    Fixpoint list_equiv (node: val) (cur: Z) (L: list Z) : iProp Σ :=
       match L with
-      | nil => ⌜ node = NONEV ⌝
-      | h :: t => ∃ (k: Z) (n: loc) (m: bool) (l: val) (v': val),
-                  ⌜ node = SOMEV (#k, #n, #m, l) ⌝
+      | nil => ∃ (n: loc) (k: Z) (m: bool) (l: val),
+                  ⌜ node = SOMEV #n ⌝
                   ∗
-                  ⌜ k = h ⌝
+                  n ↦ (#k, NONEV, #m, l)
                   ∗
-                  n ↦ v'
+                  ⌜ k = cur ⌝
+                  (* ∗
+                  is_lock γ l ??? *)
+
+      | h :: t => ∃ (n: loc) (k: Z) (next: val) (m: bool) (l: val),
+                  ⌜ node = SOMEV #n ⌝
+                  ∗
+                  n ↦ (#k, next, #m, l)
+                  ∗
+                  ⌜ k = cur ⌝
                   ∗
                   (* is_lock γ l ???
                   ∗ *)
-                  ▷list_equiv t v'
+                  ▷list_equiv next h t
       end.
 
     (* 
@@ -37,16 +47,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     * the same elements as S.
     *)
     Definition lazy_list_inv (S: gset Z) (v: val) : iProp Σ := 
-      ∃ (l: loc) (L: list Z) (head: val),
-      ⌜v = #l⌝
-      ∗
+      ∃ (L: list Z),
       ⌜ Permutation L (elements S) ⌝
       ∗
       (* ⌜ Sorted Zlt L ⌝
       ∗ *)
-      l ↦ head
-      ∗
-      list_equiv ([INT_MIN] ++ L ++ [INT_MAX]) head
+      list_equiv (SOMEV v) INT_MIN (L ++ [INT_MAX]) 
     .
 
     (* 
@@ -64,19 +70,18 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "_ HPost".
-      wp_lam. 
-      wp_alloc n as "Hn"; wp_alloc t as "Ht"; wp_alloc h as "Hh".
-      iMod (inv_alloc N ⊤ (lazy_list_inv ∅ #h) with "[Hh Ht Hn]") as "Hinv".
+      wp_lam.
+      wp_alloc t as "Ht"; wp_alloc h as "Hh".
+      iMod (inv_alloc N ⊤ (lazy_list_inv ∅ #h) with "[Hh Ht]") as "Hinv".
       + iNext.
-        iExists h, nil, (SOMEV (#INT_MIN, #t, #false, dummy_lock)). 
-        iFrame. iSplit. done. iSplit. done. simpl.
-        iExists INT_MIN, t, false, dummy_lock.
-        iExists (SOMEV (#INT_MAX, #n, #false, dummy_lock)).
+        iExists nil. 
+        iSplit. done.
+        simpl.
+        iExists h, INT_MIN, (SOMEV #t), false, dummy_lock.
         iFrame. iSplit. done. iSplit. done.
         iNext.
-        iExists INT_MAX, n, false, dummy_lock.
-        iExists NONEV.
-        iFrame. iSplit. done. iSplit; done.
+        iExists t, INT_MAX, false, dummy_lock.
+        iFrame. iSplit; done.
       + by iApply "HPost".
     Qed.
 

@@ -43,12 +43,12 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
 
   (* Lazy list creation *)
   Definition new : val := 
-    λ: "_", ref (SOME (
+    λ: "_", ref (
       #INT_MIN, 
-      ref (SOME (#INT_MAX, ref NONEV, #false, dummy_lock)), 
+      SOME (ref (#INT_MAX, NONEV, #false, dummy_lock)), 
       #false, 
       dummy_lock
-    )).
+    ).
   
   (* Lazy list lookup *)
   Definition contains : val := 
