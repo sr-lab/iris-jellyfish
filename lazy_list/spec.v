@@ -15,30 +15,18 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     (* 
     * The sequence of keys must be the same and
     * the lock invariant must hold in all nodes.
-    * The current key is separated from the list
-    * in order to make the recursion possible.
     *)
-    Fixpoint list_equiv (node: val) (cur: Z) (L: list Z) : iProp Σ :=
+    Fixpoint list_equiv (node: val) (L: list Z) : iProp Σ :=
       match L with
-      | nil => ∃ (n: loc) (k: Z) (m: bool) (l: val),
+      | nil => ⌜ node = NONEV ⌝
+      | h :: t => ∃ (n: loc) (next: val) (m: bool) (l: val),
                   ⌜ node = SOMEV #n ⌝
                   ∗
-                  n ↦ (#k, NONEV, #m, l)
-                  ∗
-                  ⌜ k = cur ⌝
-                  (* ∗
-                  is_lock γ l ??? *)
-
-      | h :: t => ∃ (n: loc) (k: Z) (next: val) (m: bool) (l: val),
-                  ⌜ node = SOMEV #n ⌝
-                  ∗
-                  n ↦ (#k, next, #m, l)
-                  ∗
-                  ⌜ k = cur ⌝
+                  n ↦ (#h, next, #m, l)
                   ∗
                   (* is_lock γ l ???
                   ∗ *)
-                  ▷list_equiv next h t
+                  ▷list_equiv next t
       end.
 
     (* 
@@ -50,13 +38,13 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       ∃ (L: list Z),
       ⌜ Permutation L (elements S) ⌝
       ∗
-      (* ⌜ Sorted Zlt L ⌝
+      (* ⌜ Sorted ??? ([INT_MIN] ++ L ++ [INT_MAX]) ⌝
       ∗ *)
-      list_equiv (SOMEV v) INT_MIN (L ++ [INT_MAX]) 
+      list_equiv (SOMEV v) ([INT_MIN] ++ L ++ [INT_MAX])
     .
 
     (* 
-    * Asserts that l points to a heap cell that 
+    * Asserts that v points to a heap cell that 
     * represents the set S as a lazy list.
     *)
     Definition is_lazy_list (S: gset Z) (v: val) : iProp Σ := 
@@ -77,17 +65,17 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         iExists nil. 
         iSplit. done.
         simpl.
-        iExists h, INT_MIN, (SOMEV #t), false, dummy_lock.
-        iFrame. iSplit. done. iSplit. done.
+        iExists h, (SOMEV #t), false, dummy_lock.
+        iFrame. iSplit. done.
         iNext.
-        iExists t, INT_MAX, false, dummy_lock.
+        iExists t, NONEV, false, dummy_lock.
         iFrame. iSplit; done.
       + by iApply "HPost".
     Qed.
 
     Theorem contains_spec (S: gset Z) (v: val) (key: Z) :
       {{{ is_lazy_list S v }}}
-        contains !v #key
+        contains v #key
       {{{ b, RET b; 
         is_lazy_list S v
         ∗
@@ -96,6 +84,8 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         (b = #true ∧ key ∈ S) ⌝
       }}}.
     Proof.
+      iIntros (Φ) "HPre HPost".
+      wp_lam. wp_let.
     Admitted.
   End Proofs.
 End LazyListSpec.

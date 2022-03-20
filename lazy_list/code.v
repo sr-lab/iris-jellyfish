@@ -53,15 +53,16 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
   (* Lazy list lookup *)
   Definition contains : val := 
     rec: "find" "curr" "k" :=
-      let: "next" := !(nodeNext "curr") in
-      match: "next" with
+      let: "node" := !"curr" in
+      let: "onext" := (nodeNext "node") in
+      match: "onext" with
           NONE => #false (* tail node *)
-        | SOME "node" => 
-          let: "ck" := (nodeKey "curr") in
-          let: "cm" := (nodeMark "curr") in
+        | SOME "next" => 
+          let: "ck" := (nodeKey "node") in
+          let: "cm" := (nodeMark "node") in
           if: "k" ≤ "ck"
           then ("k" = "ck") && ("cm" = #false)
-          else "find" "node" "k"
+          else "find" "next" "k"
       end.
   
   (* Lazy list insertion *)
