@@ -1,7 +1,10 @@
+From Coq Require Import Sorting.Sorted.
+
 From iris.heap_lang Require Import notation proofmode.
 From iris.base_logic.lib Require Export invariants.
 
 From SkipList.lazy_list Require Import code.
+
 
 Local Open Scope Z.
 Module LazyListSpec (Params: LAZYLIST_PARAMS).
@@ -28,7 +31,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
                   ∗ *)
                   ▷list_equiv next t
       end.
-
+    
     (* 
     * The invariant for the lazy list asserts that
     * the underlying set S is sorted and must contain
@@ -38,8 +41,8 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       ∃ (L: list Z),
       ⌜ Permutation L (elements S) ⌝
       ∗
-      (* ⌜ Sorted ??? ([INT_MIN] ++ L ++ [INT_MAX]) ⌝
-      ∗ *)
+      ⌜ Sorted Z.lt ([INT_MIN] ++ L ++ [INT_MAX]) ⌝
+      ∗
       list_equiv (SOMEV v) ([INT_MIN] ++ L ++ [INT_MAX])
     .
 
@@ -63,13 +66,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       iMod (inv_alloc N ⊤ (lazy_list_inv ∅ #h) with "[Hh Ht]") as "Hinv".
       + iNext.
         iExists nil. 
-        iSplit. done.
-        simpl.
+        iSplit. done. iSplit; simpl. auto using HMIN_MAX.
         iExists h, (SOMEV #t), false, dummy_lock.
         iFrame. iSplit. done.
         iNext.
         iExists t, NONEV, false, dummy_lock.
-        iFrame. iSplit; done.
+        iFrame. by iSplit.
       + by iApply "HPost".
     Qed.
 
@@ -85,7 +87,6 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "HPre HPost".
-      wp_lam. wp_let.
     Admitted.
   End Proofs.
 End LazyListSpec.
