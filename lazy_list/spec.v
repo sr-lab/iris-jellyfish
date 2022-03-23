@@ -106,13 +106,15 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     Proof.
       iIntros (Φ) "#HPre HPost".
       wp_lam. wp_let. wp_bind (Load _).
-      iInv N as (L h n m l) "(HPerm & HSort & >% & Hh & Hlist)" "Hclose"; subst; simpl.
+      iInv N as (L h on m l) "(HPerm & HSort & >% & Hh & Hlist)" "Hclose"; subst; simpl.
       wp_load.
       iMod ("Hclose" with "[HPerm HSort Hh Hlist]") as "_".
-      { iNext. iExists L, h, n, m, l. by iFrame. }
+      { iNext. iExists L, h, on, m, l. by iFrame. }
       iModIntro. wp_let. try repeat (wp_lam; wp_pures).
-      destruct n as [n'|] eqn:Hn; wp_match.
-      + admit.
+      destruct on as [n|] eqn:Hn; wp_match.
+      + wp_op; case_bool_decide as Heq; wp_if.
+        lia. clear Heq.
+        admit.
       + iExFalso.
         admit.
     Admitted.
