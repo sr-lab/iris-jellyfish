@@ -15,21 +15,34 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ} (N : namespace).
 
+    Definition oloc_to_val (ol: option loc) : val := 
+      match ol with
+      | None => NONEV
+      | Some l => SOMEV #l
+      end.
+    
+
     (* 
     * The sequence of keys must be the same and
     * the lock invariant must hold in all nodes.
     *)
-    Fixpoint list_equiv (node: val) (L: list Z) : iProp Σ :=
+    Fixpoint list_equiv (L: list Z) (node: val) : iProp Σ :=
       match L with
-      | nil => ⌜ node = NONEV ⌝
-      | h :: t => ∃ (n: loc) (next: val) (m: bool) (l: val),
-                  ⌜ node = SOMEV #n ⌝
+      | nil =>    ∃ (t: loc) (m: bool) (l: val),
+                  ⌜ node = SOMEV #t ⌝
                   ∗
-                  n ↦ (#h, next, #m, l)
+                  t ↦ (#INT_MAX, NONEV, #m, l)
+                  (* ∗
+                  is_lock γ l ??? *)
+
+      | h :: t => ∃ (np: loc) (n: option loc) (m: bool) (l: val),
+                  ⌜ node = SOMEV #np ⌝
+                  ∗
+                  np ↦ (#h, oloc_to_val n, #m, l)
                   ∗
                   (* is_lock γ l ???
                   ∗ *)
-                  ▷list_equiv next t
+                  ▷list_equiv t (oloc_to_val n)
       end.
     
     (* 
@@ -38,12 +51,18 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     * the same elements as S.
     *)
     Definition lazy_list_inv (S: gset Z) (v: val) : iProp Σ := 
-      ∃ (L: list Z),
+      ∃ (L: list Z) (h: loc) (n: option loc) (m: bool) (l: val),
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted Z.lt ([INT_MIN] ++ L ++ [INT_MAX]) ⌝
       ∗
-      list_equiv (SOMEV v) ([INT_MIN] ++ L ++ [INT_MAX])
+      ⌜ v = #h ⌝
+      ∗
+      h ↦ (#INT_MIN, oloc_to_val n, #m, l)
+      (* ∗
+      is_lock γ l ??? *)
+      ∗
+      list_equiv L (oloc_to_val n)
     .
 
     (* 
@@ -65,17 +84,16 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       wp_alloc t as "Ht"; wp_alloc h as "Hh".
       iMod (inv_alloc N ⊤ (lazy_list_inv ∅ #h) with "[Hh Ht]") as "Hinv".
       + iNext.
-        iExists nil. 
-        iSplit. done. iSplit; simpl. auto using HMIN_MAX.
-        iExists h, (SOMEV #t), false, dummy_lock.
-        iFrame. iSplit. done.
-        iNext.
-        iExists t, NONEV, false, dummy_lock.
-        iFrame. by iSplit.
+        iExists nil, h, (Some t), false, dummy_lock.
+        iSplit. done. 
+        iSplit. simpl. auto using HMIN_MAX. 
+        iSplit. done.
+        iFrame. iExists t, false, dummy_lock. by iFrame.
       + by iApply "HPost".
     Qed.
 
-    Theorem contains_spec (S: gset Z) (v: val) (key: Z) :
+    Theorem contains_spec (S: gset Z) (v: val) (key: Z) 
+      (Hrange: INT_MIN < key < INT_MAX) :
       {{{ is_lazy_list S v }}}
         contains v #key
       {{{ b, RET b; 
@@ -86,7 +104,17 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         (b = #true ∧ key ∈ S) ⌝
       }}}.
     Proof.
-      iIntros (Φ) "HPre HPost".
+      iIntros (Φ) "#HPre HPost".
+      wp_lam. wp_let. wp_bind (Load _).
+      iInv N as (L h n m l) "(HPerm & HSort & >% & Hh & Hlist)" "Hclose"; subst; simpl.
+      wp_load.
+      iMod ("Hclose" with "[HPerm HSort Hh Hlist]") as "_".
+      { iNext. iExists L, h, n, m, l. by iFrame. }
+      iModIntro. wp_let. try repeat (wp_lam; wp_pures).
+      destruct n as [n'|] eqn:Hn; wp_match.
+      + admit.
+      + iExFalso.
+        admit.
     Admitted.
   End Proofs.
 End LazyListSpec.

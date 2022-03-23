@@ -18,10 +18,10 @@ Definition node_mark (n: node_rep) : bool := n.1.2.
 Definition node_lock (n: node_rep) : val := n.2.
 
 (* Functions to access node fields *)
-Definition nodeKey : val := λ: "l", Fst "l".
-Definition nodeNext : val := λ: "l", Fst (Snd "l").
-Definition nodeMark : val := λ: "l", Fst (Snd (Snd "l")).
-Definition nodeLock : val := λ: "l", Snd (Snd (Snd "l")).
+Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
+Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
+Definition nodeMark : val := λ: "l", Snd (Fst "l").
+Definition nodeLock : val := λ: "l", Snd "l".
 
 (* Convert a node representative to a HeapLang value *)
 Definition rep_to_node (n: node_rep) : val :=
@@ -44,8 +44,8 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
   (* Lazy list creation *)
   Definition new : val := 
     λ: "_", ref (
-      #INT_MIN, 
-      SOME (ref (#INT_MAX, NONEV, #false, dummy_lock)), 
+      #INT_MIN,
+      SOME (ref (#INT_MAX, NONEV, #false, dummy_lock)),
       #false, 
       dummy_lock
     ).
@@ -54,14 +54,14 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
   Definition contains : val := 
     rec: "find" "curr" "k" :=
       let: "node" := !"curr" in
-      let: "onext" := (nodeNext "node") in
-      match: "onext" with
-          NONE => #false (* tail node *)
+      let: "ck" := (nodeKey "node") in
+      let: "cn" := (nodeNext "node") in
+      let: "cm" := (nodeMark "node") in
+      match: "cn" with
+          NONE => ("k" = "ck") (* && ("cm" = #false) FIXME *)
         | SOME "next" => 
-          let: "ck" := (nodeKey "node") in
-          let: "cm" := (nodeMark "node") in
           if: "k" ≤ "ck"
-          then ("k" = "ck") && ("cm" = #false)
+          then ("k" = "ck") (* && ("cm" = #false) FIXME *)
           else "find" "next" "k"
       end.
   
