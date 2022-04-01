@@ -16,75 +16,81 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ} (N : namespace).
 
-    Fixpoint list_equiv (L: list node_rep) : iProp Σ :=
+    Fixpoint list_equiv (L: list node_rep) (l: loc) : iProp Σ :=
       match L with
       | nil => True
       | pred :: succs => 
         match succs with
-        | nil => ∃ (l: loc),
-                 ⌜ node_next pred = Some l ⌝
+        | nil => ⌜ node_next pred = Some l ⌝
                  ∗
                  l ↦ rep_to_node tail
 
-        | succ :: t => ∃ (l: loc),
-                       ⌜ node_next pred = Some l ⌝
+        | succ :: t => ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦ rep_to_node succ
                        ∗
-                       list_equiv succs
+                       ∃ (l': loc), list_equiv succs l'
         end
       end.
 
-    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
-      list_equiv (rep :: L) 
-        ⊢ list_equiv L ∗ (list_equiv L -∗ list_equiv (rep :: L))
+    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) (l: loc) :
+      list_equiv (rep :: L) l
+        ⊢ ∃ (l': loc), (list_equiv L l' ∗ (list_equiv L l' -∗ list_equiv (rep :: L) l))
     .
     Proof.
       destruct L as [|n].
-      * iIntros "Hrep". iDestruct "Hrep" as (l) "(? & ? & ?)".
-        iSplit. done. iIntros. 
-        iExists l. iFrame.
-      * iIntros "Hrep". iDestruct "Hrep" as (l) "(? & ? & ?)".
-        iFrame. iIntros. 
-        iExists l. iFrame.
+      * iIntros "Hrep". iExists _. iSplit; by iFrame.
+      * iIntros "(Hsome & Hpt & Hmatch)".
+        iDestruct "Hmatch" as (l') "Hmatch".
+        iExists l'. iFrame. eauto. 
+        Unshelve. done.
     Qed.
 
-    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep):
+    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) (l l': loc):
+      node_next pred = Some l' →
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
-      list_equiv L ⊢ ∃ (l: loc),
-                     ⌜ node_next pred = Some l ⌝
-                     ∗
-                     l ↦ (rep_to_node succ)
-                     ∗
-                     (⌜ node_next pred = Some l ⌝ ∗ l ↦ (rep_to_node succ) -∗ list_equiv L)
+      list_equiv L l ⊢ l' ↦ (rep_to_node succ)
+                       ∗
+                       (l' ↦ (rep_to_node succ) -∗ list_equiv L l)
     .
     Proof.
-      revert L. induction L1 => L Heq.
-      + destruct L as [|curr L].
-        { exfalso. inversion Heq. }
-        inversion Heq as [[H0 Heq']]; subst.
+      revert l L. induction L1 => l L Hl HL.
+      + destruct L as [| curr L].
+        { exfalso. inversion HL. }
+        inversion HL as [[H0 HL']]; subst.
         destruct L as [| curr L].
-        - inversion Heq'; subst.
-          iIntros "Hpred". iDestruct "Hpred" as (t) "(Hsome & Hpt)".
-          iExists t. iFrame.
-          iIntros "Htail". iExists t. iFrame.
-        - inversion Heq'; subst.
-          iIntros "Hpred". iDestruct "Hpred" as (n) "(Hsome & Hpt & Hmatch)".
-          iExists n. iFrame.
-          iIntros "succ".
-          iExists n. iFrame.
+        - inversion HL'; subst.
+          iIntros "(%Hsome & Hpt)".
+          assert (l = l') as Heq by congruence.
+          rewrite -Heq. iFrame. 
+          iIntros "Hpt". by iFrame.
+        - inversion HL'; subst.
+          iIntros "(%Hsome & Hpt & Hmatch)".
+          assert (l = l') as Heq by congruence.
+          rewrite -Heq. iFrame. 
+          iIntros "Hpt". by iFrame.
       + destruct L as [| curr L].
         { 
-          exfalso. inversion Heq  as [[H0 Heq']]; subst. 
-          destruct L1; inversion Heq'.
+          exfalso. inversion HL  as [[H0 HL']]; subst. 
+          destruct L1; inversion HL'.
         }
-        inversion Heq  as [[H0 Heq']]; subst.
+        inversion HL as [[H0 HL']]; subst.
+
+        destruct L as [| curr L].
+        { 
+          exfalso. 
+          destruct L1; inversion HL. 
+          destruct L1; inversion HL.
+        }
+        
         iIntros "Hlist".
-        iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
-        iPoseProof (IHL1 with "Hlist") as "Hpred". { done. }
-        iDestruct "Hpred" as (l) "(Hsome & Hpt & Hmatch)".
-        iExists l. iFrame. iIntros "(Hsome & Hpt)".
-        iApply "Himp". iApply "Hmatch". iFrame. 
+        iPoseProof (list_equiv_cons with "Hlist") as "Hlist".
+        iDestruct "Hlist" as (l'') "(Hlist & Himp)".
+        iPoseProof (IHL1 with "Hlist") as "(Hpt & Himp')".
+        { done. }
+        { done. }
+        iFrame. iIntros "Hpt".
+        iApply "Himp". iApply "Himp'". iFrame.
     Qed.
     
     (* 
@@ -93,12 +99,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     * the same elements as S.
     *)
     Definition lazy_list_inv (S: gset node_rep) (head: node_rep) : iProp Σ := 
-      ∃ (L: list node_rep),
+      ∃ (L: list node_rep) (l: loc),
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
-      list_equiv ([head] ++ L)
+      list_equiv ([head] ++ L) l
     .
 
     (* 
@@ -120,12 +126,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       set (head := (INT_MIN, Some t, false, dummy_lock)).
       rewrite (fold_rep_to_node head).
       iMod (inv_alloc N ⊤ (lazy_list_inv ∅ head) with "[Ht]") as "Hinv".
-      + iNext. iExists nil.
+      + iNext. iExists nil, t.
         iSplit. done. iSplit. simpl. 
         assert (node_lt head tail) as Hlt.
         { unfold node_lt; unfold node_key; simpl; apply HMIN_MAX. }
         auto using Hlt. 
-        iExists t. by iFrame.
+        by iFrame.
       + by iApply "HΦ".
     Qed.
     
@@ -156,7 +162,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       wp_lam. wp_let. wp_lam. wp_pures.
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
+        iInv N as (L' l') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
 
         assert (L = L') as <-.
         {
@@ -168,12 +174,53 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           * by rewrite -Hperm.
         }
 
-        destruct Lm as [|ck' Lm].
+        destruct Lm as [|succ' Lm].
         - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
+          { eauto. }
+          iDestruct "Hlist'" as "(Hpt & Himp)".
+          wp_load.
+          iMod ("Hclose" with "[Hpt Himp]").
+          {
+            iNext. iExists L, _.
+            iSplit. done.
+            iSplit. done.
+            iApply "Himp". iFrame.
+          }
+          iModIntro. wp_let. wp_lam. wp_pures.
+          case_bool_decide; last lia.
+          wp_pures. iApply "HΦ".
+          iModIntro. by iSplit.
+        - rewrite (list_equiv_split curr succ' ([head] ++ L)); last first.
+          { simpl in *. by rewrite -Hsplit_sep. }
+          { eauto. }
+          iDestruct "Hlist'" as "(Hpt & Himp)".
+          wp_load.
+          iMod ("Hclose" with "[Hpt Himp]").
+          {
+            iNext. iExists L, _.
+            iSplit. done.
+            iSplit. done.
+            iApply "Himp". iFrame.
+          }
+          iModIntro. wp_let. wp_lam. wp_pures.
 
-          admit.
-        - admit.
+          case_bool_decide as Hcase.
+          * exfalso.
+            cut (node_key succ' <= node_key pred); first by lia.
+            assert (In pred (succ' :: Lm)) as Hpred_in_m.
+            ++ destruct Hsplit_join as (L1 & L2 & Hsplit_join).
+               rewrite -Hsplit_join in Hsplit_sep.
+               induction Lm as [| succ'' Lm] using rev_ind.
+               -- simpl in Hsplit_sep.
+                  left.
+
+                  admit.
+               -- admit.
+            ++ admit.
+          * wp_if.
+            
+            admit.
       + admit.
     Admitted.
 
