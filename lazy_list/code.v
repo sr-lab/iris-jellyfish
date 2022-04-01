@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import notation.
-From SkipList.lib Require Import lock.
+From SkipList.lib Require Import misc lock.
 
 
 Local Open Scope Z.
@@ -11,9 +11,9 @@ Module Type LAZYLIST_PARAMS.
 End LAZYLIST_PARAMS.
 
 (* Node representative *)
-Definition node_rep : Type := Z * loc * bool * val.
+Definition node_rep : Type := Z * option loc * bool * val.
 Definition node_key (n: node_rep) : Z := n.1.1.1.
-Definition node_next (n: node_rep) : loc := n.1.1.2.
+Definition node_next (n: node_rep) : option loc := n.1.1.2.
 Definition node_mark (n: node_rep) : bool := n.1.2.
 Definition node_lock (n: node_rep) : val := n.2.
 
@@ -23,9 +23,18 @@ Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
 Definition nodeMark : val := λ: "l", Snd (Fst "l").
 Definition nodeLock : val := λ: "l", Snd "l".
 
+Definition node_lt (x y: node_rep) : Prop := 
+  node_key x < node_key y
+.
+
 (* Convert a node representative to a HeapLang value *)
 Definition rep_to_node (n: node_rep) : val :=
-  (#(node_key n), (#(node_next n), (#(node_mark n), (node_lock n)))).
+  (#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)).
+
+Lemma fold_rep_to_node (n: node_rep) :
+  ((#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)))%V =
+  rep_to_node n.
+Proof. done. Qed.
 
 Module Lazylist (Params: LAZYLIST_PARAMS).
   Import Params.
@@ -41,28 +50,36 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
   (* FIXME remove this and replace with newlock #() *)
   Definition dummy_lock : val := #1.
 
+  Definition tail : node_rep := (INT_MAX, None, false, dummy_lock).  
+
   (* Lazy list creation *)
   Definition new : val := 
-    λ: "_", ref (
-      #INT_MIN,
-      SOME (ref (#INT_MAX, NONEV, #false, dummy_lock)),
-      #false, 
-      dummy_lock
-    ).
+    λ: "_", (#INT_MIN, SOME (ref (rep_to_node tail)), #false, dummy_lock).
   
   (* Lazy list lookup *)
-  Definition contains : val := 
-    rec: "find" "curr" "k" :=
-      let: "node" := !"curr" in
-      let: "ck" := (nodeKey "node") in
-      let: "cn" := (nodeNext "node") in
-      let: "cm" := (nodeMark "node") in
-      match: "cn" with
-          NONE => ("k" = "ck") (* && ("cm" = #false) FIXME *)
-        | SOME "next" => 
+  Definition find : val := 
+    rec: "find" "pred" "k" :=
+      let: "curr" := (nodeNext "pred") in
+      match: "curr" with
+          NONE => NONEV
+        | SOME "np" => 
+          let: "node" := !"np" in
+          let: "ck" := (nodeKey "node") in
           if: "k" ≤ "ck"
-          then ("k" = "ck") (* && ("cm" = #false) FIXME *)
+          then SOME "node"
           else "find" "next" "k"
+      end.
+
+  Definition contains : val := 
+    λ: "head" "k",
+      let: "node" := !"head" in
+      let: "ocurr" := find "node" "k" in
+      match: "ocurr" with
+          NONE => #false
+        | SOME "curr" =>
+          let: "ck" := (nodeKey "curr") in
+          (* let: "cm" := (nodeMark "curr") in *)
+          ("k" = "ck") (* && ("cm" = #false) FIXME *)
       end.
   
   (* Lazy list insertion *)

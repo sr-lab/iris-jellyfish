@@ -1,6 +1,7 @@
 -Q . SkipList
 
 lib/lock.v
-
+lib/misc.v
 lazy_list/code.v
+lib/lemmas.v
 lazy_list/spec.v
