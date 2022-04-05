@@ -67,7 +67,7 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
           let: "ck" := (nodeKey "node") in
           if: "k" ≤ "ck"
           then SOME "node"
-          else "find" "next" "k"
+          else "find" "node" "k"
       end.
 
   Definition contains : val := 

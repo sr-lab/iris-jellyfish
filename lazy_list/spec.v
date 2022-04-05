@@ -158,7 +158,10 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       }}}.
     Proof.
       intros Hperm Hsort Hrange Hkey Hsplit_sep Hsplit_join.
-      iIntros (Φ) "(#Hinv&Hcurr_range&Hcurr_key) HΦ".
+      iIntros (Φ) "(#Hinv & Hcurr_range & Hcurr_key) HΦ".
+      iRevert (curr Li Lm Hsplit_sep) "Hcurr_range Hcurr_key HΦ".
+      iLöb as "IH". 
+      iIntros (curr Li Lm Hsplit_sep) "Hcurr_range Hcurr_key HΦ".
       wp_lam. wp_let. wp_lam. wp_pures.
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
@@ -174,7 +177,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           * by rewrite -Hperm.
         }
 
-        destruct Lm as [|succ' Lm].
+        destruct Lm as [|curr' Lm].
         - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
           { eauto. }
@@ -191,7 +194,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           case_bool_decide; last lia.
           wp_pures. iApply "HΦ".
           iModIntro. by iSplit.
-        - rewrite (list_equiv_split curr succ' ([head] ++ L)); last first.
+        - rewrite (list_equiv_split curr curr' ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
           { eauto. }
           iDestruct "Hlist'" as "(Hpt & Himp)".
@@ -207,21 +210,54 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
 
           case_bool_decide as Hcase.
           * exfalso.
-            cut (node_key succ' <= node_key pred); first by lia.
-            assert (In pred (succ' :: Lm)) as Hpred_in_m.
+            cut (node_key curr' <= node_key pred); first by lia.
+            assert (In pred (curr' :: Lm)) as Hpred_in_m.
             ++ destruct Hsplit_join as (L1 & L2 & Hsplit_join).
                rewrite -Hsplit_join in Hsplit_sep.
-               induction Lm as [| succ'' Lm] using rev_ind.
+               induction Lm as [| curr'' Lm] using rev_ind.
                -- simpl in Hsplit_sep.
-                  left.
-
-                  admit.
-               -- admit.
-            ++ admit.
+                  left. eapply (NoDup_pred_unique (Li ++ [curr])); rewrite app_ass //=.
+                  rewrite Hsplit_sep. rewrite Hsplit_join.
+                  rewrite -NoDup_ListNoDup. by apply sorted_node_lt_NoDup.
+               -- right. apply in_app_iff. right.
+                  rewrite //= in Hsplit_sep.
+                  left. eapply (NoDup_pred_unique (Li ++ [curr; curr'] ++ Lm)); 
+                    rewrite app_ass //= in Hsplit_sep; rewrite app_ass //=.
+                  rewrite Hsplit_sep Hsplit_join.
+                  rewrite -NoDup_ListNoDup. by apply sorted_node_lt_NoDup.
+            ++ cut (Sorted node_lt ([curr'] ++ Lm)).
+               -- intros Hsort''.
+                  apply Sorted_StronglySorted in Hsort''; last first.
+                  { unfold Relations_1.Transitive; apply node_lt_transitive. } 
+                  inversion Hsort''; subst. 
+                  inversion Hpred_in_m; first by (subst; lia).
+                  apply node_lt_le_incl.
+                  by eapply Forall_forall.
+               -- rewrite -Hsplit_sep in Hsort.
+                  by repeat (apply node_rep_sorted_app in Hsort as (? & Hsort)).
           * wp_if.
-            
-            admit.
-      + admit.
+            iApply ("IH" $! curr' (Li ++ [curr]) Lm with "[%] [%] [%]").
+
+            { rewrite app_ass //=. }
+            { 
+              right. apply elem_of_elements. rewrite Hperm.
+              destruct Li; assert (curr' ∈ L ++ [tail]) as Hin.
+              -- inversion Hsplit_sep; subst; by left.
+              -- apply elem_of_list_In, in_app_iff in Hin.
+                 destruct Hin as [|[|[]]]; first by eapply elem_of_list_In.
+                 subst. exfalso. rewrite /node_key/tail//= in Hcase; lia.
+              -- inversion Hsplit_sep; subst.
+                 apply elem_of_list_In. apply in_app_iff.
+                 right. right; left. auto.
+              -- apply elem_of_list_In, in_app_iff in Hin.
+                 destruct Hin as [|[|[]]]; first by eapply elem_of_list_In.
+                 subst. exfalso. rewrite /node_key/tail//= in Hcase; lia.
+            }
+            { lia. }
+
+            iNext. iApply "HΦ".
+      + 
+        admit.
     Admitted.
 
     (* Theorem contains_spec (S: gset Z) (v: val) (key: Z) 
