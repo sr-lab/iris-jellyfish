@@ -16,61 +16,64 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ} (N : namespace).
 
-    Fixpoint list_equiv (L: list node_rep) (l: loc) : iProp Σ :=
+    Fixpoint list_equiv (L: list node_rep) : iProp Σ :=
       match L with
       | nil => True
       | pred :: succs => 
         match succs with
-        | nil => ⌜ node_next pred = Some l ⌝
+        | nil => ∃ (l: loc), 
+                 ⌜ node_next pred = Some l ⌝
                  ∗
                  l ↦ rep_to_node tail
 
-        | succ :: t => ⌜ node_next pred = Some l ⌝
+        | succ :: t => ∃ (l: loc), 
+                       ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦ rep_to_node succ
                        ∗
-                       ∃ (l': loc), list_equiv succs l'
+                       list_equiv succs
         end
       end.
 
-    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) (l: loc) :
-      list_equiv (rep :: L) l
-        ⊢ ∃ (l': loc), (list_equiv L l' ∗ (list_equiv L l' -∗ list_equiv (rep :: L) l))
+    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
+      list_equiv (rep :: L)
+        ⊢ (list_equiv L ∗ (list_equiv L -∗ list_equiv (rep :: L)))
     .
     Proof.
       destruct L as [|n].
-      * iIntros "Hrep". iExists _. iSplit; by iFrame.
-      * iIntros "(Hsome & Hpt & Hmatch)".
-        iDestruct "Hmatch" as (l') "Hmatch".
-        iExists l'. iFrame. eauto. 
-        Unshelve. done.
+      * iIntros "Hrep". by iFrame.
+      * iIntros "Hlist". iDestruct "Hlist" as (l) "(Hsome & Hpt & Hmatch)".
+        iFrame. iIntros "Hlist". iFrame.
+        iExists l. iFrame.
     Qed.
 
-    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) (l: loc):
+    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep):
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
-      list_equiv L l ⊢ ∃ (l': loc),
-                       ⌜ node_next pred = Some l' ⌝
+      list_equiv L ⊢ ∃ (l: loc),
+                       ⌜ node_next pred = Some l ⌝
                        ∗
-                       l' ↦ (rep_to_node succ)
+                       l ↦ (rep_to_node succ)
                        ∗
-                       (l' ↦ (rep_to_node succ) -∗ list_equiv L l)
+                       (l ↦ (rep_to_node succ) -∗ list_equiv L)
     .
     Proof.
-      revert l L. induction L1 => l L HL.
+      revert L. induction L1 => L HL.
       + destruct L as [| curr L].
         { exfalso. inversion HL. }
         inversion HL as [[H0 HL']]; subst.
         destruct L as [| curr L].
         - inversion HL'; subst.
-          iIntros "(#Hsome & Hpt)".
-          iExists l. iSplit. 
-          iFrame "#". iFrame. 
-          iIntros "Hpt". by iFrame.
+          iIntros "Hlist". 
+          iDestruct "Hlist" as (l) "(#Hsome & Hpt)".
+          iExists l. iFrame "#"; iFrame.
+          iIntros "Hpt". 
+          iExists l. iFrame "#"; iFrame.
         - inversion HL'; subst.
-          iIntros "(#Hsome & Hpt & Hmatch)".
-          iExists l. iSplit.
-          iFrame "#". iFrame. 
-          iIntros "Hpt". by iFrame.
+          iIntros "Hlist". 
+          iDestruct "Hlist" as (l) "(#Hsome & Hpt & Hmatch)".
+          iExists l. iFrame "#"; iFrame.
+          iIntros "Hpt". 
+          iExists l. iFrame "#"; iFrame.
       + destruct L as [| curr L].
         { 
           exfalso. inversion HL  as [[H0 HL']]; subst. 
@@ -86,11 +89,10 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         }
         
         iIntros "Hlist".
-        iPoseProof (list_equiv_cons with "Hlist") as "Hlist".
-        iDestruct "Hlist" as (l'') "(Hlist & Himp)".
+        iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
         iPoseProof (IHL1 with "Hlist") as "Hlist"; auto.
-        iDestruct "Hlist" as (l''') "(Hlist & Hpt & Himp')".
-        iExists l'''. iFrame. iIntros "Hpt".
+        iDestruct "Hlist" as (l) "(Hsome & Hpt & Himp')".
+        iExists l. iFrame. iIntros "Hpt".
         iApply "Himp". iApply "Himp'". iFrame.
     Qed.
     
@@ -100,12 +102,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     * the same elements as S.
     *)
     Definition lazy_list_inv (S: gset node_rep) (head: node_rep) : iProp Σ := 
-      ∃ (L: list node_rep) (l: loc),
+      ∃ (L: list node_rep),
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
-      list_equiv ([head] ++ L) l
+      list_equiv ([head] ++ L)
     .
 
     (* 
@@ -127,12 +129,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       set (head := (INT_MIN, Some t, false, dummy_lock)).
       rewrite (fold_rep_to_node head).
       iMod (inv_alloc N ⊤ (lazy_list_inv ∅ head) with "[Ht]") as "Hinv".
-      + iNext. iExists nil, t.
+      + iNext. iExists nil.
         iSplit. done. iSplit. simpl. 
         assert (node_lt head tail) as Hlt.
         { unfold node_lt; unfold node_key; simpl; apply HMIN_MAX. }
-        auto using Hlt. 
-        by iFrame.
+        auto using Hlt.
+        iExists t. by iFrame.
       + by iApply "HΦ".
     Qed.
     
@@ -166,7 +168,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       wp_lam. wp_let. wp_lam. wp_pures.
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (L' l') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
+        iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
 
         assert (L = L') as <-.
         {
@@ -186,7 +188,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           wp_load.
           iMod ("Hclose" with "[Hpt Himp]").
           {
-            iNext. iExists L, _.
+            iNext. iExists L.
             iSplit. done.
             iSplit. done.
             iApply "Himp". iFrame.
@@ -202,7 +204,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           wp_load.
           iMod ("Hclose" with "[Hpt Himp]").
           {
-            iNext. iExists L, _.
+            iNext. iExists L.
             iSplit. done.
             iSplit. done.
             iApply "Himp". iFrame.
@@ -257,7 +259,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
             { lia. }
 
             iNext. iApply "HΦ".
-      + iInv N as (L' l') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
+      + iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
       
         assert (L = L') as <-.
         {
@@ -275,7 +277,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           iDestruct "Hlist'" as (l'') "(>%Hsome & Hpt & Himp)".
           iMod ("Hclose" with "[Hpt Himp]").
           {
-            iNext. iExists L, _.
+            iNext. iExists L.
             iSplit. done.
             iSplit. done.
             iApply "Himp". iFrame.
@@ -286,7 +288,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           iDestruct "Hlist'" as (l'') "(>%Hsome & Hpt & Himp)".
           iMod ("Hclose" with "[Hpt Himp]").
           {
-            iNext. iExists L, _.
+            iNext. iExists L.
             iSplit. done.
             iSplit. done.
             iApply "Himp". iFrame.
