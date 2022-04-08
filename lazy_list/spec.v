@@ -326,19 +326,16 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           congruence.
     Qed.
     
-
-    (* Theorem contains_spec (S: gset Z) (v: val) (key: Z) 
+    Theorem contains_spec (head: node_rep) (key: Z) (S: gset node_rep)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_lazy_list S v }}}
-        contains v #key
-      {{{ b, RET b; 
-        is_lazy_list S v
+      {{{ is_lazy_list S head }}}
+        contains (rep_to_node head) #key
+      {{{ (b: bool), RET #b; 
+        is_lazy_list S head
         ∗
-        ⌜ (b = #false ∧ key ∉ S)
-        ∨
-        (b = #true ∧ key ∈ S) ⌝
+        ⌜ if b then key ∈ (map node_key (elements S)) else key ∉ (map node_key (elements S)) ⌝
       }}}.
     Proof.
-    Admitted. *)
+    Admitted.
   End Proofs.
 End LazyListSpec.
