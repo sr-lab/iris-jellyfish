@@ -60,10 +60,10 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     .
     Proof.
       revert L. induction L1 => L HL.
-      + destruct L as [| curr L].
+      + destruct L as [|curr L].
         { exfalso. inversion HL. }
         inversion HL as [[H0 HL']]; subst.
-        destruct L as [| curr L].
+        destruct L as [|curr L].
         - inversion HL'; subst.
           iIntros "Hlist". 
           iDestruct "Hlist" as (l) "(#Hsome & Hpt)".
@@ -76,14 +76,14 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           iExists l. iFrame "#"; iFrame.
           iIntros "Hpt". 
           iExists l. iFrame "#"; iFrame.
-      + destruct L as [| curr L].
+      + destruct L as [|curr L].
         { 
           exfalso. inversion HL  as [[H0 HL']]; subst. 
           destruct L1; inversion HL'.
         }
         inversion HL as [[H0 HL']]; subst.
 
-        destruct L as [| curr L].
+        destruct L as [|curr L].
         { 
           exfalso. 
           destruct L1; inversion HL. 
@@ -144,7 +144,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       (S: gset node_rep) (L: list node_rep) :
       Permutation (elements S) L →
       Sorted node_lt ([head] ++ L ++ [tail]) →
-      node_key head < key < INT_MAX →
+      INT_MIN < key < INT_MAX →
       {{{ 
         is_lazy_list S head 
         ∗
@@ -262,7 +262,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
               rewrite -app_ass Hcurr app_ass Hsplit_join //= in Hsplit_sep.
               apply sorted_node_lt_NoDup in Hsort.
 
-              destruct Lm as [| next'' Lm] using rev_ind.
+              destruct Lm as [|next'' Lm] using rev_ind.
               -- left. eapply (NoDup_pred_unique (Ls ++ [curr]) L2 (Ls ++ L1) L2 succ).
                  { apply NoDup_ListNoDup. rewrite app_ass //=. }
                  rewrite app_ass //= app_ass //=.
