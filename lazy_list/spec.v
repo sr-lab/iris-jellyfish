@@ -140,11 +140,8 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       + by iApply "HΦ".
     Qed.
     
-    Theorem find_spec (head curr: node_rep) (key: Z)
-      (S: gset node_rep) (L: list node_rep) :
-      Permutation (elements S) L →
-      Sorted node_lt ([head] ++ L ++ [tail]) →
-      INT_MIN < key < INT_MAX →
+    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) :
+      key < INT_MAX →
       {{{ 
         is_lazy_list S head 
         ∗
@@ -159,42 +156,32 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
     Proof.
-      intros Hperm Hsort Hrange.
+      intros Hrange.
       iIntros (Φ) "(#Hinv & Hcurr_range & Hcurr_key) HΦ".
       iRevert (curr) "Hcurr_range Hcurr_key HΦ".
       iLöb as "IH". 
       iIntros (curr) "%Hcurr_range %Hcurr_key HΦ".
       wp_lam. wp_let. wp_lam. wp_pures.
 
-      edestruct (in_split curr ([head] ++ L)) as (Ls&Lf&Hcurr).
-      { destruct Hcurr_range; first by left.
-        right. apply elem_of_list_In. rewrite - Hperm. apply elem_of_elements; auto. }
-
-      edestruct (node_rep_split_join Lf curr key) as (pred&succ&L1&L2&?&Hsplit_join).
-      { split; lia. }
-
-      feed pose proof (node_rep_split_sep L Ls Lf L1 L2 head curr pred succ key) as Htemp; eauto; try lia.
-      destruct Htemp as [Lm Hsplit_sep].
-
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
+        iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
-        assert (L = L') as <-.
-        {
-          eapply node_rep_sorted_eq.
-          * inversion Hsort as [| ? ? Hsorted]; subst.
-            eapply node_rep_sorted_app in Hsorted. by destruct Hsorted. 
-          * inversion Hsort' as [| ? ? Hsorted]; subst.
-            eapply node_rep_sorted_app in Hsorted. by destruct Hsorted.
-          * by rewrite -Hperm.
-        }
+        edestruct (in_split curr ([head] ++ L)) as (Ls&Lf&Hcurr).
+        { destruct Hcurr_range; first by left.
+          right. apply elem_of_list_In. rewrite Hperm. apply elem_of_elements; auto. }
+  
+        edestruct (node_rep_split_join Lf curr key) as (pred&succ&L1&L2&?&Hsplit_join).
+        { split; lia. }
+  
+        feed pose proof (node_rep_split_sep L Ls Lf L1 L2 head curr pred succ key) as Htemp; eauto; try lia.
+        destruct Htemp as [Lm Hsplit_sep].
 
         destruct Lm as [|next Lm].
         - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
-          iDestruct "Hlist'" as (l'') "(>%Hsome & Hpt & Himp)".
-          assert (l = l'') as <- by congruence.
+          iDestruct "Hlist" as (l') "(>%Hsome & Hpt & Himp)".
+          assert (l = l') as <- by congruence.
           wp_load.
           iMod ("Hclose" with "[Hpt Himp]").
           {
@@ -209,7 +196,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           iModIntro. 
           iSplit. done.
 
-          iPureIntro. rewrite Hperm. split; intros.
+          iPureIntro. rewrite -Hperm. split; intros.
           * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
             ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr app_ass.
             ++ cut (In key (map node_key ([head] ++ L ++ [tail]))).
@@ -239,8 +226,8 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
               rewrite in_app_iff. right. right. left. auto.
         - rewrite (list_equiv_split curr next ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
-          iDestruct "Hlist'" as (l'') "(>%Hsome & Hpt & Himp)".
-          assert (l = l'') as <- by congruence.
+          iDestruct "Hlist" as (l') "(>%Hsome & Hpt & Himp)".
+          assert (l = l') as <- by congruence.
           wp_load.
           iMod ("Hclose" with "[Hpt Himp]").
           {
@@ -262,7 +249,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
               rewrite -app_ass Hcurr app_ass Hsplit_join //= in Hsplit_sep.
               apply sorted_node_lt_NoDup in Hsort.
 
-              destruct Lm as [|next'' Lm] using rev_ind.
+              destruct Lm as [|next' Lm] using rev_ind.
               -- left. eapply (NoDup_pred_unique (Ls ++ [curr]) L2 (Ls ++ L1) L2 succ).
                  { apply NoDup_ListNoDup. rewrite app_ass //=. }
                  rewrite app_ass //= app_ass //=.
@@ -273,10 +260,10 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
                  rewrite //= app_ass app_ass //=.
             }
             cut (Sorted node_lt ([next] ++ Lm)).
-            -- intros Hsort''.
-               apply Sorted_StronglySorted in Hsort''; last first.
+            -- intros Hsort'.
+               apply Sorted_StronglySorted in Hsort'; last first.
                { unfold Relations_1.Transitive; apply node_lt_transitive. } 
-               inversion Hsort''; subst. 
+               inversion Hsort'; subst. 
                inversion Hpred_in_m; first by (subst; lia).
                apply node_lt_le_incl.
                eapply Forall_forall; eauto.
@@ -286,7 +273,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           * wp_if.
             iApply ("IH" $! next with "[%] [%]").
             { 
-              right. apply elem_of_elements. rewrite Hperm.
+              right. apply elem_of_elements. rewrite -Hperm.
               destruct Ls; assert (next ∈ L ++ [tail]) as Hin.
               -- inversion Hsplit_sep; subst; by left.
               -- apply elem_of_list_In, in_app_iff in Hin.
@@ -302,22 +289,22 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
             { lia. }
 
             iNext. iApply "HΦ".
-      + iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist')" "Hclose".
-      
-        assert (L = L') as <-.
-        {
-          eapply node_rep_sorted_eq.
-          * inversion Hsort as [| ? ? Hsorted]; subst.
-            eapply node_rep_sorted_app in Hsorted. by destruct Hsorted.
-          * inversion Hsort' as [| ? ? Hsorted]; subst.
-            eapply node_rep_sorted_app in Hsorted. by destruct Hsorted.
-          * by rewrite -Hperm.
-        }
+      + iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
+
+        edestruct (in_split curr ([head] ++ L)) as (Ls&Lf&Hcurr).
+        { destruct Hcurr_range; first by left.
+          right. apply elem_of_list_In. rewrite Hperm. apply elem_of_elements; auto. }
+  
+        edestruct (node_rep_split_join Lf curr key) as (pred&succ&L1&L2&?&Hsplit_join).
+        { split; lia. }
+  
+        feed pose proof (node_rep_split_sep L Ls Lf L1 L2 head curr pred succ key) as Htemp; eauto; try lia.
+        destruct Htemp as [Lm Hsplit_sep].
 
         destruct Lm as [|next Lm].
         - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
-          iDestruct "Hlist'" as (?) "(>%Hsome & Hpt & Himp)".
+          iDestruct "Hlist" as (?) "(>%Hsome & Hpt & Himp)".
           iMod ("Hclose" with "[Hpt Himp]").
           {
             iNext. iExists L.
@@ -328,7 +315,7 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           congruence.
         - rewrite (list_equiv_split curr next ([head] ++ L)); last first.
           { simpl in *. by rewrite -Hsplit_sep. }
-          iDestruct "Hlist'" as (?) "(>%Hsome & Hpt & Himp)".
+          iDestruct "Hlist" as (?) "(>%Hsome & Hpt & Himp)".
           iMod ("Hclose" with "[Hpt Himp]").
           {
             iNext. iExists L.
