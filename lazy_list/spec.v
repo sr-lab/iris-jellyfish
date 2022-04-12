@@ -100,8 +100,8 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     
     (* 
     * The invariant for the lazy list asserts that
-    * the underlying set S is sorted and must contain
-    * the same elements as S.
+    * the underlying list L is sorted and must contain
+    * the same elements as the abstract set S.
     *)
     Definition lazy_list_inv (S: gset node_rep) (head: node_rep) : iProp Σ := 
       ∃ (L: list node_rep),
@@ -112,11 +112,12 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       list_equiv ([head] ++ L)
     .
 
-    (* 
-    * Asserts that v points to a heap cell that 
-    * represents the set S as a lazy list.
-    *)
-    Definition is_lazy_list (S: gset node_rep) (head: node_rep) : iProp Σ := 
+    Definition is_lazy_list (Skeys: gset Z) (head: node_rep) : iProp Σ := 
+      ∃ (S: gset node_rep),
+      ⌜ key_equiv S Skeys ⌝
+      ∗
+      ⌜ node_key head = INT_MIN ⌝
+      ∗
       inv N (lazy_list_inv S head).
 
     Theorem new_spec :
@@ -137,13 +138,15 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         { unfold node_lt; unfold node_key; simpl; apply HMIN_MAX. }
         auto using Hlt.
         iExists t. by iFrame.
-      + by iApply "HΦ".
+      + iApply "HΦ". iExists ∅. iModIntro.
+        iSplit. by unfold key_equiv.
+        by iSplit.
     Qed.
     
     Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) :
       key < INT_MAX →
       {{{ 
-        is_lazy_list S head 
+        inv N (lazy_list_inv S head)
         ∗
         ⌜ curr = head ∨ curr ∈ S ⌝
         ∗
@@ -323,18 +326,18 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           congruence.
     Qed.
     
-    Theorem contains_spec (head: node_rep) (key: Z) (S: gset node_rep)
-      (Skeys: gset Z) (Hequiv: key_equiv S Skeys)
-      (Hrange: node_key head < key < INT_MAX) :
-      {{{ is_lazy_list S head }}}
+    Theorem contains_spec (head: node_rep) (key: Z) (Skeys: gset Z)
+      (Hrange: INT_MIN < key < INT_MAX) :
+      {{{ is_lazy_list Skeys head }}}
         contains (rep_to_node head) #key
       {{{ (b: bool), RET #b; 
-        is_lazy_list S head
+        is_lazy_list Skeys head
         ∗
         ⌜ if b then key ∈ Skeys else key ∉ Skeys ⌝
       }}}.
     Proof.
-      iIntros (Φ) "#Hinv HΦ".
+      iIntros (Φ) "#H HΦ".
+      iDestruct "H" as (S) "(%Hequiv & %Hhead & Hinv)".
       wp_lam. wp_let.
       wp_apply (find_spec head head key S).
       { lia. }
@@ -344,12 +347,15 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       iModIntro.
 
       case_bool_decide.
-      + iApply "HΦ". iFrame "#". iPureIntro.
-        unfold key_equiv in Hequiv. 
+      + iApply "HΦ". iSplit. 
+        iExists S. by iFrame "#".
+        iPureIntro. unfold key_equiv in Hequiv. 
         apply elem_of_elements. rewrite Hequiv.
         apply Hkey_in_S. congruence.
-      + iApply "HΦ". iFrame "#". iPureIntro.
-        intros Hin. apply elem_of_elements in Hin.
+      + iApply "HΦ". iSplit. 
+        iExists S. by iFrame "#".
+        iPureIntro. intros Hin. 
+        apply elem_of_elements in Hin.
         rewrite Hequiv in Hin. apply Hkey_in_S in Hin.
         congruence.
     Qed.
