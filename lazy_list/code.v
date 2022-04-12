@@ -4,37 +4,15 @@ From SkipList.lib Require Import misc lock.
 
 Local Open Scope Z.
 Module Type LAZYLIST_PARAMS.
-  (* Define node keys range *)
   Parameter INT_MIN : Z.
   Parameter INT_MAX : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
 End LAZYLIST_PARAMS.
 
-(* Node representative *)
-Definition node_rep : Type := Z * option loc * bool * val.
-Definition node_key (n: node_rep) : Z := n.1.1.1.
-Definition node_next (n: node_rep) : option loc := n.1.1.2.
-Definition node_mark (n: node_rep) : bool := n.1.2.
-Definition node_lock (n: node_rep) : val := n.2.
-
-(* Functions to access node fields *)
 Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
 Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
 Definition nodeMark : val := λ: "l", Snd (Fst "l").
 Definition nodeLock : val := λ: "l", Snd "l".
-
-Definition node_lt (x y: node_rep) : Prop := 
-  node_key x < node_key y
-.
-
-(* Convert a node representative to a HeapLang value *)
-Definition rep_to_node (n: node_rep) : val :=
-  (#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)).
-
-Lemma fold_rep_to_node (n: node_rep) :
-  ((#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)))%V =
-  rep_to_node n.
-Proof. done. Qed.
 
 Module Lazylist (Params: LAZYLIST_PARAMS).
   Import Params.
@@ -72,8 +50,7 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
 
   Definition contains : val := 
     λ: "head" "k",
-      let: "node" := !"head" in
-      let: "ocurr" := find "node" "k" in
+      let: "ocurr" := find "head" "k" in
       match: "ocurr" with
           NONE => #false
         | SOME "curr" =>

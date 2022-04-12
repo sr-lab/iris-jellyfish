@@ -151,8 +151,6 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       }}}
       find (rep_to_node curr) #key
       {{{ succ, RET SOMEV (rep_to_node succ);
-        is_lazy_list S head
-        ∗
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
     Proof.
@@ -194,7 +192,6 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
           case_bool_decide; last lia.
           wp_pures. iApply "HΦ".
           iModIntro. 
-          iSplit. done.
 
           iPureIntro. rewrite -Hperm. split; intros.
           * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
@@ -327,15 +324,34 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     Qed.
     
     Theorem contains_spec (head: node_rep) (key: Z) (S: gset node_rep)
-      (Hrange: INT_MIN < key < INT_MAX) :
+      (Skeys: gset Z) (Hequiv: key_equiv S Skeys)
+      (Hrange: node_key head < key < INT_MAX) :
       {{{ is_lazy_list S head }}}
         contains (rep_to_node head) #key
       {{{ (b: bool), RET #b; 
         is_lazy_list S head
         ∗
-        ⌜ if b then key ∈ (map node_key (elements S)) else key ∉ (map node_key (elements S)) ⌝
+        ⌜ if b then key ∈ Skeys else key ∉ Skeys ⌝
       }}}.
     Proof.
-    Admitted.
+      iIntros (Φ) "#Hinv HΦ".
+      wp_lam. wp_let.
+      wp_apply (find_spec head head key S).
+      { lia. }
+      { iSplit. done. iSplit. by iLeft. iPureIntro. lia. }
+      iIntros (succ) "%Hkey_in_S".
+      wp_let. wp_match. wp_lam. wp_pures.
+      iModIntro.
+
+      case_bool_decide.
+      + iApply "HΦ". iFrame "#". iPureIntro.
+        unfold key_equiv in Hequiv. 
+        apply elem_of_elements. rewrite Hequiv.
+        apply Hkey_in_S. congruence.
+      + iApply "HΦ". iFrame "#". iPureIntro.
+        intros Hin. apply elem_of_elements in Hin.
+        rewrite Hequiv in Hin. apply Hkey_in_S in Hin.
+        congruence.
+    Qed.
   End Proofs.
 End LazyListSpec.

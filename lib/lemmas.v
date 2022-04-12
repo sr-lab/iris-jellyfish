@@ -2,6 +2,7 @@ From Coq Require Import Lia Sorting.Sorted.
 
 From iris.heap_lang Require Import proofmode.
 
+From SkipList.lib Require Import misc.
 From SkipList.lazy_list Require Import code.
 
 
