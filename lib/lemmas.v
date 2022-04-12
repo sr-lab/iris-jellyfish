@@ -2,15 +2,20 @@ From Coq Require Import Lia Sorting.Sorted.
 
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import misc.
-From SkipList.lazy_list Require Import code.
+From SkipList.lib Require Export misc.
+From SkipList.lazy_list Require Export code.
 
 
 Local Open Scope Z.
-Module LazylistLemmas (Params: LAZYLIST_PARAMS).
+Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module Code := Lazylist Params.
+  Module Code := LazyList Params.
   Export Code.
+
+  Lemma fold_rep_to_node (n: node_rep) :
+    ((#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)))%V =
+    rep_to_node n.
+  Proof. done. Qed.
 
   Lemma node_lt_transitive :
     forall x y z, node_lt x y -> node_lt y z -> node_lt x z
@@ -268,4 +273,4 @@ Module LazylistLemmas (Params: LAZYLIST_PARAMS).
       inversion 1; subst. eapply IHL1; eauto.
       inversion Hnd; eauto.
   Qed.
-End LazylistLemmas.
+End LazyListLemmas.

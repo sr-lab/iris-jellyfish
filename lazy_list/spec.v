@@ -3,128 +3,27 @@ From Coq Require Import Sorting.Sorted.
 From iris.heap_lang Require Import notation proofmode.
 From iris.base_logic.lib Require Export invariants.
 
-From SkipList.lazy_list Require Import code.
-From SkipList.lib Require Import misc lemmas.
+From SkipList.lazy_list Require Import inv.
 
 
 Local Open Scope Z.
-Module LazyListSpec (Params: LAZYLIST_PARAMS).
+Module LazyListSpec (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module Code := Lazylist Params.
+  Module Code := LazyList Params.
   Import Code.
-  Module Lemmas := LazylistLemmas Params.
+  Module Lemmas := LazyListLemmas Params.
   Import Lemmas.
+  Module Invariant := LazyListInv Params.
+  Import Invariant.
 
   Section Proofs.
     Context `{!heapGS Σ} (N : namespace).
-
-    Fixpoint list_equiv (L: list node_rep) : iProp Σ :=
-      match L with
-      | nil => True
-      | pred :: succs => 
-        match succs with
-        | nil => ∃ (l: loc), 
-                 ⌜ node_next pred = Some l ⌝
-                 ∗
-                 l ↦ rep_to_node tail
-
-        | succ :: t => ∃ (l: loc), 
-                       ⌜ node_next pred = Some l ⌝
-                       ∗
-                       l ↦ rep_to_node succ
-                       ∗
-                       list_equiv succs
-        end
-      end.
-
-    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
-      list_equiv (rep :: L)
-        ⊢ (list_equiv L ∗ (list_equiv L -∗ list_equiv (rep :: L)))
-    .
-    Proof.
-      destruct L as [|n].
-      * iIntros "Hrep". by iFrame.
-      * iIntros "Hlist". iDestruct "Hlist" as (l) "(Hsome & Hpt & Hmatch)".
-        iFrame. iIntros "Hlist". iFrame.
-        iExists l. iFrame.
-    Qed.
-
-    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep):
-      L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
-      list_equiv L ⊢ ∃ (l: loc),
-                       ⌜ node_next pred = Some l ⌝
-                       ∗
-                       l ↦ (rep_to_node succ)
-                       ∗
-                       (l ↦ (rep_to_node succ) -∗ list_equiv L)
-    .
-    Proof.
-      revert L. induction L1 => L HL.
-      + destruct L as [|curr L].
-        { exfalso. inversion HL. }
-        inversion HL as [[H0 HL']]; subst.
-        destruct L as [|curr L].
-        - inversion HL'; subst.
-          iIntros "Hlist". 
-          iDestruct "Hlist" as (l) "(#Hsome & Hpt)".
-          iExists l. iFrame "#"; iFrame.
-          iIntros "Hpt". 
-          iExists l. iFrame "#"; iFrame.
-        - inversion HL'; subst.
-          iIntros "Hlist". 
-          iDestruct "Hlist" as (l) "(#Hsome & Hpt & Hmatch)".
-          iExists l. iFrame "#"; iFrame.
-          iIntros "Hpt". 
-          iExists l. iFrame "#"; iFrame.
-      + destruct L as [|curr L].
-        { 
-          exfalso. inversion HL  as [[H0 HL']]; subst. 
-          destruct L1; inversion HL'.
-        }
-        inversion HL as [[H0 HL']]; subst.
-
-        destruct L as [|curr L].
-        { 
-          exfalso. 
-          destruct L1; inversion HL. 
-          destruct L1; inversion HL.
-        }
-        
-        iIntros "Hlist".
-        iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
-        iPoseProof (IHL1 with "Hlist") as "Hlist"; auto.
-        iDestruct "Hlist" as (l) "(Hsome & Hpt & Himp')".
-        iExists l. iFrame. iIntros "Hpt".
-        iApply "Himp". iApply "Himp'". iFrame.
-    Qed.
-    
-    (* 
-    * The invariant for the lazy list asserts that
-    * the underlying list L is sorted and must contain
-    * the same elements as the abstract set S.
-    *)
-    Definition lazy_list_inv (S: gset node_rep) (head: node_rep) : iProp Σ := 
-      ∃ (L: list node_rep),
-      ⌜ Permutation L (elements S) ⌝
-      ∗
-      ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
-      ∗
-      list_equiv ([head] ++ L)
-    .
-
-    Definition is_lazy_list (Skeys: gset Z) (head: node_rep) : iProp Σ := 
-      ∃ (S: gset node_rep),
-      ⌜ key_equiv S Skeys ⌝
-      ∗
-      ⌜ node_key head = INT_MIN ⌝
-      ∗
-      inv N (lazy_list_inv S head).
 
     Theorem new_spec :
       {{{ True }}}
         new #()
       {{{ (rep: node_rep), RET rep_to_node rep; 
-        is_lazy_list ∅ rep 
+        is_lazy_list N ∅ rep 
       }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
@@ -326,10 +225,10 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     
     Theorem contains_spec (head: node_rep) (key: Z) (Skeys: gset Z)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_lazy_list Skeys head }}}
+      {{{ is_lazy_list N Skeys head }}}
         contains (rep_to_node head) #key
       {{{ (b: bool), RET #b; 
-        is_lazy_list Skeys head
+        is_lazy_list N Skeys head
         ∗
         ⌜ if b then key ∈ Skeys else key ∉ Skeys ⌝
       }}}.
@@ -356,5 +255,6 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
         rewrite Hequiv in Hin. apply Hkey_in_S in Hin.
         congruence.
     Qed.
+
   End Proofs.
 End LazyListSpec.

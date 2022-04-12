@@ -4,4 +4,5 @@ lib/lock.v
 lazy_list/code.v
 lib/misc.v
 lib/lemmas.v
+lazy_list/inv.v
 lazy_list/spec.v

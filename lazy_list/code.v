@@ -1,20 +1,19 @@
-From iris.heap_lang Require Import notation.
 From SkipList.lib Require Import misc lock.
 
 
 Local Open Scope Z.
-Module Type LAZYLIST_PARAMS.
+Module Type LAZY_LIST_PARAMS.
   Parameter INT_MIN : Z.
   Parameter INT_MAX : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
-End LAZYLIST_PARAMS.
+End LAZY_LIST_PARAMS.
 
 Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
 Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
 Definition nodeMark : val := λ: "l", Snd (Fst "l").
 Definition nodeLock : val := λ: "l", Snd "l".
 
-Module Lazylist (Params: LAZYLIST_PARAMS).
+Module LazyList (Params: LAZY_LIST_PARAMS).
   Import Params.
 
   (* Auxiliary function *)
@@ -24,17 +23,7 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
       let: "pred_mark" := (nodeMark "pred") in
       let: "curr_mark" := (nodeMark "curr") in
       ("pred_mark" = #false) && ("curr_mark" = #false) && ("next" = SOME "curr").
-
-  (* FIXME remove this and replace with newlock #() *)
-  Definition dummy_lock : val := #1.
-
-  Definition tail : node_rep := (INT_MAX, None, false, dummy_lock).  
-
-  (* Lazy list creation *)
-  Definition new : val := 
-    λ: "_", (#INT_MIN, SOME (ref (rep_to_node tail)), #false, dummy_lock).
   
-  (* Lazy list lookup *)
   Definition find : val := 
     rec: "find" "pred" "k" :=
       let: "curr" := (nodeNext "pred") in
@@ -48,6 +37,16 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
           else "find" "node" "k"
       end.
 
+  (* FIXME remove this and replace with newlock #() *)
+  Definition dummy_lock : val := #1.
+
+  Definition tail : node_rep := (INT_MAX, None, false, dummy_lock).  
+
+  (* Lazy list creation *)
+  Definition new : val := 
+    λ: "_", (#INT_MIN, SOME (ref (rep_to_node tail)), #false, dummy_lock).
+
+  (* Lazy list lookup *)
   Definition contains : val := 
     λ: "head" "k",
       let: "ocurr" := find "head" "k" in
@@ -125,4 +124,4 @@ Module Lazylist (Params: LAZYLIST_PARAMS).
             "find" "node" "k"
       end.
 
-End Lazylist.
+End LazyList.

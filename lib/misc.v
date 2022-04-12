@@ -1,6 +1,6 @@
 From stdpp Require Export gmap.
 
-From iris.heap_lang Require Import notation.
+From iris.heap_lang Require Export notation.
 
 
 Definition oloc_to_val (ol: option loc) : val := 
@@ -21,11 +21,6 @@ Definition node_lt (x y: node_rep) : Prop :=
 
 Definition rep_to_node (n: node_rep) : val :=
   (#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)).
-
-Lemma fold_rep_to_node (n: node_rep) :
-  ((#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)))%V =
-  rep_to_node n.
-Proof. done. Qed.
 
 Definition key_equiv (S: gset node_rep) (S_keys: gset Z) :=
   Permutation (elements S_keys) (map node_key (elements S)).
