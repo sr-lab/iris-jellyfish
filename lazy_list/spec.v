@@ -144,24 +144,22 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
     Qed.
     
     Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) :
-      key < INT_MAX →
       {{{ 
         inv N (lazy_list_inv S head)
         ∗
         ⌜ curr = head ∨ curr ∈ S ⌝
         ∗
-        ⌜ node_key curr < key ⌝
+        ⌜ node_key curr < key < INT_MAX ⌝
       }}}
       find (rep_to_node curr) #key
       {{{ succ, RET SOMEV (rep_to_node succ);
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
     Proof.
-      intros Hrange.
-      iIntros (Φ) "(#Hinv & Hcurr_range & Hcurr_key) HΦ".
-      iRevert (curr) "Hcurr_range Hcurr_key HΦ".
+      iIntros (Φ) "(#Hinv & Hcurr_range & Hrange) HΦ".
+      iRevert (curr) "Hcurr_range Hrange HΦ".
       iLöb as "IH". 
-      iIntros (curr) "%Hcurr_range %Hcurr_key HΦ".
+      iIntros (curr) "%Hcurr_range %Hrange HΦ".
       wp_lam. wp_let. wp_lam. wp_pures.
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
@@ -340,7 +338,6 @@ Module LazyListSpec (Params: LAZYLIST_PARAMS).
       iDestruct "H" as (S) "(%Hequiv & %Hhead & Hinv)".
       wp_lam. wp_let.
       wp_apply (find_spec head head key S).
-      { lia. }
       { iSplit. done. iSplit. by iLeft. iPureIntro. lia. }
       iIntros (succ) "%Hkey_in_S".
       wp_let. wp_match. wp_lam. wp_pures.
