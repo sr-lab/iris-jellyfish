@@ -51,7 +51,11 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
       find (rep_to_node curr) #key
-      {{{ succ, RET SOMEV (rep_to_node succ);
+      {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
+        ⌜ node_key pred < key ≤ node_key succ ⌝
+        ∗
+        ⌜ pred = head ∨ pred ∈ S ⌝
+        ∗
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
     Proof.
@@ -91,9 +95,10 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
           iModIntro. wp_let. wp_lam. wp_pures.
           case_bool_decide; last lia.
           wp_pures. iApply "HΦ".
-          iModIntro. 
+          iModIntro.
 
-          iPureIntro. rewrite -Hperm. split; intros.
+          iPureIntro. split; first by lia. split; first by auto.
+          rewrite -Hperm. split; intros.
           * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
             ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr app_ass.
             ++ cut (In key (map node_key ([head] ++ L ++ [tail]))).
@@ -238,8 +243,8 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
       wp_lam. wp_let.
       wp_apply (find_spec head head key S).
       { iSplit. done. iSplit. by iLeft. iPureIntro. lia. }
-      iIntros (succ) "%Hkey_in_S".
-      wp_let. wp_match. wp_lam. wp_pures.
+      iIntros (pred succ) "(%Hrange' & %Hpred_in_S & %Hkey_in_S)".
+      wp_let. wp_match. wp_pures. wp_lam. wp_pures.
       iModIntro.
 
       case_bool_decide.
