@@ -1,7 +1,4 @@
-From Coq Require Import Sorting.Sorted.
-
-From iris.heap_lang Require Import proofmode.
-From iris.base_logic.lib Require Import invariants.
+From iris.base_logic.lib Require Export invariants.
 
 From SkipList.lib Require Export lemmas.
 
@@ -10,7 +7,7 @@ Local Open Scope Z.
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module Lemmas := LazyListLemmas Params.
-  Import Lemmas.
+  Export Lemmas.
 
   Section Proofs.
     Context `{!heapGS Σ} (N : namespace).

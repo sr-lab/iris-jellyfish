@@ -1,18 +1,11 @@
-From Coq Require Import Sorting.Sorted.
-
-From iris.heap_lang Require Import notation proofmode.
-From iris.base_logic.lib Require Export invariants.
-
 From SkipList.lazy_list Require Import inv.
+
+From SkipList.lib Require Import lock.
 
 
 Local Open Scope Z.
 Module LazyListSpec (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module Code := LazyList Params.
-  Import Code.
-  Module Lemmas := LazyListLemmas Params.
-  Import Lemmas.
   Module Invariant := LazyListInv Params.
   Import Invariant.
 

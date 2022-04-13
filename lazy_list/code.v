@@ -1,4 +1,5 @@
-From SkipList.lib Require Import misc lock.
+From SkipList.lib Require Import lock.
+From SkipList.lib Require Export misc.
 
 
 Local Open Scope Z.
@@ -60,10 +61,8 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
             "find" "head" "k"
       end.
   
-
-  (* FIXME remove this and replace with newlock #() *)
-  Definition dummy_lock : val := #1.
-
+  
+  Definition dummy_lock : val := #{|loc_car := 0|}.
   Definition tail : node_rep := (INT_MAX, None, false, dummy_lock).  
 
   (* Lazy list creation *)
@@ -97,7 +96,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
         #false
       else
         let: "osucc" := nodeNext "pred" in
-        let: "node" := ("k", "osucc", #false, dummy_lock) in
+        let: "node" := ("k", "osucc", #false, newlock #()) in
         match: "osucc" with
             NONE =>
             release (nodeLock "pred");;

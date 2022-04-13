@@ -1,8 +1,8 @@
-From Coq Require Import Lia Sorting.Sorted.
+From Coq Require Import Lia.
+From Coq Require Export Sorting.Sorted.
 
-From iris.heap_lang Require Import proofmode.
+From iris.heap_lang Require Export proofmode.
 
-From SkipList.lib Require Export misc.
 From SkipList.lazy_list Require Export code.
 
 
