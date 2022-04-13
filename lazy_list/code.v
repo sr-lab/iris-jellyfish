@@ -67,7 +67,9 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
 
   (* Lazy list creation *)
   Definition new : val := 
-    λ: "_", (#INT_MIN, SOME (ref (rep_to_node tail)), #false, dummy_lock).
+    λ: "_", 
+      let: "t" := ref (rep_to_node tail) in
+      (#INT_MIN, SOME "t", #false, newlock #()).
 
   (* Lazy list lookup *)
   Definition contains : val := 
