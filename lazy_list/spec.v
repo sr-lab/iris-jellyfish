@@ -15,8 +15,8 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
     Theorem new_spec :
       {{{ True }}}
         new #()
-      {{{ (rep: node_rep), RET rep_to_node rep; 
-        is_lazy_list N ∅ rep 
+      {{{ v, RET v; 
+        is_lazy_list N ∅ v 
       }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
@@ -34,9 +34,9 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
         { unfold node_lt; unfold node_key; simpl; apply HMIN_MAX. }
         auto using Hlt.
         iExists t, γ. by iFrame.
-      + iApply "HΦ". iExists ∅. iModIntro.
+      + iApply "HΦ". iExists head, ∅. iModIntro.
         iSplit. by unfold key_equiv.
-        by iSplit.
+        by (repeat iSplit).
     Qed.
     
     Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) :
@@ -225,19 +225,19 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
           congruence.
     Qed.
     
-    Theorem contains_spec (head: node_rep) (key: Z) (Skeys: gset Z)
+    Theorem contains_spec (v: val) (key: Z) (Skeys: gset Z)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_lazy_list N Skeys head }}}
-        contains (rep_to_node head) #key
+      {{{ is_lazy_list N Skeys v }}}
+        contains v #key
       {{{ (b: bool), RET #b; 
-        is_lazy_list N Skeys head
+        is_lazy_list N Skeys v
         ∗
         ⌜ if b then key ∈ Skeys else key ∉ Skeys ⌝
       }}}.
     Proof.
       iIntros (Φ) "#H HΦ".
-      iDestruct "H" as (S) "(%Hequiv & %Hhead & Hinv)".
-      wp_lam. wp_let.
+      iDestruct "H" as (head S) "(%Hequiv & %Hv & %Hmin & Hinv)".
+      wp_lam. wp_let. rewrite -Hv.
       wp_apply (find_spec head head key S).
       { iSplit. done. iSplit. by iLeft. iPureIntro. lia. }
       iIntros (pred succ) "(%Hrange' & %Hpred_in_S & %Hkey_in_S)".
@@ -246,12 +246,12 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
 
       case_bool_decide.
       + iApply "HΦ". iSplit. 
-        iExists S. by iFrame "#".
+        iExists head, S. by iFrame "#".
         iPureIntro. unfold key_equiv in Hequiv. 
         apply elem_of_elements. rewrite Hequiv.
         apply Hkey_in_S. congruence.
       + iApply "HΦ". iSplit. 
-        iExists S. by iFrame "#".
+        iExists head, S. by iFrame "#".
         iPureIntro. intros Hin. 
         apply elem_of_elements in Hin.
         rewrite Hequiv in Hin. apply Hkey_in_S in Hin.

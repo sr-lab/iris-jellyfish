@@ -55,9 +55,11 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       list_equiv ([head] ++ L)
     .
 
-    Definition is_lazy_list (Skeys: gset Z) (head: node_rep) : iProp Σ := 
-      ∃ (S: gset node_rep),
+    Definition is_lazy_list (Skeys: gset Z) (v: val) : iProp Σ := 
+      ∃ (head: node_rep) (S: gset node_rep),
       ⌜ key_equiv S Skeys ⌝
+      ∗
+      ⌜ rep_to_node head = v ⌝
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
