@@ -9,27 +9,14 @@ Module Type LAZY_LIST_PARAMS.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
 End LAZY_LIST_PARAMS.
 
-Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
-Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
-Definition nodeMark : val := λ: "l", Snd (Fst "l").
+Definition nodeKey : val := λ: "l", Fst (Fst "l").
+Definition nodeNext : val := λ: "l", Snd  (Fst "l").
 Definition nodeLock : val := λ: "l", Snd "l".
 
 Module LazyList (Params: LAZY_LIST_PARAMS).
   Import Params.
 
-  (* Auxiliary function *)
-  Definition validate : val := 
-    λ: "pred" "curr", 
-      (* let: "pred_mark" := (nodeMark "pred") in
-      let: "curr_mark" := (nodeMark "curr") in *)
-      let: "onext" := (nodeNext "pred") in
-      match: "onext" with
-          NONE => #false
-        | SOME "np" =>
-          let: "next" := !"np" in
-          "curr" = "next" 
-            (* && ("pred_mark" = #false) && ("curr_mark" = #false) *)
-      end.
+  (* Auxiliary functions *)
   
   Definition find : val := 
     rec: "find" "pred" "k" :=
@@ -51,25 +38,32 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
           NONE => #false
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
-          let: "curr" := Snd "curr" in
+          let: "curr" := Snd "pair" in
           acquire (nodeLock "pred");;
-          if: validate "pred" "curr"
-          then
-            ("pred", "curr")
-          else
-            release (nodeLock "pred");;
-            "find" "head" "k"
+          let: "onext" := (nodeNext "pred") in
+          match: "onext" with
+              NONE => #false
+            | SOME "np" =>
+              let: "next" := !"np" in
+              let: "nk" := (nodeKey "next") in
+              let: "ck" := (nodeKey "curr") in
+              if: "nk" = "ck" 
+              then
+                ("pred", "curr")
+              else
+                release (nodeLock "pred");;
+                "find" "head" "k"
+          end
       end.
   
-  
   Definition dummy_lock : val := #{|loc_car := 0|}.
-  Definition tail : node_rep := (INT_MAX, None, false, dummy_lock).  
+  Definition tail : node_rep := (INT_MAX, None, dummy_lock).  
 
   (* Lazy list creation *)
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      (#INT_MIN, SOME "t", #false, newlock #()).
+      (#INT_MIN, SOME "t", newlock #()).
 
   (* Lazy list lookup *)
   Definition contains : val := 
@@ -80,9 +74,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
         | SOME "pair" =>
           let: "curr" := Snd "pair" in
           let: "ck" := (nodeKey "curr") in
-          (* let: "cm" := (nodeMark "curr") in *)
           ("k" = "ck") 
-            (* && ("cm" = #false) FIXME *)
       end.
   
   (* Lazy list insertion *)
@@ -98,7 +90,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
         #false
       else
         let: "osucc" := nodeNext "pred" in
-        let: "node" := ("k", "osucc", #false, newlock #()) in
+        let: "node" := ("k", "osucc", newlock #()) in
         match: "osucc" with
             NONE =>
             release (nodeLock "pred");;
@@ -108,38 +100,5 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
             release (nodeLock "pred");;
             #true
         end.
-  
-  (* Lazy list removal *)
-  Definition remove : val := 
-    rec: "find" "pred" "k" :=
-      let: "curr" := !(nodeNext "pred") in
-      match: "curr" with
-          NONE => #false (* tail node *)
-        | SOME "node" =>
-          let: "ck" := (nodeKey "node") in
-          if: "k" ≤ "ck"
-          then
-            acquire (nodeLock "pred");;
-            acquire (nodeLock "node");;
-            if: (validate "pred" "node")
-            then 
-              if: ("ck" = "k")
-              then
-                (nodeMark "node") <- #true;;
-                (nodeNext "pred") <- !(nodeNext "node");;
-                release (nodeLock "node");;
-                release (nodeLock "pred");;
-                #true
-              else
-                release (nodeLock "node");;
-                release (nodeLock "pred");;
-                #false
-            else
-              release (nodeLock "node");;
-              release (nodeLock "pred");;
-              "find" "pred" "k" (* Retry *)
-          else
-            "find" "node" "k"
-      end.
 
 End LazyList.

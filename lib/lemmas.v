@@ -13,21 +13,45 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
   Export Code.
 
   Lemma fold_rep_to_node (n: node_rep) :
-    ((#(node_key n), oloc_to_val (node_next n), #(node_mark n), (node_lock n)))%V =
+    ((#(node_key n), oloc_to_val (node_next n), (node_lock n)))%V =
     rep_to_node n.
   Proof. done. Qed.
 
+  Lemma cons_comm_app {A: Type} : 
+    forall (x y:list A) (a:A), x ++ a :: y = x ++ [a] ++ y.
+  Proof. auto. Qed.
+
+  Lemma app_head {A: Type} :
+    forall (x y z:list A), x ++ y = x ++ z → y = z.
+  Proof.
+    intros x y z H. induction x as [|a x].
+    + auto.
+    + inversion H. by apply IHx.
+  Qed.
+
+  Lemma in_inv_rev {A: Type} :
+    forall (l: list A) (a b: A) , In b (l ++ [a]) ↔ In b l ∨ b = a.
+  Proof.
+    intros l a b. split; intros H.
+    + induction l as [|c l] using rev_ind.
+      - inversion H; auto; by exfalso.
+      - apply in_app_or in H. inversion H as [?|H'].
+        * auto.
+        * inversion H'; auto; by exfalso.
+    + inversion H.
+      - apply in_or_app. by left.
+      - apply in_or_app. right. by left.
+  Qed.
+
   Lemma node_lt_transitive :
-    forall x y z, node_lt x y -> node_lt y z -> node_lt x z
-  .
+    forall x y z, node_lt x y → node_lt y z → node_lt x z.
   Proof.
     intros x y z. unfold node_lt.
     intros xy yz. lia.
   Qed.
 
   Lemma node_lt_le_incl : 
-    ∀ x y, node_lt x y → node_key x ≤ node_key y
-  .
+    ∀ x y, node_lt x y → node_key x ≤ node_key y.
   Proof.
     intros x y Hlt.
     unfold node_lt in Hlt. lia.
@@ -73,7 +97,7 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
           apply node_lt_transitive.
   Qed.
 
-  Lemma StronglySorted_app {A: Type} R (L1 L2: list A) :
+  Lemma strongly_sorted_app {A: Type} R (L1 L2: list A) :
     StronglySorted R (L1 ++ L2) →
     StronglySorted R L1 ∧ StronglySorted R L2.
   Proof.
@@ -91,7 +115,7 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
     Sorted node_lt (L1 ++ L2) → Sorted node_lt L1 ∧ Sorted node_lt L2.
   Proof.
     intros HS. apply Sorted_StronglySorted in HS; last eauto with *.
-    + apply StronglySorted_app in HS as (?&?); split; eauto using StronglySorted_Sorted.
+    + apply strongly_sorted_app in HS as (?&?); split; eauto using StronglySorted_Sorted.
     + unfold Relations_1.Transitive.
       apply node_lt_transitive.
   Qed.
@@ -203,8 +227,8 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
     apply not_elem_of_cons; split.
     * apply Sorted_inv in Hsort as (?&Hhd).
       inversion Hhd; subst.
-      unfold node_lt in H1. unfold node_key in H1.
-      assert (x.1.1.1 ≠ a.1.1.1) by lia. congruence.
+      unfold node_lt in H1.
+      assert (node_key x ≠ node_key a) by lia. congruence.
     * eapply IHL.
       apply Sorted_inv in Hsort as (Hsort&Hhd).
       apply Sorted_inv in Hsort as (?&Hhd').
@@ -215,7 +239,7 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
         by eapply node_lt_transitive.
   Qed.
 
-  Lemma sorted_node_lt_NoDup (L: list node_rep):
+  Lemma sorted_node_lt_no_dup (L: list node_rep):
     Sorted node_lt L → NoDup L.
   Proof.
     induction L as [|a L] => Hsorted.
@@ -225,7 +249,7 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
       econstructor; eauto.
   Qed.
 
-  Lemma NoDup_pred_unique {A: Type} (L1 L2 L1' L2': list A) np pred1 pred2 :
+  Lemma no_dup_pred_unique {A: Type} (L1 L2 L1' L2': list A) np pred1 pred2 :
     List.NoDup (L1 ++ pred1 :: np :: L2) →
     L1 ++ pred1 :: np :: L2 = L1' ++ pred2 :: np :: L2' →
     pred1 = pred2.
@@ -273,4 +297,5 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
       inversion 1; subst. eapply IHL1; eauto.
       inversion Hnd; eauto.
   Qed.
+  
 End LazyListLemmas.

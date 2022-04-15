@@ -11,9 +11,6 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
 
   Section Proofs.
     Context `{!heapGS Σ, lockG Σ} (N : namespace).
-
-    Definition node_inv (l: loc) : iProp Σ := 
-        (∃ (rep': node_rep), l ↦{#1 / 2} rep_to_node rep').
     
     (* 
     * The invariant for the lazy list asserts that
@@ -33,14 +30,14 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                  ∗
                  l ↦{#1 / 2} rep_to_node tail
                  ∗
-                 is_lock γ (node_lock pred) (node_inv l)
+                 is_lock γ (node_lock pred) (l ↦{#1 / 2} rep_to_node tail)
 
         | succ :: t => ∃ (l: loc) (γ: gname), 
                        ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦{#1 / 2} rep_to_node succ
                        ∗
-                       is_lock γ (node_lock pred) (node_inv l)
+                       is_lock γ (node_lock pred) (l ↦{#1 / 2} rep_to_node succ)
                        ∗
                        list_equiv succs
         end
@@ -85,7 +82,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                        ∗
                        l ↦{#1 / 2} (rep_to_node succ)
                        ∗
-                       is_lock γ (node_lock pred) (node_inv l)
+                       is_lock γ (node_lock pred) (l ↦{#1 / 2} (rep_to_node succ))
                        ∗
                        (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L)
     .
