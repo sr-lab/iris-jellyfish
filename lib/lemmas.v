@@ -297,5 +297,42 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
       inversion 1; subst. eapply IHL1; eauto.
       inversion Hnd; eauto.
   Qed.
+
+  Lemma sorted_node_lt_hd (L: list node_rep) (h a: node_rep) :
+    In a (h :: L) →
+    Sorted node_lt (h :: L) →
+    a = h ∨ node_lt h a.
+  Proof.
+    intros Hin Hsort.
+    apply Sorted_StronglySorted in Hsort; last first.
+    { unfold Relations_1.Transitive; apply node_lt_transitive. }
+    apply StronglySorted_inv in Hsort as (?&Hforall).
+    destruct Hin; first by left. right.
+    rewrite List.Forall_forall in Hforall.
+    by eapply Hforall.
+  Qed.
+
+  Lemma sorted_node_key_unique (L: list node_rep) (a b: node_rep):
+    Sorted node_lt L →
+    In a L →
+    In b L →
+    node_key a = node_key b →
+    a = b.
+  Proof.
+    induction L as [|h L] => Hsort Hina Hinb Hkey.
+    + by exfalso.
+    + inversion Hina; subst.
+      - clear IHL.
+        apply sorted_node_lt_hd in Hinb; last auto.
+        destruct Hinb as [?|Hfalse]; first auto. 
+        unfold node_lt in Hfalse; lia.
+      - inversion Hinb; subst.
+        * clear IHL.
+          apply sorted_node_lt_hd in Hina; last auto.
+          destruct Hina as [?|Hfalse]; first auto. 
+          unfold node_lt in Hfalse; lia.
+        * apply Sorted_inv in Hsort; destruct Hsort.
+          apply IHL; auto.
+  Qed.
   
 End LazyListLemmas.
