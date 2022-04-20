@@ -89,13 +89,14 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
         release (nodeLock "pred");;
         #false
       else
-        let: "osucc" := nodeNext "pred" in
-        let: "node" := ("k", "osucc", newlock #()) in
-        match: "osucc" with
+        match: nodeNext "pred" with
             NONE =>
             release (nodeLock "pred");;
             #false
           | SOME "np" =>
+            let: "succ" := !"np" in
+            let: "next" := ref "succ" in
+            let: "node" := ("k", SOME "next", newlock #()) in
             "np" <- "node";;
             release (nodeLock "pred");;
             #true
