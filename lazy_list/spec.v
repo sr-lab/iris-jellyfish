@@ -22,8 +22,8 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
       iIntros (Φ) "_ HΦ".
       wp_lam. wp_alloc t as "Ht". wp_let.
       iDestruct "Ht" as "(Ht1&Ht2)".
-      wp_apply ((newlock_spec (t ↦{#1 / 2} rep_to_node tail))%I with "[Ht1]").
-      { iFrame. }
+      wp_apply (newlock_spec (node_inv t) with "[Ht1]").
+      { iExists tail. iFrame. }
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
       set (head := (INT_MIN, Some t, l)).
       wp_pures; rewrite (fold_rep_to_node head).
@@ -57,11 +57,9 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
         ∗
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
         ∗
-        ∃ (succ': node_rep) (l: loc) (γ: gname), ⌜ node_next pred = Some l ⌝ 
-                                                 ∗ 
-                                                 ⌜ succ' ∈ S ∨ succ' = tail ⌝
-                                                 ∗ 
-                                                 is_lock γ (node_lock pred) (l ↦{#1 / 2} (rep_to_node succ'))
+        ∃ (l:loc) (γ: gname), ⌜ node_next pred = Some l ⌝ 
+                              ∗ 
+                              is_lock γ (node_lock pred) (node_inv l)
       }}}.
     Proof.
       iIntros (Φ) "(#Hinv & Hcurr_range & Hrange) HΦ".
@@ -117,16 +115,7 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
           }
 
           iSplit; last first.
-          { 
-            iExists succ, l, γ. iFrame "#". 
-            iSplit. done.
-            iPureIntro. rewrite -elem_of_elements. rewrite -Hperm.
-            rewrite elem_of_list_In. apply in_inv_rev.
-            destruct Ls.
-            ++ inversion Hsplit_sep. by left.
-            ++ inversion Hsplit_sep. apply in_app_iff.
-               right. right; left. auto.
-          }
+          { iExists l, γ. by iFrame "#". }
 
           iPureIntro.
           rewrite -Hperm. split; intros.
@@ -309,7 +298,7 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
         ∗
         ∃ (l: loc) (γ: gname), ⌜ node_next pred = Some l ⌝
                                ∗
-                               is_lock γ (node_lock pred) (l ↦{#1 / 2} (rep_to_node succ))
+                               is_lock γ (node_lock pred) (node_inv l)
                                ∗
                                l ↦{#1 / 2} (rep_to_node succ)
                                ∗
@@ -324,35 +313,65 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
       wp_apply (find_spec head curr key S).
       {  by iFrame "#". }
       iIntros (pred succ) "(%Hrange' & %Hpred_in_S & %Hsucc_in_S & %Hkey_in_S & Hlock)".
-      iDestruct "Hlock" as (succ' l γ) "(%Hsome & %Hsucc'_in_S & #Hlock)".
+      iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock)".
       wp_pures. wp_lam.
       wp_bind (Snd _).
       iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
       wp_pures.
       iMod ("Hclose" with "[Hlist]").
-      { iNext. iExists L. by repeat iSplit. }
+      { iNext; iExists L; by repeat iSplit. }
       iModIntro.
       wp_bind (acquire _).
       iApply (acquire_spec with "Hlock"); first done.
-      iNext. iIntros (v) "(Hpt & Hlocked)".
+      iNext. iIntros (v) "(Hnode & Hlocked)".
       wp_pures. wp_lam. wp_pures.
       rewrite Hsome. wp_match.
-      wp_load. wp_let. repeat (wp_lam; wp_pures).
+      iDestruct "Hnode" as (rep) "Hnode".
+
+      wp_bind (Load _).
+      iInv N as (L') "(>%Hperm' & >%Hsort' & Hlist)" "Hclose".
+      assert (L = L') as <-.
+      {
+        apply node_rep_sorted_eq.
+        + rewrite -app_ass in Hsort.
+          apply node_rep_sorted_app in Hsort; destruct Hsort as [Hsort ?].
+          apply node_rep_sorted_app in Hsort; by destruct Hsort.
+        + rewrite -app_ass in Hsort'.
+          apply node_rep_sorted_app in Hsort'; destruct Hsort' as [Hsort' ?].
+          apply node_rep_sorted_app in Hsort'; by destruct Hsort'.
+        + rewrite Hperm. by symmetry. 
+      }
+      rewrite (list_equiv_invert L head pred); last first.
+      { by rewrite -elem_of_elements -Hperm elem_of_list_In -in_inv in Hpred_in_S. }
+      iDestruct "Hlist" as (succ' l' γ') "(>%Hsucc'_in_L & >%Hsome' & Hpt & _ & Himp)".
+      assert (l = l') as <- by congruence.
+
+      wp_load.
+      iDestruct (mapsto_agree with "Hnode Hpt") as "%Hsucc"; rewrite Hsucc.
+      iMod ("Hclose" with "[Hpt Himp]").
+      {
+        iNext. iExists L.
+        iSplit. done.
+        iSplit. done.
+        iApply "Himp". iFrame.
+      }
+      iModIntro.
+      
+      wp_let. repeat (wp_lam; wp_pures).
       case_bool_decide as Heq; wp_if.
-      + wp_pures.  iApply "HΦ". iModIntro.
+      + wp_pures. iApply "HΦ". iModIntro.
         iSplit. done. iSplit. done. iSplit. done.
-        iExists l, γ. iSplit. done.
-        assert (succ = succ') as <-.
-        {
-          rewrite -elem_of_elements -Hperm elem_of_list_In -in_inv_rev in Hsucc_in_S.
-          rewrite -elem_of_elements -Hperm elem_of_list_In -in_inv_rev in Hsucc'_in_S.
-          apply (sorted_node_key_unique (L ++ [tail])); auto; last congruence.
-          apply node_rep_sorted_app in Hsort; destruct Hsort; auto.
-        }
-        iFrame. iFrame "#".
+        iExists l, γ. iSplit. done. iFrame; iFrame "#".
+        assert (succ = succ') as <-; last done.
+        apply (sorted_node_key_unique (L ++ [tail])).
+        - apply node_rep_sorted_app in Hsort; by destruct Hsort.
+        - rewrite -elem_of_elements -Hperm elem_of_list_In in Hsucc_in_S.
+          by apply in_inv_rev. 
+        - by apply in_inv_rev. 
+        - congruence.
       + wp_lam. wp_pures.
-        wp_apply (release_spec with "[Hpt Hlocked]"); first done.
-        { iFrame. by iSplit. }
+        wp_apply (release_spec with "[Hnode Hlocked]"); first done.
+        { iFrame; iFrame "#"; by iExists succ'. }
         iIntros. wp_pures.
         iApply ("IH" with "HΦ"); auto.
     Qed.

@@ -11,6 +11,9 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
 
   Section Proofs.
     Context `{!heapGS Σ, lockG Σ} (N : namespace).
+
+    Definition node_inv (l: loc) : iProp Σ := 
+      ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
     
     (* 
     * The invariant for the lazy list asserts that
@@ -30,14 +33,14 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                  ∗
                  l ↦{#1 / 2} rep_to_node tail
                  ∗
-                 is_lock γ (node_lock pred) (l ↦{#1 / 2} rep_to_node tail)
+                 is_lock γ (node_lock pred) (node_inv l)
 
         | succ :: t => ∃ (l: loc) (γ: gname), 
                        ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦{#1 / 2} rep_to_node succ
                        ∗
-                       is_lock γ (node_lock pred) (l ↦{#1 / 2} rep_to_node succ)
+                       is_lock γ (node_lock pred) (node_inv l)
                        ∗
                        list_equiv succs
         end
@@ -82,7 +85,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                        ∗
                        l ↦{#1 / 2} (rep_to_node succ)
                        ∗
-                       is_lock γ (node_lock pred) (l ↦{#1 / 2} (rep_to_node succ))
+                       is_lock γ (node_lock pred)  (node_inv l)
                        ∗
                        (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L)
     .
@@ -124,6 +127,64 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         iDestruct "Hlist" as (l γ) "(Hsome & Hpt & Hlock & Himp')".
         iExists l, γ. iFrame. iIntros "Hpt".
         iApply "Himp". iApply "Himp'". iFrame.
+    Qed.
+
+    Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) :
+      In pred ([head] ++ L) →
+      list_equiv ([head] ++ L) ⊢ 
+        ∃ (succ: node_rep) (l: loc) (γ: gname), (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
+                                                ∗
+                                                ⌜ node_next pred = Some l ⌝
+                                                ∗
+                                                l ↦{#1/2} (rep_to_node succ)
+                                                ∗ 
+                                                is_lock γ (node_lock pred) (node_inv l) 
+                                                ∗
+                                                (l ↦{#1/2} (rep_to_node succ) -∗ list_equiv ([head] ++ L)).
+    Proof.
+      intros Hin; inversion Hin as [|Hin_L]; subst.
+      + iIntros "Hlist". destruct L as [|succ' L].
+        - iDestruct "Hlist" as (l γ) "(%Hsome & Hpt & #Hlock)".
+          iExists tail, l, γ. iFrame; iFrame "#".
+          iSplit; first by iRight. iSplit; first done.
+          iIntros "Hpt". iExists l, γ.
+          by iFrame; iFrame "#".
+        - iDestruct "Hlist" as (l γ) "(%Hsome & Hpt & #Hlock & ?)".
+          iExists succ', l, γ. iFrame; iFrame "#".
+          iSplit; first by repeat iLeft. iSplit; first done. 
+          iIntros "Hpt". iExists l, γ.
+          by iFrame; iFrame "#".
+      + simpl in Hin_L; clear Hin.
+        iIntros "Hlist".
+        iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
+        iRevert (head Hin_L) "Hlist Himp".
+        iInduction L as [|succ' L] "IHL"; iIntros (head) "Hin"; first by iExFalso.
+        iDestruct "Hin" as "[%Heq|Hin]"; subst; iIntros "Hlist Himp".
+        - destruct L as [|succ'' L]; subst.
+          * iDestruct "Hlist" as (l γ) "(%Hsome & Hpt & #Hlock)".
+            iExists tail, l, γ. iFrame; iFrame "#".
+            iSplit; first by iRight. iSplit; first done.
+            iIntros "Hpt". iApply "Himp". iExists l, γ. 
+            by iFrame; iFrame "#".
+          * iDestruct "Hlist" as (l γ) "(%Hsome & Hpt & #Hlock & Hmatch)".
+            iExists succ'', l, γ. 
+            iSplit; first by iLeft; iRight; iLeft. iSplit; first done.
+            iFrame "Hpt"; iFrame "Hlock".
+            iIntros "Hpt". iApply "Himp".
+            iExists l, γ. by iFrame; iFrame "#".
+        - iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp')".
+          iPoseProof ("IHL" with "Hin") as "Himp''".
+          iPoseProof ("Himp''" with "Hlist") as "Himp''".
+          iPoseProof ("Himp''" with "Himp'") as "Hlist".
+          iDestruct "Hlist" as (succ l γ) "(Hsucc & Hsome & Hpt & Hlock & Himp')".
+          iExists succ, l, γ. iFrame; iFrame "#".
+          iSplit.
+          {
+            iDestruct "Hsucc" as "[Hin|Heq]".
+            by iLeft; iRight. by iRight.
+          }
+          iIntros "Hpt".
+          iApply "Himp". by iApply "Himp'".
     Qed.
 
   End Proofs.

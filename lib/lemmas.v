@@ -29,6 +29,16 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
     + inversion H. by apply IHx.
   Qed.
 
+  Lemma in_inv {A: Type} :
+    forall (l: list A) (a b: A) , In b (a :: l) ↔ b = a ∨ In b l.
+  Proof.
+    intros l a b. split; intros H.
+    + destruct l as [|c l]; inversion H; auto.
+    + inversion H.
+      - by left.
+      - by right.
+  Qed.
+
   Lemma in_inv_rev {A: Type} :
     forall (l: list A) (a b: A) , In b (l ++ [a]) ↔ In b l ∨ b = a.
   Proof.
