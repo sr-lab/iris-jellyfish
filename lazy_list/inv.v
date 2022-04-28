@@ -1,7 +1,13 @@
 From iris.base_logic.lib Require Export invariants.
+From iris.algebra Require Export auth frac_auth gset.
 
 From SkipList.lib Require Export lemmas lock.
 
+
+Class gset_list_unionGS Σ := GsetGS { 
+  gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
+  gset_nr_F_inG :> inG Σ (frac_authR (gsetUR node_rep));
+}.
 
 Local Open Scope Z.
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
@@ -9,8 +15,15 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Module Lemmas := LazyListLemmas Params.
   Export Lemmas.
 
+  Record lazy_gname :=
+    mk_lazy_gname
+      {
+      s_auth: gname;
+      s_frac: gname;
+    }.
+
   Section Proofs.
-    Context `{!heapGS Σ, lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
 
     Definition node_inv (l: loc) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
@@ -46,24 +59,30 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         end
       end.
 
-    Definition lazy_list_inv (S: gset node_rep) (head: node_rep) : iProp Σ := 
-      ∃ (L: list node_rep),
+    Definition lazy_list_inv (head: node_rep) (γs γf: gname) : iProp Σ := 
+      ∃ (S: gset node_rep) (L: list node_rep),
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
+      own γs (● S)
+      ∗
+      own γf (●F S)
+      ∗
       list_equiv ([head] ++ L)
     .
 
-    Definition is_lazy_list (Skeys: gset Z) (v: val) : iProp Σ := 
-      ∃ (head: node_rep) (S: gset node_rep),
-      ⌜ key_equiv S Skeys ⌝
+    Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
+      ∃ (head: node_rep) (Sfrac: gset node_rep),
+      ⌜ key_equiv Sfrac Skeys ⌝
+      ∗
+      own (s_frac Γ) (◯F{q} Sfrac)
       ∗
       ⌜ rep_to_node head = v ⌝
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      inv N (lazy_list_inv S head).
+      inv N (lazy_list_inv head (s_auth Γ) (s_frac Γ)).
     
 
     Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
@@ -130,7 +149,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) :
-      In pred ([head] ++ L) →
+      pred = head ∨ In pred L →
       list_equiv ([head] ++ L) ⊢ 
         ∃ (succ: node_rep) (l: loc) (γ: gname), (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
                                                 ∗
