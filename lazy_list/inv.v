@@ -206,5 +206,98 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
           iApply "Himp". by iApply "Himp'".
     Qed.
 
+    Lemma list_equiv_insert (head pred new succ: node_rep)
+      (L: list node_rep) (l l': loc) (γ': gname) :
+      node_key new < node_key tail →
+      node_key pred < node_key new < node_key succ →
+      Sorted node_lt ([head] ++ L ++ [tail]) →
+      pred = head ∨ In pred L →
+      list_equiv ([head] ++ L) ⊢ 
+        ⌜ node_next pred = Some l ⌝ ∗ l↦{#1/2} rep_to_node succ 
+        ∗ 
+        ⌜ node_next new = Some l' ⌝ ∗ l'↦{#1/2} rep_to_node succ
+        ∗
+        is_lock γ' (node_lock new) (node_inv l') -∗ 
+          ∃ (L': list node_rep), l ↦ rep_to_node succ 
+                                 ∗
+                                 ⌜ Sorted node_lt ([head] ++ L' ++ [tail]) ⌝
+                                 ∗
+                                 ⌜ Permutation ([head] ++ L') ([head; new] ++ L) ⌝ 
+                                 ∗
+                                 (l ↦{#1/2} (rep_to_node new) -∗ list_equiv ([head] ++ L')).
+    Proof.
+      iIntros (Hnew Hrange Hsort Hin) "Hlist (Hsome & Hpt & Hsome' & Hpt' & Hlock')".
+      remember ([head] ++ L) as L' eqn:HeqL'.
+      rewrite -in_inv in Hin.
+
+      iRevert (head L HeqL' Hsort Hin) "Hlist Hsome Hpt Hsome' Hpt' Hlock'".
+      iInduction L' as [|pred'] "IHL'".
+      { iIntros (head L Hfalse); inversion Hfalse. }
+
+      iIntros (head L HeqL' Hsort).
+      inversion HeqL'; subst.
+      iIntros (Hin); inversion Hin.
+      * subst.
+        iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock'".
+        iExists (new :: L).
+        destruct L as [|].
+        ** simpl.
+           iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
+           assert (l = l'') as <- by congruence.
+           iDestruct (mapsto_agree with "Hpt Hpt''") as %->.
+
+           iFrame. iSplit.
+           { 
+             iPureIntro; apply Sorted_cons; auto.
+             econstructor; unfold node_lt; lia.
+           }
+           iSplit; first auto.
+           iIntros "Hpt". iExists _, _.
+           iFrame "# ∗". iSplit; first done.
+           iExists _, _. by iFrame "# ∗".
+        ** iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock & Hmatch)".
+           assert (l = l'') as <- by congruence.
+           iDestruct (mapsto_agree with "Hpt Hpt''") as %Heq.
+           apply rep_to_node_inj in Heq; subst.
+
+           iFrame. iSplit.
+           { 
+             iPureIntro. simpl in Hsort.
+             repeat apply Sorted_inv in Hsort as (Hsort&?).
+             repeat econstructor; auto. 
+             all: unfold node_lt; lia.
+           }
+           iSplit; first auto.
+           iIntros "Hpt". iExists _, _.
+           iFrame "# ∗". iSplit; first done.
+           iExists _, _. by iFrame "# ∗".
+      * destruct L as [|head' L]; first by inversion H0.
+        iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock'".
+
+        simpl in Hsort; apply Sorted_inv in Hsort as (Hsort&Hhd).
+        iDestruct "Hlist" as (l'' γ) "(Hsome'' & Hpt'' & Hlock & Hmatch)".
+        iPoseProof ("IHL'" $! head' L with "[%] [%] [%] [$] [%] [$] [%] [$] [$]") 
+          as "Hclose"; auto.
+        
+        iDestruct "Hclose" as (L') "(Hpt' & %Hsort' & %Hperm' & Himp')".
+        iExists (head' :: L'). iFrame.
+        iSplit.
+        {
+          iPureIntro. inversion Hhd.
+          apply Sorted_inv in Hsort' as (Hsort'&?).
+          repeat econstructor; auto.
+        }
+        iSplit.
+        {
+          iPureIntro. 
+          simpl in Hperm'; rewrite Hperm'. 
+          econstructor; econstructor.
+        }
+
+        iIntros "Hpt". iExists l'', γ.
+        iPoseProof ("Himp'" with "Hpt") as "Hlist".
+        iFrame.
+    Qed.
+
   End Proofs.
 End LazyListInv.

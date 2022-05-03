@@ -2,6 +2,7 @@ From Coq Require Import Lia.
 From Coq Require Export Sorting.Sorted.
 
 From iris.heap_lang Require Export proofmode.
+From iris.algebra Require Import local_updates gset.
 
 From SkipList.lazy_list Require Export code.
 
@@ -16,6 +17,16 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
     ((#(node_key n), oloc_to_val (node_next n), (node_lock n)))%V =
     rep_to_node n.
   Proof. done. Qed.
+
+  Lemma rep_to_node_inj rep rep':
+    rep_to_node rep = rep_to_node rep' →
+    rep = rep'.
+  Proof.
+    destruct rep as ((?&o)&?). 
+    destruct rep' as ((?&o')&?). 
+    rewrite /rep_to_node/node_key/node_lock/node_next//=.
+    destruct o; destruct o'; inversion 1; congruence.
+  Qed.
 
   Lemma cons_comm_app {A: Type} : 
     forall (x y:list A) (a:A), x ++ a :: y = x ++ [a] ++ y.
@@ -118,7 +129,7 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
       edestruct IHL1; eauto. split; auto.
       econstructor; eauto.
       apply list.Forall_forall. intros. eapply list.Forall_forall; eauto.
-      apply elem_of_list_In. apply in_or_app. left. apply elem_of_list_In; done.
+      apply elem_of_list_In. apply in_or_app. left. apply elem_of_list_In; done. 
   Qed.
 
   Lemma node_rep_sorted_app (L1 L2: list node_rep) :
@@ -344,5 +355,15 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
         * apply Sorted_inv in Hsort; destruct Hsort.
           apply IHL; auto.
   Qed.
+
+  Section gset_extra.
+    Context `{Countable K}.
+    Implicit Types X Y Z : gset K.
+    Lemma gset_local_update_union X Y W : (X,Y) ~l~> (X ∪ W,Y ∪ W).
+    Proof.
+      rewrite local_update_unital_discrete=> Z' _ /leibniz_equiv_iff->.
+      split. done. rewrite gset_op. set_solver.
+    Qed.
+  End gset_extra.
   
 End LazyListLemmas.

@@ -269,8 +269,7 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
       + wp_bind (Load _).
         iInv N as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
 
-        iMod "Hown_auth".
-        iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
+        iMod "Hown_auth"; iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
         { by apply auth_update_alloc, (gset_local_update S _ S). }
 
         iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) with "[Hown_auth Hown_curr]" as %Hcurr_range.
@@ -324,8 +323,8 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
           iNext; iApply "HΦ".
       + iInv N as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
 
-        iMod "Hown_auth".
-        iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) with "[Hown_auth Hown_curr]" as %Hcurr_range.
+        iMod "Hown_auth"; iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
+          with "[Hown_auth Hown_curr]" as %Hcurr_range.
         {
          iDestruct "Hown_curr" as "[Heq|Hown]"; first by iLeft.
          iDestruct (own_valid_2 with "Hown_auth Hown") 
@@ -386,8 +385,7 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
       wp_bind (Load _).
       iInv N as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
 
-      iMod "Hown_auth".
-      iAssert ((⌜ pred = head ∨ pred ∈ S ⌝ ∗ ⌜succ ∈ S ∨ succ = tail⌝)%I) 
+      iMod "Hown_auth"; iAssert ((⌜ pred = head ∨ pred ∈ S ⌝ ∗ ⌜succ ∈ S ∨ succ = tail⌝)%I) 
         with "[Hown_auth Hown_pred Hown_succ]" as "(%Hpred_range & %Hsucc_range)".
       {
         iSplit.
@@ -430,6 +428,139 @@ Module LazyListSpec (Params: LAZY_LIST_PARAMS).
         { iFrame "# ∗"; by iExists succ'. }
         iIntros. wp_pures.
         by iApply ("IH" with "HΦ").
+    Qed.
+
+    Theorem add_spec (head: node_rep) (key: Z) (Sfrag: gset node_rep) (q: frac) (γs γf: gname) 
+      (Hrange: INT_MIN < key < INT_MAX) (Hhead: node_key head = INT_MIN):
+      {{{
+        inv N (lazy_list_inv head γs γf)
+        ∗
+        own γf (◯F{q} Sfrag)
+      }}}
+        add (rep_to_node head) #key
+      {{{ rep, RET #();
+        ⌜ node_key rep = key ⌝
+        ∗
+        own γf (◯F{q} (Sfrag ∪ {[ rep ]}))
+      }}}.
+    Proof.
+      iIntros (Φ) "(#Hinv & Hown_frag) HΦ".
+      wp_lam. wp_let.
+
+      wp_apply findLock_spec.
+      { iFrame "#". iSplit; first by iLeft. by rewrite Hhead.  }
+      iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
+      iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock & Hpt & Hlocked)".
+
+      wp_pures. wp_lam. wp_pures.
+      case_bool_decide as Hcase; wp_if.
+      + wp_lam. wp_bind (Snd _).
+        iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
+        { subst; exfalso. inversion Hcase as [Heq]. 
+          rewrite /node_key/tail//= in Heq; lia. }
+
+        iInv N as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
+        iMod "Hown_auth"; iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
+          as %[Hvalid%gset_included]%auth_both_valid_discrete.
+        iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+          as %Hsub%frac_auth_included_total%gset_included.
+        iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frag]".
+        { apply frac_auth_update, (gset_local_update_union _ _ {[ succ ]}). }
+
+        wp_pures.
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac]") as "_".
+        {
+          iNext. iExists S, L.
+          assert (S ∪ {[ succ ]} ≡ S) as -> by set_solver.
+          by iFrame.
+        }
+        iModIntro.
+
+        wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+        { iFrame "# ∗". by iExists succ. }
+        iIntros "_". iApply ("HΦ" $! succ).
+        iFrame. iPureIntro; congruence.
+      + wp_lam. wp_pures.
+        rewrite Hsome; wp_match.
+        wp_load. wp_let. wp_alloc l' as "Hpt'". wp_let.
+        iDestruct "Hpt'" as "(Hpt' & Hpt'_dup)".
+        wp_apply (newlock_spec (node_inv l') with "[Hpt'_dup]").
+        { iExists succ. iFrame. }
+        iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
+        wp_pures.
+
+        set (new := (key, Some l', lk)).
+        rewrite (fold_rep_to_node new).
+        
+        wp_bind (Store _ _).
+        iInv N as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
+        iMod "Hown_auth"; iMod "Hown_frac".
+
+        iAssert ((⌜ pred = head ∨ pred ∈ S ⌝)%I) 
+          with "[Hown_auth Hown_pred]" as %Hpred_range.
+        {
+          iDestruct "Hown_pred" as "[Heq|Hown]"; first by iLeft.
+          iDestruct (own_valid_2 with "Hown_auth Hown") 
+            as %[Hvalid%gset_included]%auth_both_valid_discrete.
+          iPureIntro; right; set_solver.
+        }
+
+        rewrite (list_equiv_insert head pred new succ L l l' γ'); first last.
+        { by rewrite -elem_of_list_In Hperm elem_of_elements. }
+        { auto. }
+        { 
+          assert (key ≠ node_key succ) as Hneq by congruence.
+          rewrite /node_key//=; rewrite /node_key in Hrange'; rewrite /node_key in Hneq. 
+          lia.
+        }
+        { rewrite /node_key//=; lia. }
+
+        iDestruct ("Hlist" with "[Hpt Hpt' Hlock]") as "Hlist".
+        { iNext. by iFrame "# ∗". }
+        iDestruct "Hlist" as (L') "(Hpt & Hsort & Hperm & Himp)".
+        iMod "Hsort" as %Hsort'; iMod "Hperm" as %Hperm'; iMod "Hpt".
+        wp_store.
+
+        iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+          as %HsubS%frac_auth_included_total%gset_included.
+        iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frac_frag]".
+        { apply frac_auth_update, (gset_local_update_union _ _ {[ new ]}). }
+        iMod (own_update with "Hown_auth") as "[Hown_auth Hown_auth_frag]".
+        { apply auth_update_alloc, (gset_local_update_union _ _ {[ new ]}). }
+
+        iDestruct "Hpt" as "(Hpt & Hpt_dup)".
+        iMod ("Hclose" with "[Hpt_dup Himp Hown_auth Hown_frac]") as "_".
+        {
+          iNext. iExists _, L'. 
+          iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
+          iFrame. iPureIntro. split; auto.
+
+          apply NoDup_Permutation.
+          { 
+            apply node_rep_sorted_app in Hsort'; destruct Hsort' as [_ Hsort']. 
+            apply node_rep_sorted_app in Hsort'; destruct Hsort' as [Hsort' _].
+            by apply sorted_node_lt_no_dup.
+          } 
+          { apply NoDup_elements. }
+
+          simpl in Hperm'; apply Permutation_cons_inv in Hperm'.
+          intros x; split.
+          - rewrite elem_of_elements Hperm' elem_of_list_In.
+            intros Hin. destruct Hin as [Heq|Hin].
+            * set_solver.
+            * apply elem_of_union_l. 
+              by rewrite -elem_of_elements -Hperm elem_of_list_In.
+          - rewrite elem_of_elements Hperm'. 
+            intros Hin. apply elem_of_union in Hin as [Hin|Heq].
+            * rewrite elem_of_list_In. right.
+              by rewrite -elem_of_list_In Hperm elem_of_elements.
+            * set_solver.
+        }
+
+        iModIntro. wp_pures. wp_lam. wp_pures.
+        wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+        { iFrame "# ∗". by iExists new. }
+        iIntros "_". iApply "HΦ". by iFrame.
     Qed.
 
   End Proofs.
