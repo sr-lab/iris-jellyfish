@@ -87,19 +87,16 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
       if: "k" = "ck"
       then
         release (nodeLock "pred")
-        (* ;; #false *)
       else
         match: nodeNext "pred" with
             NONE =>
             release (nodeLock "pred")
-            (* ;; #false *)
           | SOME "np" =>
             let: "succ" := !"np" in
             let: "next" := ref "succ" in
             let: "node" := ("k", SOME "next", newlock #()) in
             "np" <- "node";;
             release (nodeLock "pred")
-            (* ;; #true *)
         end.
 
 End LazyList.

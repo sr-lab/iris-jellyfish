@@ -355,6 +355,216 @@ Module LazyListLemmas (Params: LAZY_LIST_PARAMS).
         * apply Sorted_inv in Hsort; destruct Hsort.
           apply IHL; auto.
   Qed.
+  
+  Lemma no_dup_inj_in_map {T1 T2: Type} (f: T1 → T2) (l: list T1) :
+    (∀ x y, In x l → In y l → f x = f y → x = y) →
+    NoDup l → NoDup (map f l).
+  Proof.
+    intros Hinj.
+    induction 1 as [|a l Hnin Hnd IH]; first constructor.
+    rewrite //=. constructor.
+    + intros Hin_map.
+      rewrite elem_of_list_In in_map_iff in Hin_map.
+      destruct Hin_map as [x Hin].
+      destruct Hin as [Heq Hin].
+      apply Hinj in Heq; subst.
+      - destruct Hnin. rewrite elem_of_list_In //.
+      - by right.
+      - by left.
+    + eapply IH. intros. eapply Hinj; last done. 
+      all: by right.
+  Qed.
+
+  Lemma key_equiv_in (rep: node_rep) (S: gset node_rep) (Skeys: gset Z):
+    key_equiv S Skeys →
+    rep ∈ S →
+    node_key rep ∈ Skeys.
+  Proof.
+    intros Hperm Hin.
+    rewrite -elem_of_elements Hperm elem_of_list_In.
+    by apply in_map, elem_of_list_In, elem_of_elements.
+  Qed.
+
+  Lemma key_equiv_nin (rep: node_rep) (S: gset node_rep) (Skeys: gset Z):
+    key_equiv S Skeys →
+    ¬ node_key rep ∈ Skeys →
+    ¬ rep ∈ S.
+  Proof.
+    intros ? Hnin Hin.
+    by eapply Hnin, key_equiv_in.
+  Qed.
+
+  Lemma key_equiv_insert_nin (rep: node_rep) (S: gset node_rep) (Skeys: gset Z):
+    key_equiv S Skeys →
+    ¬ (node_key rep ∈ Skeys) →
+    key_equiv (S ∪ {[ rep ]}) (Skeys ∪ {[ node_key rep ]}).
+  Proof.
+    rewrite /key_equiv.
+    intros ? Hnin.
+    rewrite union_comm [a in Permutation _ (map _ (elements a))]@union_comm.
+    rewrite ?elements_union_singleton //=.
+    *** econstructor; eauto.
+    *** eapply key_equiv_nin; eauto.
+  Qed.
+
+  Lemma key_equiv_subseteq (S1 S2: gset node_rep) (S1_keys S2_keys: gset Z) :
+    key_equiv S1 S1_keys →
+    key_equiv S2 S2_keys →
+    S1 ⊆ S2 →
+    S1_keys ⊆ S2_keys.
+  Proof.
+    intros Hequiv1 Hequiv2 Hsub x Hin.
+    rewrite /key_equiv in Hequiv1.
+    rewrite -elem_of_elements elem_of_list_In Hequiv1 in Hin.
+    apply in_map_iff in Hin. 
+    inversion Hin as [rep (? & ?)]; subst.
+    eapply key_equiv_in, Hsub; eauto.
+    by rewrite -elem_of_elements elem_of_list_In.
+  Qed.
+
+  Lemma key_equiv_union (S S1 S2: gset node_rep) (Skeys S1_keys S2_keys: gset Z) :
+    key_equiv S Skeys →
+    key_equiv S1 S1_keys →
+    key_equiv S2 S2_keys →
+    S1 ∪ S2 ⊆ S →
+    S1_keys ∪ S2_keys ⊆ Skeys →
+    key_equiv (S1 ∪ S2) (S1_keys ∪ S2_keys).
+  Proof.
+    intros Hequiv Hequiv1 Hequiv2 HinS HinSkeys.
+    rewrite /key_equiv.
+    apply NoDup_Permutation.
+    + apply NoDup_elements.
+    + apply no_dup_inj_in_map; last apply NoDup_elements.
+      intros x y Hinx Hiny Hkey.
+
+      assert (List.NoDup (elements Skeys)) as Hnd'.
+      { apply NoDup_ListNoDup, NoDup_elements. }
+      pose proof (Permutation_NoDup Hequiv Hnd') as Hnd.
+      clear Hnd'. apply NoDup_ListNoDup in Hnd.
+      
+      rewrite -elem_of_list_In elem_of_elements in Hinx.
+      rewrite -elem_of_list_In elem_of_elements in Hiny.
+      assert (x ∈ S) as Hinx' by set_solver.
+      assert (y ∈ S) as Hiny' by set_solver.
+      rewrite -elem_of_elements elem_of_list_In in Hinx'.
+      rewrite -elem_of_elements elem_of_list_In in Hiny'.
+
+      induction (elements S) as [|h L]; inversion Hinx'; subst.
+      - clear IHL.
+        inversion Hnd as [|? ? Hnin]; subst.
+        destruct Hiny'; first auto.
+        rewrite Hkey elem_of_list_In in Hnin.
+        destruct Hnin. by apply in_map.
+      - inversion Hiny'; subst.
+        * clear IHL.
+          inversion Hnd as [|? ? Hnin]; subst.
+          rewrite -Hkey elem_of_list_In in Hnin.
+          destruct Hnin. by apply in_map.
+        * inversion Hnd; subst.
+          by apply IHL.
+    + intros k; split.
+      - intros Hin_elem%elem_of_elements.
+        apply elem_of_union in Hin_elem as [Hin|Hin].
+        * assert (k ∈ map node_key (elements S1)) as Hin_map.
+          { rewrite -Hequiv1 elem_of_elements //. }
+          rewrite elem_of_list_In in_map_iff in Hin_map.
+          inversion Hin_map as [rep (? & Hin_elem)]; subst.
+          rewrite elem_of_list_In in_map_iff.
+          exists rep; split; first done.
+          apply elem_of_list_In, elem_of_elements, elem_of_union_l.
+          rewrite -elem_of_elements elem_of_list_In //.
+        * assert (k ∈ map node_key (elements S2)) as Hin_map.
+          { rewrite -Hequiv2 elem_of_elements //. }
+          rewrite elem_of_list_In in_map_iff in Hin_map.
+          inversion Hin_map as [rep (? & Hin_elem)]; subst.
+          rewrite elem_of_list_In in_map_iff.
+          exists rep; split; first done.
+          apply elem_of_list_In, elem_of_elements, elem_of_union_r.
+          rewrite -elem_of_elements elem_of_list_In //.
+      - intros Hin_map%elem_of_list_In.
+        rewrite in_map_iff in Hin_map.
+        inversion Hin_map as [rep (? & Hin_elem)]; subst.
+        apply elem_of_list_In, elem_of_elements, elem_of_union in Hin_elem as [Hin|Hin].
+        * apply elem_of_elements, elem_of_union_l.
+          rewrite -elem_of_elements Hequiv1 elem_of_list_In in_map_iff.
+          exists rep; split; first done.
+          rewrite -elem_of_list_In elem_of_elements //.
+        * apply elem_of_elements, elem_of_union_r.
+          rewrite -elem_of_elements Hequiv2 elem_of_list_In in_map_iff.
+          exists rep; split; first done.
+          rewrite -elem_of_list_In elem_of_elements //.
+  Qed.
+
+  Lemma Zset_inclusive_range_spec z gap:
+    ∀ z', z' ∈ (Zset_inclusive_range z gap) ↔ (z <= z' <= z + gap).
+  Proof.
+    induction gap.
+    + rewrite //= => z'. split.
+      - intros ?%elem_of_singleton. subst. lia.
+      - intros (?&?); assert (z = z') as -> by lia. rewrite elem_of_singleton //.
+    + rewrite /Zset_inclusive_range -/Zset_inclusive_range => z'. split.
+      - intros [Hspz%elem_of_singleton|Hrec]%elem_of_union.
+        * lia.
+        * destruct (IHgap z') as (Himp&?). specialize (Himp Hrec). lia.
+      - intros (?&Hle).
+        apply Zle_lt_or_eq in Hle as [Hlt|?].
+        * apply elem_of_union_r. eapply IHgap. lia.
+        * apply elem_of_union_l. rewrite elem_of_singleton //.
+  Qed.
+
+  Lemma Zset_exclusive_range_spec z gap:
+    ∀ z', z' ∈ (Zset_exclusive_range z gap) ↔ (z < z' < z + gap).
+  Proof.
+    intros z'. split.
+    - rewrite /Zset_exclusive_range.
+      intros (Hincl&Hneq)%elem_of_difference.
+      apply Zset_inclusive_range_spec in Hincl.
+      assert (z' ≠ z ∧ z' ≠ z + gap) by set_solver.
+      lia.
+    - rewrite /Zset_exclusive_range. 
+      intros Hrange.
+      apply elem_of_difference; split.
+      * apply Zset_inclusive_range_spec; lia.
+      * assert (z' ≠ z ∧ z' ≠ z + gap) by lia.
+        set_solver.
+  Qed.
+
+  Lemma Zlt_range_spec z1 z2:
+    ∀ z', z' ∈ (Zlt_range z1 z2) ↔ (z1 < z' < z2).
+  Proof.
+    intros z'.
+    rewrite /Zlt_range Zset_exclusive_range_spec; lia.
+  Qed.
+
+  Lemma Zlt_range_split z1 z2 z:
+    z1 < z < z2 → Zlt_range z1 z2 = Zlt_range z1 z ∪ Zlt_range z z2 ∪ {[ z ]}.
+  Proof.
+    intros Hrange.
+    rewrite -leibniz_equiv_iff.
+    intros x. split.
+    + rewrite Zlt_range_spec. intros.
+      destruct (Ztrichotomy_inf x z) as [[Hlt|Heq]|Hgt].
+      - do 2 apply elem_of_union_l. rewrite Zlt_range_spec. lia.
+      - apply elem_of_union_r. rewrite elem_of_singleton //.
+      - apply elem_of_union_l, elem_of_union_r. rewrite Zlt_range_spec. lia.
+    + rewrite Zlt_range_spec. 
+      intros [[Hin|Hin]%elem_of_union|Hin]%elem_of_union. 
+      - rewrite Zlt_range_spec in Hin *; lia.
+      - rewrite Zlt_range_spec in Hin *; lia.
+      - apply elem_of_singleton in Hin; lia.
+  Qed.
+
+  Lemma Zlt_range_split_op z1 z2 z:
+    z1 < z < z2 → GSet (Zlt_range z1 z2) = 
+      GSet (Zlt_range z1 z) ⋅ GSet (Zlt_range z z2) ⋅ GSet ({[ z ]}).
+  Proof.
+    intros Hrange. rewrite (Zlt_range_split z1 z2 z) //.
+    rewrite ?gset_disj_union; auto.
+    + intros z' [Hin%Zlt_range_spec|Hin%Zlt_range_spec]%elem_of_union.
+      - rewrite elem_of_singleton //; lia.
+      - rewrite elem_of_singleton //; lia.
+    + intros z'. rewrite ?Zlt_range_spec. lia.
+  Qed.
 
   Section gset_extra.
     Context `{Countable K}.
