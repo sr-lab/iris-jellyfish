@@ -1,5 +1,5 @@
 From SkipList.lib Require Import lock.
-From SkipList.lib Require Export misc.
+From SkipList.lazy_list Require Import node_rep.
 
 
 Local Open Scope Z.

@@ -1,7 +1,11 @@
-From iris.base_logic.lib Require Export invariants.
-From iris.algebra Require Export auth frac_auth gset.
+From Coq Require Import Sorting.Sorted.
 
-From SkipList.lib Require Export lemmas lock.
+From iris.base_logic.lib Require Import invariants.
+From iris.algebra Require Import auth frac_auth gset.
+From iris.heap_lang Require Import proofmode.
+
+From SkipList.lib Require Import lock misc.
+From SkipList.lazy_list Require Import node_lt node_rep code key_equiv.
 
 
 Class gset_list_unionGS Σ := GsetGS { 
@@ -13,8 +17,8 @@ Class gset_list_unionGS Σ := GsetGS {
 Local Open Scope Z.
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module Lemmas := LazyListLemmas Params.
-  Export Lemmas.
+  Module NodeLt := NodeLt Params.
+  Export NodeLt.
 
   Record lazy_gname :=
     mk_lazy_gname {
