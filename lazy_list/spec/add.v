@@ -257,7 +257,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { iFrame "# ∗"; iExists succ; iFrame. }
         iIntros "_". iApply "HΦ".
         iExists head, (Sfrag ∪ {[succ]}).
-        iFrame "# ∗". iPureIntro. split; last auto.
+        iFrame "# ∗". iPureIntro. split; auto.
 
         assert (key = node_key succ) as -> by congruence.
 
@@ -266,7 +266,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         assert (Skeys ⊆ Skeys') as HsubSkeys.
         { by apply (key_equiv_subseteq Sfrag S). }
         assert ({[ node_key succ ]} ⊆ Skeys') as Hsub_succ.
-        { apply (key_equiv_subseteq {[ succ ]} S); auto. }
+        { by apply (key_equiv_subseteq {[ succ ]} S). }
         assert (Skeys ∪ {[ node_key succ ]} ⊆ Skeys') as Hsub_union_Skeys.
         { by apply union_subseteq. }
         assert (Sfrag ∪ {[ succ ]} ⊆ S) as Hsub_union_S.
@@ -371,7 +371,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iExists head, (Sfrag ∪ {[new]}).
         iFrame "# ∗".
         
-        iPureIntro. split; last auto.
+        iPureIntro. split; auto.
         apply key_equiv_insert_nin; auto.
         set_solver.
     Qed.

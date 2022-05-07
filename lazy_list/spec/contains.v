@@ -93,7 +93,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
             cut (In succ (Lf ++ [tail])).
             { rewrite /tail ?in_app_iff.
               intros [|[|[]]]; auto; subst. 
-              unfold node_key in Hrange. simpl in Hrange; lia. }
+              rewrite /node_key /= in Hrange; lia. }
 
             destruct L1.
             ** rewrite //= in Hsplit_join. 
@@ -200,7 +200,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit. 
         iExists head, S. by iFrame "# ∗".
-        iPureIntro. unfold key_equiv in Hequiv. 
+        iPureIntro. rewrite /key_equiv in Hequiv. 
         rewrite -elem_of_elements Hequiv Hkey_in_S.
         congruence.
       + iApply "HΦ". iSplit. 

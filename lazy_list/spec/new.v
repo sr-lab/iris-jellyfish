@@ -51,11 +51,11 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
         iSplit; first done. iSplit. 
         assert (node_lt head tail); last (simpl; auto).
         { rewrite /node_lt/node_key//=; apply HMIN_MAX. }
-        iSplit; first by unfold key_equiv.
+        iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
       + iModIntro; iApply ("HΦ" $! (mk_lazy_gname γauth γfrac γtok)).
         iExists head, ∅.
-        iSplit; first by unfold key_equiv.
+        iSplit; first rewrite /key_equiv //.
         by (repeat iSplit).
     Qed.
 
