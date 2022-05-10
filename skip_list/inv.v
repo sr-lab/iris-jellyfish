@@ -20,12 +20,11 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Module NodeLt := NodeLt Params.
   Export NodeLt.
 
-  Record lazy_gname :=
-    mk_lazy_gname {
-      s_auth: gname;
-      s_frac: gname;
-      s_tok: gname
-    }.
+  Record skip_gname := mk_skip_gname {
+    s_auth: gname;
+    s_frac: gname;
+    s_tok: gname
+  }.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
@@ -65,7 +64,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       list_equiv ([head] ++ L)
     .
 
-    Fixpoint skip_list_equiv (head: node_rep) (L: list (list node_rep)) (S St: gset node_rep) : iProp Σ :=
+    Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (L: list (list node_rep)) (S St: gset node_rep) : iProp Σ :=
       match L with
       | nil => True
       | top :: bots =>
@@ -73,6 +72,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         | nil => ⌜ node_key head = INT_MIN ⌝
                  ∗
                  lazy_list_inv head S
+                 ∗
+                 ⌜ lvl = 0 ⌝
                  
         | bot :: t => ∃ (Sb: gset node_rep) (l: loc) (down: node_rep),
                       ⌜ St ⊆ Sb ⊆ S ⌝
@@ -85,7 +86,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
                       ∗
                       l ↦ rep_to_node down
                       ∗
-                      skip_list_equiv down bots S Sb
+                      skip_list_equiv down (lvl - 1) bots S Sb
         end
       end.
 
@@ -93,7 +94,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∃ (St: gset node_rep) (L: list (list node_rep)),
       ⌜ St ⊆ S ⌝
       ∗
-      skip_list_equiv head L S St
+      skip_list_equiv head MAX_HEIGHT L S St
     .
 
     Definition is_skip_list (v: val) (Skeys: gset Z) : iProp Σ := 
