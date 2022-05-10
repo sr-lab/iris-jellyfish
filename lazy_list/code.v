@@ -35,21 +35,21 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
     rec: "find" "head" "k" :=
       let: "opair" := find "head" "k" in
       match: "opair" with
-          NONE => #false
+          NONE => NONEV
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
           let: "curr" := Snd "pair" in
           acquire (nodeLock "pred");;
           let: "onext" := (nodeNext "pred") in
           match: "onext" with
-              NONE => #false
+              NONE => NONEV
             | SOME "np" =>
               let: "next" := !"np" in
               let: "nk" := (nodeKey "next") in
               let: "ck" := (nodeKey "curr") in
               if: "nk" = "ck" 
               then
-                ("pred", "curr")
+                SOME ("pred", "curr")
               else
                 release (nodeLock "pred");;
                 "find" "head" "k"
@@ -80,23 +80,27 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
   (* Lazy list insertion *)
   Definition add : val := 
     λ: "head" "k",
-      let: "pair" := findLock "head" "k" in
-      let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := (nodeKey "curr") in
-      if: "k" = "ck"
-      then
-        release (nodeLock "pred")
-      else
-        match: nodeNext "pred" with
-            NONE =>
+      let: "opair" := findLock "head" "k" in
+      match: "opair" with
+          NONE => #()
+        | SOME "pair" =>
+          let: "pred" := Fst "pair" in
+          let: "curr" := Snd "pair" in
+          let: "ck" := (nodeKey "curr") in
+          if: "k" = "ck"
+          then
             release (nodeLock "pred")
-          | SOME "np" =>
-            let: "succ" := !"np" in
-            let: "next" := ref "succ" in
-            let: "node" := ("k", SOME "next", newlock #()) in
-            "np" <- "node";;
-            release (nodeLock "pred")
-        end.
+          else
+            match: nodeNext "pred" with
+                NONE =>
+                release (nodeLock "pred")
+              | SOME "np" =>
+                let: "succ" := !"np" in
+                let: "next" := ref "succ" in
+                let: "node" := ("k", SOME "next", newlock #()) in
+                "np" <- "node";;
+                release (nodeLock "pred")
+            end
+      end.
 
 End LazyList.

@@ -14,7 +14,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
     
-    Theorem find_spec2 (head curr: node_rep) (key: Z) (γs γf γt: gname) :
+    Theorem find_spec (head curr: node_rep) (key: Z) (γs γf γt: gname) :
       {{{ 
         inv N (lazy_list_inv head γs γf γt)
         ∗
@@ -123,7 +123,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
       findLock (rep_to_node curr) #key
-      {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
+      {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
         ⌜ node_key pred < key ≤ node_key succ ⌝
         ∗
         (⌜ pred = head ⌝ ∨ own γs (◯ {[pred]}))
@@ -147,7 +147,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       iIntros (curr) "#Hown_curr %Hrange".
       
       wp_lam. wp_let.
-      wp_apply ((find_spec2 head curr key γs) with "[Hown_curr]").
+      wp_apply ((find_spec head curr key γs) with "[Hown_curr]").
       { by iFrame "#". }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
       iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock)".
