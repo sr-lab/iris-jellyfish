@@ -24,10 +24,24 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
    * The same can be said for (node_lock tail) and the dummy_lock.
    *)
   Definition dummy_lock : val := #{|loc_car := 0|}.
-  Definition tail : node_rep := (INT_MAX, None, None, dummy_lock).  
+  Definition tail : node_rep := (INT_MAX, None, None, dummy_lock).
 
-  (* Auxiliary functions *)
-  
+  (* Lazy list creation *)
+  Definition newLevel : val := 
+    rec: "loop" "h" "t" "l" :=
+      if: "l" = #MAX_HEIGHT
+      then "h"
+      else
+        let: "h" := ref (#INT_MIN, SOME "t", SOME "h", newlock #()) in
+        "loop" "h" "t" "l"+#1.
+
+  Definition new : val := 
+    λ: "_", 
+      let: "t" := ref (rep_to_node tail) in
+      let: "h" := ref (#INT_MIN, SOME "t", NONEV, newlock #()) in
+      newLevel "h" "t" #1.
+
+  (* Find functions *)
   Definition find : val := 
     rec: "find" "pred" "k" :=
       let: "ocurr" := (nodeNext "pred") in
@@ -65,21 +79,6 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           end
       end.
 
-  (* Lazy list creation *)
-  Definition newLevel : val := 
-    rec: "loop" "h" "t" "l" :=
-      if: "l" = #MAX_HEIGHT
-      then "h"
-      else
-        let: "h" := ref (#INT_MIN, SOME "t", SOME "h", newlock #()) in
-        "loop" "h" "t" "l"+#1.
-
-  Definition new : val := 
-    λ: "_", 
-      let: "t" := ref (rep_to_node tail) in
-      let: "h" := ref (#INT_MIN, SOME "t", NONEV, newlock #()) in
-      newLevel "h" "t" #1.
-
   (* Lazy list lookup *)
   Definition findPred : val := 
     rec: "find" "head" "k" := 
@@ -106,9 +105,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           let: "curr" := Snd "pair" in
           let: "ck" := nodeKey "curr" in
           "k" = "ck"
-      end.  
-  
-  (* Lazy list insertion *)
+      end.
+
+  (* Top Level *)
   Definition topLevelLoop : val := 
     rec: "loop" "head" "k" "h" "l" :=
       let: "opair" := find "head" "k" in
@@ -125,6 +124,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition topLevel : val :=
     λ: "head" "k" "h", topLevelLoop "head" "k" "h" #MAX_HEIGHT.
 
+  (* Lazy list insertion *)
   Definition tryInsert : val := 
     λ: "head" "k",
       let: "pair" := findLock "head" "k" in
@@ -134,21 +134,21 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       if: "k" = "ck"
       then
         release (nodeLock "pred");;
-        #false
+        NONEV
       else
         match: nodeNext "pred" with
             NONE => release (nodeLock "pred")
           | SOME "np" =>
             let: "succ" := !"np" in
             let: "next" := ref "succ" in
-            let: "node" := ("k", SOME "next", newlock #()) in
+            let: "node" := ("k", SOME "next", NONEV, newlock #()) in
             "np" <- "node";;
             release (nodeLock "pred");;
-            #true
+            SOME "node"
         end.
 
   Definition insert : val := 
-    λ: "head" "k",
+    λ: "head" "k" "down",
       let: "pair" := findLock "head" "k" in
       let: "pred" := Fst "pair" in
       match: nodeNext "pred" with
@@ -156,11 +156,13 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         | SOME "np" =>
           let: "succ" := !"np" in
           let: "next" := ref "succ" in
-          let: "node" := ("k", SOME "next", newlock #()) in
+          let: "node" := ("k", SOME "next", SOME "down", newlock #()) in
           "np" <- "node";;
-          release (nodeLock "pred")
+          release (nodeLock "pred");;
+          SOME "node"
       end.
 
+  (* Skip list insertion *)
   Definition addAll : val := 
     rec: "add" "head" "k" := 
       let: "opair" := find "head" "k" in
@@ -173,10 +175,11 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
               NONE => tryInsert "pred" "k"
             | SOME "np" => 
               let: "pred" := !"np" in
-              let: "added" := "add" "pred" "k" in
-              if: "added"
-              then insert "pred" "k";; "added"
-              else "added"
+              let: "onode" := "add" "pred" "k" in
+              match: "onode" with 
+                  NONE => NONEV
+                | SOME "node" => insert "pred" "k" "node"
+              end
           end
       end.
 
@@ -185,7 +188,12 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "opred" := topLevel "head" "k" "h" in
       match: "opred" with
           NONE => #false
-        | SOME "pred" => addAll "pred" "k"
+        | SOME "pred" => 
+          let: "onode" := addAll "pred" "k" in
+          match: "onode" with
+              NONE => #false
+            | SOME "node" => #true
+          end
       end.
 
 End SkipList.
