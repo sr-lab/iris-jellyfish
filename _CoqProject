@@ -11,3 +11,6 @@ lazy_list/inv.v
 lazy_list/spec/new.v
 lazy_list/spec/contains.v
 lazy_list/spec/add.v
+
+skip_list/node_rep.v
+skip_list/code.v
