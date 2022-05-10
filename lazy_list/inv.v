@@ -84,12 +84,14 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     .
 
     Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (head: node_rep) (Sfrac: gset node_rep),
+      ∃ (l: loc) (head: node_rep) (Sfrac: gset node_rep),
       ⌜ key_equiv Sfrac Skeys ⌝
       ∗
       own (s_frac Γ) (◯F{q} Sfrac)
       ∗
-      ⌜ rep_to_node head = v ⌝
+      ⌜ #l = v ⌝
+      ∗
+      l ↦ rep_to_node head
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗

@@ -220,8 +220,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
-      iDestruct "H" as (head Sfrag) "(%Hequiv & Hown_frag & %Hv & %Hmin & #Hinv)".
-      wp_lam. wp_let. rewrite -Hv.
+      iDestruct "H" as (h head Sfrag) "(%Hequiv & Hown_frag & %Hv & Hpt_head & %Hmin & #Hinv)".
+      wp_lam. wp_let. rewrite -Hv. wp_load.
 
       wp_apply findLock_spec.
       { iFrame "#". iSplit; first by iLeft. by rewrite Hmin. }
@@ -256,7 +256,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         wp_apply (release_spec with "[Hlock Hpt Hown_tok_range Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ; iFrame. }
         iIntros "_". iApply "HΦ".
-        iExists head, (Sfrag ∪ {[succ]}).
+        iExists h, head, (Sfrag ∪ {[succ]}).
         iFrame "# ∗". iPureIntro. split; auto.
 
         assert (key = node_key succ) as -> by congruence.
@@ -368,7 +368,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         wp_apply (release_spec with "[Hlock Hpt Hlocked Htok_range1]"); first done.
         { iFrame "# ∗"; iExists new; iFrame. }
         iIntros "_". iApply "HΦ".
-        iExists head, (Sfrag ∪ {[new]}).
+        iExists h, head, (Sfrag ∪ {[new]}).
         iFrame "# ∗".
         
         iPureIntro. split; auto.

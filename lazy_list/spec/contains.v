@@ -190,8 +190,8 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
-      iDestruct "H" as (head S) "(%Hequiv & Hown & %Hv & %Hmin & #Hinv)".
-      wp_lam. wp_let. rewrite -Hv.
+      iDestruct "H" as (h head S) "(%Hequiv & Hown & %Hv & Hpt & %Hmin & #Hinv)".
+      wp_lam. wp_let. rewrite -Hv. wp_load.
       wp_apply (find_spec with "[Hown]").
       { iFrame "# ∗". iPureIntro; split. by left. lia. }
       iIntros (pred succ) "(Hown & %Hkey_in_S)".
@@ -199,12 +199,12 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
 
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit. 
-        iExists head, S. by iFrame "# ∗".
+        iExists h, head, S. by iFrame "# ∗".
         iPureIntro. rewrite /key_equiv in Hequiv. 
         rewrite -elem_of_elements Hequiv Hkey_in_S.
         congruence.
       + iApply "HΦ". iSplit. 
-        iExists head, S. by iFrame "# ∗".
+        iExists h, head, S. by iFrame "# ∗".
         iPureIntro. intros Hin. 
         rewrite -elem_of_elements Hequiv Hkey_in_S in Hin.
         congruence.

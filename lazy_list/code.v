@@ -63,12 +63,12 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      (#INT_MIN, SOME "t", newlock #()).
+      ref (#INT_MIN, SOME "t", newlock #()).
 
   (* Lazy list lookup *)
   Definition contains : val := 
     λ: "head" "k",
-      let: "opair" := find "head" "k" in
+      let: "opair" := find !"head" "k" in
       match: "opair" with
           NONE => #false
         | SOME "pair" =>
@@ -80,7 +80,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
   (* Lazy list insertion *)
   Definition add : val := 
     λ: "head" "k",
-      let: "opair" := findLock "head" "k" in
+      let: "opair" := findLock !"head" "k" in
       match: "opair" with
           NONE => #()
         | SOME "pair" =>
