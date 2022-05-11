@@ -27,22 +27,22 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition tail : node_rep := (INT_MAX, None, None, dummy_lock).
 
   (* Lazy list creation *)
-  Definition newLevelLoop : val := 
-    rec: "loop" "h" "t" "l" :=
+  Definition newLoop : val := 
+    rec: "loop" "head" "l" :=
+      let: "h" := ref "head" in
       if: "l" = #MAX_HEIGHT
       then "h"
       else
-        let: "h" := ref (#INT_MIN, SOME "t", SOME "h", newlock #()) in
-        "loop" "h" "t" "l"+#1.
-
-  Definition newLevel : val :=
-    λ: "_", newLevelLoop "h" "t" #0.
-
+        let: "t" := ref (rep_to_node tail) in
+        let: "head" := (#INT_MIN, SOME "t", SOME "h", newlock #()) in
+        "loop" "head" ("l" + #1).
+  
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      let: "h" := ref (#INT_MIN, SOME "t", NONEV, newlock #()) in
-      newLevel "h" "t".
+      let: "head" := (#INT_MIN, SOME "t", NONEV, newlock #()) in
+      let: "h" := newLoop "head" #0 in
+      "h".
 
   (* Find functions *)
   Definition find : val := 

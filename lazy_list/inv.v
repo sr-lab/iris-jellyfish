@@ -20,12 +20,11 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Module NodeLt := NodeLt Params.
   Export NodeLt.
 
-  Record lazy_gname :=
-    mk_lazy_gname {
-      s_auth: gname;
-      s_frac: gname;
-      s_tok: gname
-    }.
+  Record lazy_gname := mk_lazy_gname {
+    s_auth: gname;
+    s_frac: gname;
+    s_tok: gname
+  }.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).

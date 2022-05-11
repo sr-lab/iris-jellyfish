@@ -50,8 +50,10 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
         with "[Ht2 Hlock Hown_auth Hown_frac Hown_emp]") as "#Hinv".
       + iNext. iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 
-        assert (node_lt head tail); last (simpl; auto).
-        { rewrite /node_lt/node_key//=; apply HMIN_MAX. }
+        { 
+          assert (node_lt head tail); last (simpl; auto).
+          rewrite /node_lt/node_key//=; apply HMIN_MAX. 
+        }
         iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
       + iModIntro; iApply ("HΦ" $! (mk_lazy_gname γauth γfrac γtok)).

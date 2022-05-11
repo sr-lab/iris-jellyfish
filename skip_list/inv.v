@@ -20,7 +20,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Module NodeLt := NodeLt Params.
   Export NodeLt.
 
-  Record skip_gname := mk_skip_gname {
+  Record lazy_gname := mk_lazy_gname {
     s_auth: gname;
     s_frac: gname;
     s_tok: gname
@@ -69,9 +69,11 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       | nil => True
       | top :: bots =>
         match bots with
-        | nil => ⌜ node_key head = INT_MIN ⌝
+        | nil => ⌜ St = S ⌝
                  ∗
-                 lazy_list_inv head S
+                 ⌜ node_key head = INT_MIN ⌝
+                 ∗
+                 lazy_list_inv head St
                  ∗
                  ⌜ lvl = 0 ⌝
                  
