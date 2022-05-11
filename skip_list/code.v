@@ -188,11 +188,8 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       match: "opred" with
           NONE => #false
         | SOME "pred" => 
-          let: "onode" := addAll "pred" "k" in
-          match: "onode" with
-              NONE => #false
-            | SOME "node" => #true
-          end
+          addAll "pred" "k";;
+          #()
       end.
 
 End SkipList.
