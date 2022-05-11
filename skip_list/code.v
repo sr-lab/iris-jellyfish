@@ -123,7 +123,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         NONEV
       else
         match: nodeNext "pred" with
-            NONE => release (nodeLock "pred")
+            NONE => 
+            release (nodeLock "pred");;
+            NONEV
           | SOME "np" =>
             let: "succ" := !"np" in
             let: "next" := ref "succ" in
@@ -138,7 +140,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "pair" := findLock "head" "k" in
       let: "pred" := Fst "pair" in
       match: nodeNext "pred" with
-          NONE => release (nodeLock "pred")
+          NONE => 
+          release (nodeLock "pred");;
+          NONEV
         | SOME "np" =>
           let: "succ" := !"np" in
           let: "next" := ref "succ" in
@@ -157,9 +161,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
           if: "h" = "l"
-          then "pred"
+          then SOME "pred"
           else
-            "loop" "pred" "k" "h" "l"-#1
+            "loop" "pred" "k" "h" ("l" - #1)
       end.
       
   Definition addAll : val := 
@@ -186,7 +190,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     λ: "head" "k" "h",
       let: "opred" := topLevel "head" "k" "h" #MAX_HEIGHT in
       match: "opred" with
-          NONE => #false
+          NONE => #()
         | SOME "pred" => 
           addAll "pred" "k";;
           #()
