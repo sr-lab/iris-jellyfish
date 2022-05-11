@@ -44,7 +44,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "h" := newLoop "head" #0 in
       "h".
 
-  (* Find functions *)
+  (* Find function *)
   Definition find : val := 
     rec: "find" "pred" "k" :=
       let: "ocurr" := (nodeNext "pred") in
@@ -56,30 +56,6 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           if: "k" ≤ "ck"
           then SOME ("pred", "curr")
           else "find" "curr" "k"
-      end.
-  
-  Definition findLock : val := 
-    rec: "find" "head" "k" :=
-      let: "opair" := find "head" "k" in
-      match: "opair" with
-          NONE => NONEV
-        | SOME "pair" =>
-          let: "pred" := Fst "pair" in
-          let: "curr" := Snd "pair" in
-          acquire (nodeLock "pred");;
-          let: "onext" := (nodeNext "pred") in
-          match: "onext" with
-              NONE => NONEV
-            | SOME "np" =>
-              let: "next" := !"np" in
-              let: "nk" := (nodeKey "next") in
-              let: "ck" := (nodeKey "curr") in
-              if: "nk" = "ck" 
-              then SOME ("pred", "curr")
-              else
-                release (nodeLock "pred");;
-                "find" "head" "k"
-          end
       end.
 
   (* Lazy list lookup *)
@@ -110,24 +86,31 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           "k" = "ck"
       end.
 
-  (* Top Level *)
-  Definition topLevelLoop : val := 
-    rec: "loop" "head" "k" "h" "l" :=
+  (* Lazy list insertion *)
+  Definition findLock : val := 
+    rec: "find" "head" "k" :=
       let: "opair" := find "head" "k" in
       match: "opair" with
           NONE => NONEV
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
-          if: "h" = "l"
-          then "pred"
-          else
-            "loop" "pred" "k" "h" "l"-#1
+          let: "curr" := Snd "pair" in
+          acquire (nodeLock "pred");;
+          let: "onext" := (nodeNext "pred") in
+          match: "onext" with
+              NONE => NONEV
+            | SOME "np" =>
+              let: "next" := !"np" in
+              let: "nk" := (nodeKey "next") in
+              let: "ck" := (nodeKey "curr") in
+              if: "nk" = "ck" 
+              then SOME ("pred", "curr")
+              else
+                release (nodeLock "pred");;
+                "find" "head" "k"
+          end
       end.
-  
-  Definition topLevel : val :=
-    λ: "head" "k" "h", topLevelLoop "head" "k" "h" #MAX_HEIGHT.
 
-  (* Lazy list insertion *)
   Definition tryInsert : val := 
     λ: "head" "k",
       let: "pair" := findLock "head" "k" in
@@ -166,6 +149,19 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       end.
 
   (* Skip list insertion *)
+  Definition topLevel : val := 
+    rec: "loop" "head" "k" "h" "l" :=
+      let: "opair" := find "head" "k" in
+      match: "opair" with
+          NONE => NONEV
+        | SOME "pair" =>
+          let: "pred" := Fst "pair" in
+          if: "h" = "l"
+          then "pred"
+          else
+            "loop" "pred" "k" "h" "l"-#1
+      end.
+      
   Definition addAll : val := 
     rec: "add" "head" "k" := 
       let: "opair" := find "head" "k" in
@@ -188,7 +184,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition add : val := 
     λ: "head" "k" "h",
-      let: "opred" := topLevel "head" "k" "h" in
+      let: "opred" := topLevel "head" "k" "h" #MAX_HEIGHT in
       match: "opred" with
           NONE => #false
         | SOME "pred" => 
