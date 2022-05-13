@@ -29,6 +29,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
 
+    Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
+
     Definition node_inv (l: loc) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
 
@@ -44,7 +46,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
                  ∗
                  is_lock γ (node_lock pred) (node_inv l)
 
-        | succ :: t => ∃ (l: loc) (γ: gname), 
+        | succ :: _ => ∃ (l: loc) (γ: gname), 
                        ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦{#1 / 2} rep_to_node succ
@@ -61,6 +63,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
+      ⌜ node_key head = INT_MIN ⌝
+      ∗
       list_equiv ([head] ++ L)
     .
 
@@ -71,24 +75,22 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         match bots with
         | nil => ⌜ St = S ⌝
                  ∗
-                 ⌜ node_key head = INT_MIN ⌝
+                 inv (levelN lvl) (lazy_list_inv head St)
                  ∗
-                 lazy_list_inv head St
+                 ⌜ node_down head = None ⌝
                  ∗
                  ⌜ lvl = 0 ⌝
                  
-        | bot :: t => ∃ (Sb: gset node_rep) (l: loc) (down: node_rep),
-                      ⌜ St ⊆ Sb ⊆ S ⌝
-                      ∗
-                      ⌜ node_key head = INT_MIN ⌝
-                      ∗
-                      lazy_list_inv head St
-                      ∗
-                      ⌜ node_down head = Some l ⌝
-                      ∗
-                      l ↦ rep_to_node down
-                      ∗
-                      skip_list_equiv down (lvl - 1) bots S Sb
+        | _ :: _ => ∃ (Sb: gset node_rep) (l: loc) (down: node_rep),
+                    ⌜ St ⊆ Sb ⊆ S ⌝
+                    ∗
+                    inv (levelN lvl) (lazy_list_inv head St)
+                    ∗
+                    ⌜ node_down head = Some l ⌝
+                    ∗
+                    l ↦ rep_to_node down
+                    ∗
+                    skip_list_equiv down (lvl - 1) bots S Sb
         end
       end.
 

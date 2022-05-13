@@ -44,17 +44,23 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         set (top_head := (INT_MIN, Some t, Some h, l)).
         rewrite (fold_rep_to_node top_head).
 
-        iApply ("IH" $! top_head (lvl+1) (nil :: L) with "[Hlist Hh Ht2]").
-        - iExists ∅, h, head.
-          assert (lvl + 1 - 1 = lvl) as -> by lia.
-          iFrame. 
-          iSplit; first done. iSplit; first done. iSplit; last done.
-          iExists nil. iSplit; first done. iSplit.
+        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head ∅) 
+          with "[Ht2]") as "#Hinv".
+        {
+          iNext; iExists nil. 
+          iSplit; first done. iSplit.
           {
             assert (node_lt top_head tail); last (simpl; auto).
             rewrite /node_lt/node_key//=; apply HMIN_MAX.
           }
+          iSplit; first done.
           iExists t, γ. by iFrame "# ∗".
+        }
+
+        iApply ("IH" $! top_head (lvl+1) (nil :: L) with "[Hlist Hh]").
+        - iExists ∅, h, head.
+          assert (lvl + 1 - 1 = lvl) as -> by lia.
+          by iFrame "# ∗".
         - iNext; iApply "HΦ".
     Qed.
 
@@ -75,18 +81,23 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
       set (bot_head := (INT_MIN, Some t, None, l)).
 
-      wp_apply (newLoop_spec _ _ nil with "[Ht2]").
-      { 
-        iSplit; first done. iSplit; first done. iSplit; last done.
-        iExists nil. iSplit; first done. iSplit.
-        { 
+      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv bot_head ∅) 
+        with "[Ht2]") as "#Hbot_inv".
+      {
+        iNext; iExists nil. 
+        iSplit; first done. iSplit.
+        {
           assert (node_lt bot_head tail); last (simpl; auto).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
+        iSplit; first done.
         iExists t, γ. by iFrame "# ∗".
       }
 
-      iIntros (h top_head L) "[Hh Hlist]"; wp_pures.
+      wp_apply (newLoop_spec _ _ nil).
+      { by iFrame "# ∗". }
+
+      iIntros (h top_head L) "[Hh Hlist]"; wp_let.
       iMod (inv_alloc N ⊤ (skip_list_inv top_head ∅) 
         with "[Hlist Hlock]") as "#Hinv".
       { iNext; iExists ∅, L. by iFrame "# ∗". }

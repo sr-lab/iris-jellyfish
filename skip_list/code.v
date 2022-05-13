@@ -77,7 +77,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition contains : val := 
     λ: "head" "k", 
-      let: "opair" := findPred "head" "k" in
+      let: "opair" := findPred !"head" "k" in
       match: "opair" with
           NONE => #false
         | SOME "pair" => 
@@ -188,7 +188,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition add : val := 
     λ: "head" "k" "h",
-      let: "opred" := topLevel "head" "k" "h" #MAX_HEIGHT in
+      let: "opred" := topLevel !"head" "k" "h" #MAX_HEIGHT in
       match: "opred" with
           NONE => #()
         | SOME "pred" => 
