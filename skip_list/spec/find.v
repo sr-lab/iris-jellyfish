@@ -11,7 +11,7 @@ Local Open Scope Z.
 Module FindSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := SkipListInv Params.
-  Import Invariant.
+  Export Invariant.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
@@ -37,7 +37,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (L) "(>%Hperm & >%Hsort & >%Hhead & Hlist)" "Hclose".
+        iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
         edestruct (in_split curr ([head] ++ L)) 
           as (Ls&Lf&Hcurr).
@@ -161,7 +161,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
             { lia. }
 
             iNext; iApply "HΦ".
-      + iInv N as (L) "(>%Hperm & >%Hsort & >%Hhead & Hlist)" "Hclose".
+      + iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
         rewrite (list_equiv_invert); last first.
         { by rewrite -elem_of_list_In Hperm elem_of_elements. }

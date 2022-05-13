@@ -16,25 +16,29 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem newLoop_spec (head: node_rep) (lvl: Z) (L: list (list node_rep)):
       {{{ 
+        ⌜ node_key head = INT_MIN ⌝
+        ∗
         skip_list_equiv head lvl (nil :: L) ∅ ∅ 
       }}}
         newLoop (rep_to_node head) #lvl
       {{{ h top_head L', RET #h;
         h ↦ rep_to_node top_head
         ∗
+        ⌜ node_key top_head = INT_MIN ⌝
+        ∗
         skip_list_equiv top_head MAX_HEIGHT L' ∅ ∅ 
       }}}.
     Proof.
-      iIntros (Φ) "Hlist HΦ".
-      iRevert (head lvl L) "Hlist HΦ".
+      iIntros (Φ) "[Hmin Hlist] HΦ".
+      iRevert (head lvl L) "Hmin Hlist HΦ".
       iLöb as "IH".
-      iIntros (head lvl L) "Hlist HΦ".
+      iIntros (head lvl L) "%Hmin Hlist HΦ".
 
       wp_lam. wp_let. wp_alloc h as "Hh".
       wp_pures. case_bool_decide; wp_if.
       + iApply "HΦ". iModIntro.
         assert (lvl = MAX_HEIGHT) as <- by congruence.
-        iFrame.
+        by iFrame.
       + wp_alloc t as "Ht". wp_let.
         iDestruct "Ht" as "(Ht1 & Ht2)".
         wp_apply (newlock_spec (node_inv t) with "[Ht1]").
@@ -53,15 +57,18 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             assert (node_lt top_head tail); last (simpl; auto).
             rewrite /node_lt/node_key//=; apply HMIN_MAX.
           }
-          iSplit; first done.
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) (nil :: L) with "[Hlist Hh]").
-        - iExists ∅, h, head.
+        iApply ("IH" $! top_head (lvl+1) (nil :: L) with "[%] [Hlist Hh]").
+        { done. }
+        { 
+          iExists ∅, h, head.
           assert (lvl + 1 - 1 = lvl) as -> by lia.
           by iFrame "# ∗".
-        - iNext; iApply "HΦ".
+        }
+        
+        iNext; iApply "HΦ".
     Qed.
 
     Theorem new_spec : 
@@ -90,14 +97,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           assert (node_lt bot_head tail); last (simpl; auto).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
-        iSplit; first done.
         iExists t, γ. by iFrame "# ∗".
       }
 
       wp_apply (newLoop_spec _ _ nil).
       { by iFrame "# ∗". }
 
-      iIntros (h top_head L) "[Hh Hlist]"; wp_let.
+      iIntros (h top_head L) "(Hh & %Hmin & Hlist)"; wp_let.
       iMod (inv_alloc N ⊤ (skip_list_inv top_head ∅) 
         with "[Hlist Hlock]") as "#Hinv".
       { iNext; iExists ∅, L. by iFrame "# ∗". }

@@ -63,8 +63,6 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
-      ⌜ node_key head = INT_MIN ⌝
-      ∗
       list_equiv ([head] ++ L)
     .
 
@@ -108,6 +106,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ⌜ #l = v ⌝
       ∗
       l ↦ rep_to_node head
+      ∗
+      ⌜ node_key head = INT_MIN ⌝
       ∗
       inv N (skip_list_inv head S).
     
