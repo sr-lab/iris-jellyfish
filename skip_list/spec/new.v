@@ -2,7 +2,8 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import lock misc.
-From SkipList.skip_list Require Import inv node_rep code key_equiv.
+From SkipList.skip_list Require Import node_rep code key_equiv.
+From SkipList.skip_list.inv Require Import skip_inv.
 
 
 Local Open Scope Z.
@@ -14,11 +15,11 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
 
-    Theorem newLoop_spec (head: node_rep) (lvl: Z) (L: list (list node_rep)):
+    Theorem newLoop_spec (head: node_rep) (lvl: Z) (L: list (gset node_rep)):
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
-        skip_list_equiv head lvl (nil :: L) ∅ ∅ 
+        skip_list_equiv head lvl (∅ :: L) ∅ 
       }}}
         newLoop (rep_to_node head) #lvl
       {{{ h top_head L', RET #h;
@@ -26,7 +27,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key top_head = INT_MIN ⌝
         ∗
-        skip_list_equiv top_head MAX_HEIGHT L' ∅ ∅ 
+        skip_list_equiv top_head MAX_HEIGHT (∅ :: L') ∅ 
       }}}.
     Proof.
       iIntros (Φ) "[Hmin Hlist] HΦ".
@@ -48,10 +49,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         set (top_head := (INT_MIN, Some t, Some h, l)).
         rewrite (fold_rep_to_node top_head).
 
-        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head ∅) 
+        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head ∅ (from_sub_list ∅)) 
           with "[Ht2]") as "#Hinv".
         {
-          iNext; iExists nil. 
+          iNext. iExists nil.
           iSplit; first done. iSplit.
           {
             assert (node_lt top_head tail); last (simpl; auto).
@@ -60,10 +61,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) (nil :: L) with "[%] [Hlist Hh]").
+        iApply ("IH" $! top_head (lvl+1) (∅ :: L) with "[%] [Hlist Hh]").
         { done. }
         { 
-          iExists ∅, h, head.
+          iExists h, head.
           assert (lvl + 1 - 1 = lvl) as -> by lia.
           by iFrame "# ∗".
         }
@@ -75,7 +76,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       {{{ True }}}
         new #()
       {{{ v, RET v;
-        is_skip_list N v ∅
+        is_skip_list v ∅
       }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
@@ -88,10 +89,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
       set (bot_head := (INT_MIN, Some t, None, l)).
 
-      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv bot_head ∅) 
+      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv bot_head ∅ from_bot_list) 
         with "[Ht2]") as "#Hbot_inv".
       {
-        iNext; iExists nil. 
+        iNext. iExists nil.
         iSplit; first done. iSplit.
         {
           assert (node_lt bot_head tail); last (simpl; auto).
@@ -104,13 +105,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       { by iFrame "# ∗". }
 
       iIntros (h top_head L) "(Hh & %Hmin & Hlist)"; wp_let.
-      iMod (inv_alloc N ⊤ (skip_list_inv top_head ∅) 
-        with "[Hlist Hlock]") as "#Hinv".
-      { iNext; iExists ∅, L. by iFrame "# ∗". }
       iModIntro; iApply "HΦ". 
-      iExists h, top_head, ∅.
+      iExists h, top_head, ∅, L.
       iSplit; first rewrite /key_equiv //.
-      by iFrame "# ∗".
+      by iFrame.
     Qed.
 
   End Proofs.

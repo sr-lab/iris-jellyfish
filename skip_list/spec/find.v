@@ -4,7 +4,8 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import lock misc.
-From SkipList.skip_list Require Import inv node_rep code key_equiv.
+From SkipList.skip_list Require Import node_rep code key_equiv.
+From SkipList.skip_list.inv Require Import skip_inv.
 
 
 Local Open Scope Z.
@@ -16,9 +17,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
     
-    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) :
+    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) (P: node_rep -> iProp Σ) :
       {{{ 
-        inv N (lazy_list_inv head S)
+        inv N (lazy_list_inv head S P)
         ∗
         ⌜ curr = head ∨ curr ∈ S ⌝
         ∗
@@ -26,6 +27,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }}}
         find (rep_to_node curr) #key
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
+        ⌜ pred = head ∨ pred ∈ S ⌝
+        ∗
+        ⌜ node_key pred < key ⌝
+        ∗
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
     Proof.
@@ -41,8 +46,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         edestruct (in_split curr ([head] ++ L)) 
           as (Ls&Lf&Hcurr).
-        { destruct Hcurr_range; first by left.
-          by right; rewrite -elem_of_list_In Hperm elem_of_elements. }
+        { 
+          destruct Hcurr_range; first by left. 
+          by right; rewrite -elem_of_list_In Hperm elem_of_elements. 
+        }
   
         edestruct (node_rep_split_join Lf curr key) 
           as (pred&succ&L1&L2&?&Hsplit_join); auto.
@@ -70,6 +77,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           wp_pures. iApply "HΦ".
           iModIntro; iPureIntro.
 
+          split; first done.
+          split; first lia.
           rewrite -Hperm; split; intros.
           * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
             ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr app_ass.
@@ -163,8 +172,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
             iNext; iApply "HΦ".
       + iInv N as (L) "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
-        rewrite (list_equiv_invert); last first.
-        { by rewrite -elem_of_list_In Hperm elem_of_elements. }
+        rewrite list_equiv_invert; last by rewrite -elem_of_list_In Hperm elem_of_elements.
         iDestruct "Hlist" as (succ l γ) "(Hsucc_range & Hsome & Hpt & #Hlock & Himp)".
         iMod "Hsome" as %Hsome; congruence.
     Qed.

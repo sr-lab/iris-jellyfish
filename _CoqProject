@@ -18,7 +18,9 @@ skip_list/node_rep.v
 skip_list/key_equiv.v
 skip_list/code.v
 skip_list/node_lt.v
-skip_list/inv.v
+
+skip_list/inv/lazy_inv.v
+skip_list/inv/skip_inv.v
 
 skip_list/spec/new.v
 skip_list/spec/find.v
