@@ -19,6 +19,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
+        ⌜ 0 ≤ lvl ⌝
+        ∗
         skip_list_equiv head lvl (∅ :: L) ∅ 
       }}}
         newLoop (rep_to_node head) #lvl
@@ -27,13 +29,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key top_head = INT_MIN ⌝
         ∗
-        skip_list_equiv top_head MAX_HEIGHT (∅ :: L') ∅ 
+        skip_list_equiv top_head MAX_HEIGHT L' ∅ 
       }}}.
     Proof.
-      iIntros (Φ) "[Hmin Hlist] HΦ".
-      iRevert (head lvl L) "Hmin Hlist HΦ".
+      iIntros (Φ) "(Hmin & Hlvl & Hlist) HΦ".
+      iRevert (head lvl L) "Hmin Hlvl Hlist HΦ".
       iLöb as "IH".
-      iIntros (head lvl L) "%Hmin Hlist HΦ".
+      iIntros (head lvl L) "%Hmin %Hlvl Hlist HΦ".
 
       wp_lam. wp_let. wp_alloc h as "Hh".
       wp_pures. case_bool_decide; wp_if.
@@ -61,11 +63,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) (∅ :: L) with "[%] [Hlist Hh]").
+        iApply ("IH" $! top_head (lvl+1) (∅ :: L) with "[%] [%] [Hlist Hh]").
         { done. }
+        { lia. }
         { 
           iExists h, head.
           assert (lvl + 1 - 1 = lvl) as -> by lia.
+          iSplit; first by iPureIntro; lia.
           by iFrame "# ∗".
         }
         

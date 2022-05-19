@@ -50,7 +50,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
       destruct (node_down pred) as [d|] eqn:Hcurr_down; wp_pures.
       + wp_bind (Load _).
         destruct L as [|bot].
-        - iDestruct "Hlist" as "(#Hinv & %Hnone & Heq)".
+        - iDestruct "Hlist" as "(%Hlvl & #Hinv & %Hnone & Heq)".
           iInv (levelN lvl) as (L') "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
           destruct Hpred_range as [|Hin]; first by congruence.
@@ -58,7 +58,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           rewrite list_equiv_invert_L; last done.
           iDestruct "Hlist" as (? ? ?) "(_ & _ & _ & _ & HP & _)".
           iMod "HP" as %Hfalse; congruence.
-        - iDestruct "Hlist" as (l down) "(#Hinv & %Hsome & Hpt & %Hmin & Hmatch)".
+        - iDestruct "Hlist" as (l down) "(%Hlvl & #Hinv & %Hsome & Hpt & %Hmin & Hmatch)".
           iInv (levelN lvl) as (L') "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
           destruct Hpred_range as [Heq|Hin].
@@ -103,9 +103,9 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             iExists l, down. by iFrame "# ∗".
       + destruct L as [|bot].
         - iModIntro. iApply "HΦ".
-          iDestruct "Hlist" as "(#Hinv & %Hnone & %Heq)".
+          iDestruct "Hlist" as "(%Hlvl & #Hinv & %Hnone & %Heq)".
           rewrite -Heq; by iFrame "#".
-        - iDestruct "Hlist" as (l down) "(#Hinv & %Hsome & Hpt & Hmatch)".
+        - iDestruct "Hlist" as (l down) "(%Hlvl & #Hinv & %Hsome & Hpt & Hmatch)".
           iInv (levelN lvl) as (L') "(>%Hperm & >%Hsort & Hlist)" "Hclose".
 
           destruct Hpred_range as [|Hin]; first by congruence.
@@ -129,6 +129,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (h head S L) "(%Hequiv & %Hv & Hpt & %Hmin & Hlist)".
       wp_lam. wp_let. rewrite -Hv. wp_load.
+      destruct L as [|l L]; first by iExFalso.
       wp_apply (findPred_spec with "[Hlist]").
       { iFrame "# ∗". iPureIntro; split. by left. lia. }
       iIntros (pred succ) "(Hlist & %Hkey_in_S)".
@@ -136,13 +137,13 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
 
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit. 
-        iExists h, head, S, L.
+        iExists h, head, S, (l :: L).
         { by iFrame "# ∗". }
         iPureIntro. rewrite /key_equiv in Hequiv. 
         rewrite -elem_of_elements Hequiv Hkey_in_S.
         congruence.
       + iApply "HΦ". iSplit. 
-        iExists h, head, S, L.
+        iExists h, head, S, (l :: L).
         { by iFrame "# ∗". }
         iPureIntro. intros Hin. 
         rewrite -elem_of_elements Hequiv Hkey_in_S in Hin.

@@ -36,16 +36,20 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (L: list (gset node_rep)) (S: gset node_rep) : iProp Σ :=
       match L with
-      | nil => True
+      | nil => False
       | top :: bots =>
         match bots with
-        | nil => inv (levelN lvl) (lazy_list_inv head top from_bot_list)
+        | nil => ⌜ lvl = 0 ⌝
+                 ∗
+                 inv (levelN lvl) (lazy_list_inv head top from_bot_list)
                  ∗
                  ⌜ node_down head = None ⌝
                  ∗
                  ⌜ top = S ⌝
                  
         | bot :: _ => ∃ (l: loc) (down: node_rep),
+                      ⌜ lvl > 0 ⌝
+                      ∗
                       inv (levelN lvl) (lazy_list_inv head top (from_sub_list bot))
                       ∗
                       ⌜ node_down head = Some l ⌝
@@ -68,7 +72,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      skip_list_equiv head MAX_HEIGHT (∅ :: L) S.
+      skip_list_equiv head MAX_HEIGHT L S.
 
 
     Lemma skip_list_equiv_cons_inv (top_head: node_rep) (lvl: Z) (S: gset node_rep)
@@ -82,10 +86,10 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Proof.
       destruct L as [|bot].
       + iIntros "Htop". iExists from_bot_list.
-        iDestruct "Htop" as "(#Hinv & %Hsome & %Hlvl)".
+        iDestruct "Htop" as "(%Hlvl & #Hinv & %Hnone & %Heq)".
         by iFrame "#".
       + iIntros "Hlist". iExists (from_sub_list bot).
-        iDestruct "Hlist" as (l down) "(#Hinv & %Hsome & Hpt & Hmatch)".
+        iDestruct "Hlist" as (l down) "(%Hlvl & #Hinv & %Hsome & Hpt & Hmatch)".
         iFrame "#". iExists l, down. by iFrame.
     Qed.
 
