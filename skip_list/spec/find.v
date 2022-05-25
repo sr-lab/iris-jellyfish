@@ -80,7 +80,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
+          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]") as "_".
           {
             iNext. iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -123,7 +123,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
+          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]") as "_".
           {
             iNext. iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".

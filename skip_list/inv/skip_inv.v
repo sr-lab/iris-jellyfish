@@ -34,20 +34,29 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Definition from_bot_list (curr: node_rep) : iProp Σ := 
       ⌜ node_down curr = None ⌝.
 
-    Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (L: list lazy_gname) : iProp Σ :=
-      match L with
-      | nil => False
-      | top :: bots =>
-        match bots with
-        | nil => 
-          ⌜ lvl = 1 ⌝
-          ∗
-          inv (levelN lvl) (lazy_list_inv head top from_bot_list)
-          ∗
-          ⌜ node_down head = None ⌝
+    Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
+      (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ :=
+      match L_gset, L_gname with
+      | Stop :: Sbots, top :: bots =>
+        match Sbots, bots with
+        | nil, nil => 
+          ∃ (Sfrac: gset node_rep),
+            ⌜ key_equiv Sfrac Stop ⌝
+            ∗
+            own (s_frac top) (◯F{q} Sfrac)
+            ∗
+            ⌜ lvl = 1 ⌝
+            ∗
+            inv (levelN lvl) (lazy_list_inv head top from_bot_list)
+            ∗
+            ⌜ node_down head = None ⌝
                  
-        | bot :: _ => 
-          ∃ (l: loc) (down: node_rep),
+        | _ :: _, bot :: _ => 
+          ∃ (l: loc) (down: node_rep) (Sfrac: gset node_rep),
+            ⌜ key_equiv Sfrac Stop ⌝
+            ∗
+            own (s_frac top) (◯F{q} Sfrac)
+            ∗
             ⌜ lvl > 1 ⌝
             ∗
             inv (levelN lvl) (lazy_list_inv head top (from_sub_list bot))
@@ -58,20 +67,9 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
             ∗
             ⌜ node_key head = node_key down ⌝
             ∗
-            skip_list_equiv down (lvl - 1) bots
+            skip_list_equiv down (lvl - 1) q Sbots bots
+        | _, _ => False
         end
-      end.
-
-    Fixpoint own_frac (q: frac) (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ :=
-      match L_gset, L_gname with
-      | nil, nil => True
-      | Stop :: Sbots, top :: bots =>
-        ∃ (Sfrac: gset node_rep),
-          ⌜ key_equiv Sfrac Stop ⌝
-          ∗
-          own (s_frac top) (◯F{q} Sfrac)
-          ∗
-          own_frac q Sbots bots
       | _, _ => False
       end.
 
@@ -83,28 +81,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      own_frac q L_gset L_gname
-      ∗
-      skip_list_equiv head MAX_HEIGHT L_gname.
-
-
-    Lemma skip_list_equiv_cons_inv (top_head: node_rep) (lvl: Z)
-      (top: lazy_gname) (bots: list lazy_gname) :
-      skip_list_equiv top_head lvl (top :: bots) ⊢ 
-        ∃ (P: node_rep → iProp Σ),
-        inv (levelN lvl) (lazy_list_inv top_head top P)
-        ∗
-        skip_list_equiv top_head lvl (top :: bots)
-    .
-    Proof.
-      destruct bots as [|bot].
-      + iIntros "Htop". iExists from_bot_list.
-        iDestruct "Htop" as "(? & #? & ?)".
-        iFrame "# ∗".
-      + iIntros "Hlist". iExists (from_sub_list bot).
-        iDestruct "Hlist" as (l down) "(? & #? & ? & ? & ?)".
-        iFrame "# ∗". iExists l, down. iFrame "# ∗".
-    Qed.
+      skip_list_equiv head MAX_HEIGHT q L_gset L_gname.
 
   End Proofs.
 End SkipListInv.
