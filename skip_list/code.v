@@ -41,7 +41,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
       let: "head" := (#INT_MIN, SOME "t", NONEV, newlock #()) in
-      let: "h" := newLoop "head" #0 in
+      let: "h" := newLoop "head" #1 in
       "h".
 
   (* Find function *)
