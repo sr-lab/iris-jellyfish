@@ -27,7 +27,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   }.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N: namespace).
 
     Definition node_inv (l: loc) (γt: gname) (k: Z) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ
@@ -74,8 +74,16 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       own (s_tok Γ) (GSet Skeys)
       ∗
-      list_equiv ([head] ++ L) (s_tok Γ) P
-    .
+      list_equiv ([head] ++ L) (s_tok Γ) P.
+
+    Definition is_lazy_list (head: node_rep) (q: frac)
+      (Stop: gset Z) (top: lazy_gname) (P: node_rep → iProp Σ) : iProp Σ := 
+      ∃ (Sfrac: gset node_rep),
+      ⌜ key_equiv Sfrac Stop ⌝
+      ∗
+      own (s_frac top) (◯F{q} Sfrac)
+      ∗
+      inv N (lazy_list_inv head top P).
     
 
     Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) 

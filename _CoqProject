@@ -25,3 +25,4 @@ skip_list/inv/skip_inv.v
 skip_list/spec/new.v
 skip_list/spec/find.v
 skip_list/spec/contains.v
+skip_list/spec/insert.v

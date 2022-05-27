@@ -40,40 +40,32 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       | Stop :: Sbots, top :: bots =>
         match Sbots, bots with
         | nil, nil => 
-          ∃ (Sfrac: gset node_rep),
-            ⌜ key_equiv Sfrac Stop ⌝
-            ∗
-            own (s_frac top) (◯F{q} Sfrac)
-            ∗
-            ⌜ lvl = 1 ⌝
-            ∗
-            inv (levelN lvl) (lazy_list_inv head top from_bot_list)
-            ∗
-            ⌜ node_down head = None ⌝
+          ⌜ lvl = 1 ⌝
+          ∗
+          is_lazy_list (levelN lvl) head q Stop top from_bot_list
+          ∗
+          ⌜ node_down head = None ⌝
                  
         | _ :: _, bot :: _ => 
-          ∃ (l: loc) (down: node_rep) (Sfrac: gset node_rep),
-            ⌜ key_equiv Sfrac Stop ⌝
-            ∗
-            own (s_frac top) (◯F{q} Sfrac)
-            ∗
-            ⌜ lvl > 1 ⌝
-            ∗
-            inv (levelN lvl) (lazy_list_inv head top (from_sub_list bot))
-            ∗
-            ⌜ node_down head = Some l ⌝
-            ∗
-            l ↦ rep_to_node down
-            ∗
-            ⌜ node_key head = node_key down ⌝
-            ∗
-            skip_list_equiv down (lvl - 1) q Sbots bots
+          ∃ (l: loc) (down: node_rep),
+          ⌜ lvl > 1 ⌝
+          ∗
+          is_lazy_list (levelN lvl) head q Stop top (from_sub_list bot)
+          ∗
+          ⌜ node_down head = Some l ⌝
+          ∗
+          l ↦ rep_to_node down
+          ∗
+          ⌜ node_key head = node_key down ⌝
+          ∗
+          skip_list_equiv down (lvl - 1) q Sbots bots
         | _, _ => False
         end
       | _, _ => False
       end.
 
-    Definition is_skip_list (v: val) (q: frac) (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ := 
+    Definition is_skip_list (v: val) (q: frac) 
+      (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ := 
       ∃ (l:loc) (head: node_rep),
       ⌜ #l = v ⌝
       ∗

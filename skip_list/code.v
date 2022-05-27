@@ -113,43 +113,52 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition tryInsert : val := 
     λ: "head" "k",
-      let: "pair" := findLock "head" "k" in
-      let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := (nodeKey "curr") in
-      if: "k" = "ck"
-      then
-        release (nodeLock "pred");;
-        NONEV
-      else
-        match: nodeNext "pred" with
-            NONE => 
+      let: "opair" := findLock "head" "k" in
+      match: "opair" with
+          NONE => NONEV
+        | SOME "pair" =>
+          let: "pred" := Fst "pair" in
+          let: "curr" := Snd "pair" in
+          let: "ck" := (nodeKey "curr") in
+          if: "k" = "ck"
+          then
             release (nodeLock "pred");;
             NONEV
-          | SOME "np" =>
-            let: "succ" := !"np" in
-            let: "next" := ref "succ" in
-            let: "node" := ("k", SOME "next", NONEV, newlock #()) in
-            "np" <- "node";;
-            release (nodeLock "pred");;
-            SOME "node"
-        end.
+          else
+            match: nodeNext "pred" with
+                NONE => 
+                release (nodeLock "pred");;
+                NONEV
+              | SOME "np" =>
+                let: "succ" := !"np" in
+                let: "next" := ref "succ" in
+                let: "node" := ("k", SOME "next", NONEV, newlock #()) in
+                "np" <- "node";;
+                release (nodeLock "pred");;
+                SOME "node"
+            end
+      end.
 
   Definition insert : val := 
     λ: "head" "k" "down",
-      let: "pair" := findLock "head" "k" in
-      let: "pred" := Fst "pair" in
-      match: nodeNext "pred" with
-          NONE => 
-          release (nodeLock "pred");;
-          NONEV
-        | SOME "np" =>
-          let: "succ" := !"np" in
-          let: "next" := ref "succ" in
-          let: "node" := ("k", SOME "next", SOME "down", newlock #()) in
-          "np" <- "node";;
-          release (nodeLock "pred");;
-          SOME "node"
+      let: "opair" := findLock "head" "k" in
+      match: "opair" with
+          NONE => NONEV
+        | SOME "pair" =>
+          let: "pred" := Fst "pair" in
+          match: nodeNext "pred" with
+              NONE => 
+              release (nodeLock "pred");;
+              NONEV
+            | SOME "np" =>
+              let: "succ" := !"np" in
+              let: "next" := ref "succ" in
+              let: "d" := ref "down" in
+              let: "node" := ("k", SOME "next", SOME "d", newlock #()) in
+              "np" <- "node";;
+              release (nodeLock "pred");;
+              SOME "node"
+          end
       end.
 
   (* Skip list insertion *)

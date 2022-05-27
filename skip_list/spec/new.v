@@ -23,8 +23,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
                   is_empty t (lvl - 1)
       end.
 
-    Theorem newLoop_spec (head: node_rep) (lvl: Z) (Sbots: list (gset Z))
-      (bot: lazy_gname) (bots: list lazy_gname) :
+    Theorem newLoop_spec (head: node_rep) (lvl: Z) 
+      (Sbots: list (gset Z)) (top: lazy_gname) (bots: list lazy_gname) :
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
@@ -32,7 +32,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         ∗
         is_empty (∅ :: Sbots) lvl
         ∗
-        skip_list_equiv head lvl 1 (∅ :: Sbots) (bot :: bots)
+        skip_list_equiv head lvl 1 (∅ :: Sbots) (top :: bots)
       }}}
         newLoop (rep_to_node head) #lvl
       {{{ h top_head L_gset L_gname, RET #h;
@@ -46,9 +46,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "(Hmin & Hlvl & Hempty & Hlist) HΦ".
-      iRevert (head lvl Sbots bot bots) "Hmin Hlvl Hempty Hlist HΦ".
+      iRevert (head lvl Sbots top bots) "Hmin Hlvl Hempty Hlist HΦ".
       iLöb as "IH".
-      iIntros (head lvl Sbots bot bots) "%Hmin %Hlvl Hempty Hlist HΦ".
+      iIntros (head lvl Sbots top bots) "%Hmin %Hlvl Hempty Hlist HΦ".
 
       wp_lam. wp_let. wp_alloc h as "Hh".
       wp_pures. case_bool_decide; wp_if.
@@ -93,7 +93,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) (∅ :: Sbots) Γ (bot :: bots) 
+        iApply ("IH" $! top_head (lvl+1) (∅ :: Sbots) Γ (top :: bots) 
           with "[%] [%] [Hempty] [Hlist Hh Hown_frac_frag]").
         { done. }
         { lia. }
@@ -103,11 +103,12 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           by iFrame.
         }
         {
-          iExists h, head, ∅.
-          iSplit; first rewrite /key_equiv //.
+          iExists h, head. 
           assert (lvl + 1 - 1 = lvl) as -> by lia.
-          iFrame "# ∗". iPureIntro.
-          by split; first lia.
+          iSplit; first (iPureIntro; lia).
+          iSplitL "Hown_frac_frag".
+          { iExists ∅; iFrame "# ∗"; rewrite /key_equiv //. }
+          by iFrame "# ∗". 
         }
         
         iNext. iApply "HΦ".
@@ -165,8 +166,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       wp_apply (newLoop_spec _ _ nil Γ nil with "[Hown_frac_frag]").
       {
         iSplit; first done. iSplit; first done. iSplit; first done.
-        iExists ∅. rewrite /key_equiv //.
-        by iFrame "# ∗".
+        iSplit; first done. iSplit; last done.
+        iExists ∅; iFrame "# ∗"; rewrite /key_equiv //.
       }
 
       iIntros (h top_head S L) "(Hh & %Hmin & Hempty & Hlist)"; wp_let.
