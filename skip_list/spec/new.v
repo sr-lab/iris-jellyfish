@@ -61,17 +61,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
           as (γfrac) "[Hown_frac Hown_frac_frag]"; 
           first by apply auth_both_valid.
-        iMod (own_alloc (GSet (Zlt_range INT_MIN INT_MAX)))
-          as (γtok) "Hown_tok"; first done.
-
-        assert (GSet (Zlt_range INT_MIN INT_MAX) =
-          GSet (Zlt_range INT_MIN INT_MAX) ⋅ GSet (∅)) as ->.
-        { rewrite gset_disj_union; f_equal; set_solver. }
-        iDestruct "Hown_tok" as "(Hown_tok & Hown_emp)".
       
         wp_alloc t as "Ht". wp_let.
         iDestruct "Ht" as "(Ht1 & Ht2)".
-        wp_apply (newlock_spec (node_inv t γtok (INT_MIN)) with "[Ht1 Hown_tok]").
+        wp_apply (newlock_spec (node_inv t) with "[Ht1]").
         { iExists tail; iFrame. }
         
         iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
@@ -79,17 +72,16 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         set (top_head := (INT_MIN, Some t, Some h, l)).
         rewrite (fold_rep_to_node top_head).
 
-        set (Γ := mk_lazy_gname γauth γfrac γtok).
+        set (Γ := mk_lazy_gname γauth γfrac).
         iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head Γ (from_sub_list ∅)) 
-          with "[Ht2 Hlock Hown_auth Hown_frac Hown_emp]") as "#Hinv".
+          with "[Ht2 Hlock Hown_auth Hown_frac]") as "#Hinv".
         {
-          iNext. iExists ∅, ∅, nil. iFrame.
+          iNext. iExists ∅, nil. iFrame.
           iSplit; first done. iSplit.
           {
             assert (node_lt top_head tail); last (simpl; auto).
             rewrite /node_lt/node_key//=; apply HMIN_MAX.
           }
-          iSplit; first rewrite /key_equiv //.
           iExists t, γ. by iFrame "# ∗".
         }
 
@@ -131,17 +123,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
-      iMod (own_alloc (GSet (Zlt_range INT_MIN INT_MAX)))
-        as (γtok) "Hown_tok"; first done.
-
-      assert (GSet (Zlt_range INT_MIN INT_MAX) =
-        GSet (Zlt_range INT_MIN INT_MAX) ⋅ GSet (∅)) as ->.
-      { rewrite gset_disj_union; f_equal; set_solver. }
-      iDestruct "Hown_tok" as "(Hown_tok & Hown_emp)".
 
       wp_lam. wp_alloc t as "Ht". wp_let.
       iDestruct "Ht" as "(Ht1 & Ht2)".
-      wp_apply (newlock_spec (node_inv t γtok (INT_MIN)) with "[Ht1 Hown_tok]").
+      wp_apply (newlock_spec (node_inv t) with "[Ht1]").
       { iExists tail; iFrame. }
 
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
@@ -149,17 +134,16 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
       set (bot_head := (INT_MIN, Some t, None, l)).
 
-      set (Γ := mk_lazy_gname γauth γfrac γtok).
+      set (Γ := mk_lazy_gname γauth γfrac).
       iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head Γ from_bot_list) 
-        with "[Ht2 Hlock Hown_auth Hown_frac Hown_emp]") as "#Hinv".
+        with "[Ht2 Hlock Hown_auth Hown_frac]") as "#Hinv".
       {
-        iNext. iExists ∅, ∅, nil. iFrame.
+        iNext. iExists ∅, nil. iFrame.
         iSplit; first done. iSplit.
         {
           assert (node_lt bot_head tail); last (simpl; auto).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
-        iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
       }
 
