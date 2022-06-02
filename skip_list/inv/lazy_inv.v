@@ -23,6 +23,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Record lazy_gname := mk_lazy_gname {
     s_auth: gname;
     s_frac: gname;
+    s_toks: gname
   }.
 
   Section Proofs.
@@ -56,15 +57,21 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         end
       end.
 
+    Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
+
     Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) (P: node_rep → iProp Σ) : iProp Σ := 
-      ∃ (S: gset node_rep) (L: list node_rep),
+      ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
+      ⌜ key_equiv S Skeys ⌝
+      ∗
       own (s_auth Γ) (● S)
       ∗
       own (s_frac Γ) (●F S)
+      ∗
+      own (s_toks Γ) (GSet (node_key_range ∖ Skeys))
       ∗
       list_equiv ([head] ++ L) P.
 
@@ -151,7 +158,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         ∃ (succ: node_rep) (L1 L2: list node_rep) (l: loc) (γ: gname), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
           ∗
-          (⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝)
+          ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
           ∗
           ⌜ node_next pred = Some l ⌝
           ∗
@@ -204,7 +211,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         ∃ (succ: node_rep) (L1 L2: list node_rep) (l: loc) (γ: gname), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
           ∗
-          (⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝)
+          ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
           ∗
           ⌜ node_next pred = Some l ⌝
           ∗
@@ -248,8 +255,10 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         ∗
         P new
         -∗ 
-          ∃ (L': list node_rep), 
-            l ↦ rep_to_node succ 
+          ∃ (L' L1 L2: list node_rep), 
+            l ↦ rep_to_node succ
+            ∗
+            ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
             ∗
             ⌜ Sorted node_lt ([head] ++ L' ++ [tail]) ⌝
             ∗
@@ -270,17 +279,16 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       iIntros (Hin); inversion Hin.
       * subst.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock' HP'".
-        iExists (new :: L).
-        destruct L as [|].
-        ** simpl.
-           iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
+        destruct L as [|a L].
+        ** iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
            assert (l = l'') as <- by congruence.
-           iDestruct (mapsto_agree with "Hpt Hpt''") as %->.
-
-           iFrame. iSplit.
+           iDestruct (mapsto_agree with "Hpt Hpt''") as %Htail.
+           apply rep_to_node_inj in Htail; subst.
+           iExists (new :: nil), nil, nil.
+           iFrame. iSplit; first done. iSplit.
            { 
-             iPureIntro; apply Sorted_cons; auto.
-             econstructor; unfold node_lt; lia.
+             iPureIntro; apply Sorted_cons; econstructor; auto.
+             unfold node_lt; lia.
            }
            iSplit; first auto.
            iIntros "Hpt". iExists _, _.
@@ -290,10 +298,10 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
            assert (l = l'') as <- by congruence.
            iDestruct (mapsto_agree with "Hpt Hpt''") as %Heq.
            apply rep_to_node_inj in Heq; subst.
-
-           iFrame. iSplit.
+           iExists (new :: a :: L), nil, (L ++ [tail]).
+           iFrame. iSplit; first done. iSplit.
            { 
-             iPureIntro. simpl in Hsort.
+             iPureIntro.
              repeat apply Sorted_inv in Hsort as (Hsort&?).
              repeat econstructor; auto. 
              all: unfold node_lt; lia.
@@ -310,8 +318,13 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         iPoseProof ("IHL'" $! head' L with "[%] [%] [%] [$] [%] [$] [%] [$] [$] [$]") 
           as "Hclose"; auto.
         
-        iDestruct "Hclose" as (L') "(Hpt' & %Hsort' & %Hperm' & Himp')".
-        iExists (head' :: L'). iFrame.
+        iDestruct "Hclose" as (L' L1 L2) "(Hpt' & %Hsplit & %Hsort' & %Hperm' & Himp')".
+        iExists (head' :: L'), (head :: L1), L2. iFrame.
+        iSplit.
+        {
+          rewrite /= in Hsplit.
+          rewrite /= Hsplit //.
+        }
         iSplit.
         {
           iPureIntro. inversion Hhd.

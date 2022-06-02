@@ -48,7 +48,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
 
       iMod (inv_alloc N ⊤ (lazy_list_inv head γauth γfrac γtok) 
         with "[Ht2 Hlock Hown_auth Hown_frac Hown_emp]") as "#Hinv".
-      + iNext. iExists ∅, ∅, nil. iFrame.
+      + iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 
         { 
           assert (node_lt head tail); last (simpl; auto).

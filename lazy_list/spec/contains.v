@@ -66,7 +66,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           wp_load.
           iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
           {
-            iNext. iExists S, Skeys, L.
+            iNext; iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".
             by iFrame.
           }
@@ -109,7 +109,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           wp_load.
           iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
           {
-            iNext. iExists S, Skeys, L.
+            iNext; iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".
             by iFrame.
           }
@@ -168,7 +168,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
             }
             { lia. }
 
-            iNext. iApply "HΦ".
+            iNext; iApply "HΦ".
       + iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hown_tok & Hlist)" "Hclose".
         iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.

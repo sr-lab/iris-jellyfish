@@ -57,6 +57,30 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           then SOME ("pred", "curr")
           else "find" "curr" "k"
       end.
+  
+  Definition findLock : val := 
+    rec: "find" "head" "k" :=
+      let: "opair" := find "head" "k" in
+      match: "opair" with
+          NONE => NONEV
+        | SOME "pair" =>
+          let: "pred" := Fst "pair" in
+          let: "curr" := Snd "pair" in
+          acquire (nodeLock "pred");;
+          let: "onext" := (nodeNext "pred") in
+          match: "onext" with
+              NONE => NONEV
+            | SOME "np" =>
+              let: "next" := !"np" in
+              let: "nk" := (nodeKey "next") in
+              let: "ck" := (nodeKey "curr") in
+              if: "nk" = "ck" 
+              then SOME ("pred", "curr")
+              else
+                release (nodeLock "pred");;
+                "find" "head" "k"
+          end
+      end.
 
   (* Lazy list lookup *)
   Definition findPred : val := 
@@ -87,30 +111,6 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       end.
 
   (* Lazy list insertion *)
-  Definition findLock : val := 
-    rec: "find" "head" "k" :=
-      let: "opair" := find "head" "k" in
-      match: "opair" with
-          NONE => NONEV
-        | SOME "pair" =>
-          let: "pred" := Fst "pair" in
-          let: "curr" := Snd "pair" in
-          acquire (nodeLock "pred");;
-          let: "onext" := (nodeNext "pred") in
-          match: "onext" with
-              NONE => NONEV
-            | SOME "np" =>
-              let: "next" := !"np" in
-              let: "nk" := (nodeKey "next") in
-              let: "ck" := (nodeKey "curr") in
-              if: "nk" = "ck" 
-              then SOME ("pred", "curr")
-              else
-                release (nodeLock "pred");;
-                "find" "head" "k"
-          end
-      end.
-
   Definition tryInsert : val := 
     λ: "head" "k",
       let: "opair" := findLock "head" "k" in

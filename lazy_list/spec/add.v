@@ -65,7 +65,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iMod "Hpt"; wp_load.
         iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
         {
-          iNext. iExists S, Skeys, L.
+          iNext; iExists S, Skeys, L.
           iPoseProof ("Himp" with "Hpt") as "Hlist".
           by iFrame.
         }
@@ -187,7 +187,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       assert (rep = succ') as -> by by apply rep_to_node_inj.
       iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
       {
-        iNext. iExists S, Skeys, L.
+        iNext; iExists S, Skeys, L.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
         by iFrame.
       }
@@ -247,7 +247,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         wp_pures.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_tok]") as "_".
         {
-          iNext. iExists S, Skeys', L.
+          iNext; iExists S, Skeys', L.
           assert (S ∪ {[ succ ]} ≡ S) as -> by set_solver.
           by iFrame.
         }
@@ -310,7 +310,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { rewrite /node_key//=; lia. }
 
         iDestruct ("Hlist" with "[Hpt Hpt' Hlock]") as "Hlist".
-        { iNext. by iFrame "# ∗". }
+        { iNext; by iFrame "# ∗". }
         iDestruct "Hlist" as (L') "(Hpt & Hsort & Hperm & Himp)".
         iMod "Hsort" as %Hsort'; iMod "Hperm" as %Hperm'; iMod "Hpt".
         wp_store.
@@ -333,7 +333,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iDestruct "Hpt" as "(Hpt & Hpt_dup)".
         iMod ("Hclose" with "[Hpt_dup Himp Hown_auth Hown_frac Hown_tok]") as "_".
         {
-          iNext. iExists _, _, L'. 
+          iNext; iExists _, _, L'. 
           iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
           iFrame. iPureIntro. split; last first.
           {

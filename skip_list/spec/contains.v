@@ -24,7 +24,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
       {{{ 
         skip_list_equiv top_head lvl 1 (Stop :: Sbots) (top :: bots)
         ∗
-        (⌜ curr = top_head ⌝ ∨ own (s_auth top) (◯ {[curr]}))
+        (⌜ curr = top_head ⌝ ∨ own (s_auth top) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
@@ -53,15 +53,15 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
         wp_pures. wp_lam. wp_pures.
         destruct (node_down pred) as [d|] eqn:Hcurr_down; wp_pures.
         - wp_bind (Load _).
-          iInv (levelN lvl) as (S L) "(>%Hperm & _ & _ & Hown_frac & Hlist)" "_".
-          iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+          iInv (levelN lvl) as (S Skeys L) "(>%Hperm & _ & _ & _ & >Hown_frac & _ & Hlist)" "_".
+          iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
             as %<-%frac_auth_agree_L.
           
           destruct Hpred_range as [|Hin]; first by congruence.
           rewrite -elem_of_elements elem_of_list_In -Hperm in Hin.
           rewrite list_equiv_invert_L; last done.
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & HP & _)".
-          iMod "HP" as %Hfalse; congruence.
+          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >%HP & _)".
+          congruence.
         - iModIntro. iApply "HΦ". iSplit. 
           { 
             iSplit; first done. iSplit; last done. 
@@ -77,15 +77,15 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
         wp_pures. wp_lam. wp_pures.
         destruct (node_down pred) as [d|] eqn:Hcurr_down; wp_pures.
         - wp_bind (Load _).
-          iInv (levelN lvl) as (S L) "(>%Hperm & >%Hsort & Hown_auth & Hown_frac & Hlist)" "Hclose".
-          iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+          iInv (levelN lvl) as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv' & Hown_auth & >Hown_frac & Hown_toks & Hlist)" "Hclose".
+          iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
             as %<-%frac_auth_agree_L.
 
           destruct Hpred_range as [Heq|Hin].
           * assert (d = l) as -> by congruence.
             wp_load.
-            iMod ("Hclose" with "[Hlist Hown_auth Hown_frac]") as "_".
-            { iNext; iExists S, L; by iFrame. }
+            iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+            { iNext; iExists S, Skeys, L; by iFrame. }
 
             iModIntro; wp_let.
             iApply ("IH" with "[$] [] [%]").
@@ -99,23 +99,21 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           * rewrite -elem_of_elements elem_of_list_In -Hperm in Hin.
             rewrite list_equiv_invert_L; last done.
             iDestruct "Hlist" as (succ' ? ? l' γ) "(Hsucc'_range & _ & Hsome' & Hpt' & Hlock & HP & Himp)".
-            iDestruct "HP" as (d' down') "(Hsome_down & Hpt_down & Hown_down' & Hdown'_key)".
-            iMod "Hsome_down" as %Hsome_down; iMod "Hdown'_key" as %Hdown'_key.
-
-            iMod "Hown_down'".
-            assert ({[down']} ≡ {[down']} ⋅ {[down']}) as -> by set_solver.
-            iDestruct "Hown_down'" as "(Hown_down' & Hown_down'_dup)".
+            iDestruct "HP" as (d' down') "(>%Hsome_down & Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
             assert (d = d') as <- by congruence.
-            iMod "Hpt_down"; wp_load.
-            iPoseProof ("Himp" with "[Hpt' Hpt_down Hown_down']") as "Hlist".
+            assert ({[ down' ]} = {[ down' ]} ⋅ {[ down' ]}) as -> by set_solver.
+            iDestruct "Hauth_down'" as "(Hauth_down' & Hauth_down'_dup)".
+
+            wp_load.
+            iPoseProof ("Himp" with "[Hpt' Hpt_down Hauth_down' Htoks_down']") as "Hlist".
             { iFrame; iExists d, down'; by iFrame. }
-            iMod ("Hclose" with "[Hown_auth Hown_frac Hlist]") as "_".
-            { iNext; iExists S, L. by iFrame. }
+            iMod ("Hclose" with "[Hown_auth Hown_frac Hown_toks Hlist]") as "_".
+            { iNext; iExists S, Skeys, L; by iFrame. }
 
             iModIntro; wp_let.
             iDestruct "Hsucc'_range" as %Hsucc'_range; iDestruct "Hsome'" as %Hsome'.
-            iApply ("IH" with "[$] [Hown_down'_dup] [%]").
+            iApply ("IH" with "[$] [Hauth_down'_dup] [%]").
             { by iRight. }
             { rewrite -Hdown'_key; lia. }
             iNext; iIntros (? ? S') "(Hlist & %Hlast & %Hkey_in_S')".
@@ -123,16 +121,16 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             iExists l, down. iFrame "# ∗".
             iSplit; first done. iSplit; last done.
             iExists S; by iFrame "# ∗". 
-        - iInv (levelN lvl) as (S L) "(>%Hperm & _ & _ & Hown_frac & Hlist)" "_".
-          iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+        - iInv (levelN lvl) as (S Skeys L) "(>%Hperm & _ & _ & _ & >Hown_frac & _ & Hlist)" "_".
+          iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
             as %<-%frac_auth_agree_L.
 
           destruct Hpred_range as [|Hin]; first by congruence.
           rewrite -elem_of_elements elem_of_list_In -Hperm in Hin.
           rewrite list_equiv_invert_L; last done.
           iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & HP & _)".
-          iDestruct "HP" as (? ?) "(Hfalse & _)".
-          iMod "Hfalse" as %Hfalse; congruence.
+          iDestruct "HP" as (? ?) "(>%Hfalse & _)".
+          congruence.
     Qed.
     
     Theorem contains_spec (v: val) (key: Z) 

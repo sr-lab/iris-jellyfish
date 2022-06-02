@@ -29,6 +29,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       own (s_auth bot) (◯ {[ down ]})
       ∗
+      own (s_toks bot) (GSet {[ node_key down ]})
+      ∗
       ⌜ node_key curr = node_key down ⌝.
 
     Definition from_bot_list (curr: node_rep) : iProp Σ := 

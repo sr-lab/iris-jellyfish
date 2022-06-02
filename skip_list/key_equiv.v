@@ -31,8 +31,8 @@ Module KeyEquiv (Params: SKIP_LIST_PARAMS).
 
   Lemma key_equiv_nin (rep: node_rep) (S: gset node_rep) (Skeys: gset Z):
     key_equiv S Skeys →
-    ¬ node_key rep ∈ Skeys →
-    ¬ rep ∈ S.
+    node_key rep ∉ Skeys →
+    rep ∉ S.
   Proof.
     intros ? Hnin Hin.
     by eapply Hnin, key_equiv_in.
@@ -40,7 +40,7 @@ Module KeyEquiv (Params: SKIP_LIST_PARAMS).
 
   Lemma key_equiv_insert_nin (rep: node_rep) (S: gset node_rep) (Skeys: gset Z):
     key_equiv S Skeys →
-    ¬ (node_key rep ∈ Skeys) →
+    node_key rep ∉ Skeys →
     key_equiv (S ∪ {[ rep ]}) (Skeys ∪ {[ node_key rep ]}).
   Proof.
     rewrite /key_equiv.
