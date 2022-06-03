@@ -23,7 +23,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
    * in having None for all levels here.
    * The same can be said for (node_lock tail) and the dummy_lock.
    *)
-  Definition dummy_lock : val := #{|loc_car := 0|}.
+  Definition dummy_lock : val := #().
   Definition tail : node_rep := (INT_MAX, None, None, dummy_lock).
 
   (* Lazy list creation *)

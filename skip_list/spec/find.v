@@ -80,12 +80,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_toks]") as "_".
-          {
-            iNext; iExists S, Skeys, L.
-            iPoseProof ("Himp" with "Hpt") as "Hlist".
-            by iFrame.
-          }
+          iPoseProof ("Himp" with "Hpt") as "Hlist".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+          { iNext; iExists S, Skeys, L; by iFrame. }
 
           iModIntro. wp_let. wp_lam. wp_pures.
           case_bool_decide; last lia.
@@ -123,12 +120,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_toks]") as "_".
-          {
-            iNext; iExists S, Skeys, L.
-            iPoseProof ("Himp" with "Hpt") as "Hlist".
-            by iFrame.
-          }
+          iPoseProof ("Himp" with "Hpt") as "Hlist".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+          { iNext; iExists S, Skeys, L; by iFrame. }
 
           iModIntro. wp_let. wp_lam. wp_pures.
           case_bool_decide as Hcase.
@@ -255,12 +249,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
         assert (l = l') as <- by congruence.
         wp_load.
-        iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_toks]").
-        {
-          iNext; iExists S, Skeys, L.
-          iPoseProof ("Himp" with "Hpt") as "Hlist".
-          by iFrame.
-        }
+        iPoseProof ("Himp" with "Hpt") as "Hlist".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]").
+        { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_let. wp_lam. wp_pures.
         case_bool_decide as Hcase; wp_if.
@@ -377,18 +368,15 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert L head pred); last done.
-      iDestruct "Hlist" as (succ' ? ? l' γ') "(>%Hsucc'_in_L & _ & >%Hsome' & Hpt & _ & Himp)".
+      iDestruct "Hlist" as (succ' ? ? l' γ') "(>%Hsucc'_in_L & _ & >%Hsome' & >Hpt & _ & Himp)".
       assert (l = l') as <- by congruence.
-
-      wp_load.
       iDestruct (mapsto_agree with "Hnode Hpt") as "%Hsucc".
       assert (rep = succ') as -> by by apply rep_to_node_inj.
-      iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_toks]").
-      {
-        iNext; iExists S, Skeys, L.
-        iPoseProof ("Himp" with "Hpt") as "Hlist".
-        by iFrame.
-      }
+
+      wp_load.
+      iPoseProof ("Himp" with "Hpt") as "Hlist".
+      iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]").
+      { iNext; iExists S, Skeys, L; by iFrame. }
 
       iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
       case_bool_decide as Heq; wp_if.

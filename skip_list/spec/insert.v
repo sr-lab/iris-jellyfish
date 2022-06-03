@@ -371,10 +371,10 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
       wp_store.
       iDestruct "Hpt" as "(Hpt & Hpt_dup)".
-      iMod ("Hclose" with "[Hpt_dup Himp Hown_auth Hown_frac Hown_toks]") as "_".
+      iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
+      iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
       {
         iNext; iExists (S ∪ {[ new ]}), (Skeys' ∪ {[ key ]}), L'. 
-        iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
         iFrame. iSplit; last first. iSplit; first done.
         by (iPureIntro; apply key_equiv_insert_nin).
         
