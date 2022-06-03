@@ -111,6 +111,21 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       end.
 
   (* Lazy list insertion *)
+  Definition linkNode : val := 
+    λ: "pred" "k" "odown",
+      match: nodeNext "pred" with
+          NONE => 
+          release (nodeLock "pred");;
+          NONEV
+        | SOME "np" =>
+          let: "succ" := !"np" in
+          let: "next" := ref "succ" in
+          let: "node" := ("k", SOME "next", "odown", newlock #()) in
+          "np" <- "node";;
+          release (nodeLock "pred");;
+          SOME "node"
+      end.
+
   Definition tryInsert : val := 
     λ: "head" "k",
       let: "opair" := findLock "head" "k" in
@@ -125,18 +140,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
             release (nodeLock "pred");;
             NONEV
           else
-            match: nodeNext "pred" with
-                NONE => 
-                release (nodeLock "pred");;
-                NONEV
-              | SOME "np" =>
-                let: "succ" := !"np" in
-                let: "next" := ref "succ" in
-                let: "node" := ("k", SOME "next", NONEV, newlock #()) in
-                "np" <- "node";;
-                release (nodeLock "pred");;
-                SOME "node"
-            end
+            linkNode "pred" "k" NONEV
       end.
 
   Definition insert : val := 
@@ -146,19 +150,8 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           NONE => NONEV
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
-          match: nodeNext "pred" with
-              NONE => 
-              release (nodeLock "pred");;
-              NONEV
-            | SOME "np" =>
-              let: "succ" := !"np" in
-              let: "next" := ref "succ" in
-              let: "d" := ref "down" in
-              let: "node" := ("k", SOME "next", SOME "d", newlock #()) in
-              "np" <- "node";;
-              release (nodeLock "pred");;
-              SOME "node"
-          end
+          let: "d" := ref "down" in
+          linkNode "pred" "k" (SOME "d")
       end.
 
   (* Skip list insertion *)

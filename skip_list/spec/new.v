@@ -24,7 +24,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       end.
 
     Theorem newLoop_spec (head: node_rep) (lvl: Z) 
-      (Sbots: list (gset Z)) (top: lazy_gname) (bots: list lazy_gname) :
+      (Sbots: list (gset Z)) (bot: lazy_gname) (bots: list lazy_gname) :
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
@@ -32,7 +32,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         ∗
         is_empty (∅ :: Sbots) lvl
         ∗
-        skip_list_equiv head lvl 1 (∅ :: Sbots) (top :: bots)
+        skip_list_equiv head lvl 1 (∅ :: Sbots) (bot :: bots)
       }}}
         newLoop (rep_to_node head) #lvl
       {{{ h top_head L_gset L_gname, RET #h;
@@ -46,9 +46,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "(Hmin & Hlvl & Hempty & Hlist) HΦ".
-      iRevert (head lvl Sbots top bots) "Hmin Hlvl Hempty Hlist HΦ".
+      iRevert (head lvl Sbots bot bots) "Hmin Hlvl Hempty Hlist HΦ".
       iLöb as "IH".
-      iIntros (head lvl Sbots top bots) "%Hmin %Hlvl Hempty Hlist HΦ".
+      iIntros (head lvl Sbots bot bots) "%Hmin %Hlvl Hempty Hlist HΦ".
 
       wp_lam. wp_let. wp_alloc h as "Hh".
       wp_pures. case_bool_decide; wp_if.
@@ -75,8 +75,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         set (top_head := (INT_MIN, Some t, Some h, l)).
         rewrite (fold_rep_to_node top_head).
 
-        set (Γ := mk_lazy_gname γauth γfrac γtoks).
-        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head Γ (from_sub_list ∅)) 
+        set (top := mk_lazy_gname γauth γfrac γtoks).
+        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head top (from_bot_list (Some bot))) 
           with "[Ht2 Hlock Hown_auth Hown_frac Hown_toks]") as "#Hinv".
         {
           iNext; iExists ∅, ∅, nil. iFrame.
@@ -89,7 +89,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) (∅ :: Sbots) Γ (top :: bots) 
+        iApply ("IH" $! top_head (lvl+1) (∅ :: Sbots) top (bot :: bots) 
           with "[%] [%] [Hempty] [Hlist Hh Hown_frac_frag]").
         { done. }
         { lia. }
@@ -141,8 +141,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
       set (bot_head := (INT_MIN, Some t, None, l)).
 
-      set (Γ := mk_lazy_gname γauth γfrac γtoks).
-      iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head Γ from_bot_list) 
+      set (bot := mk_lazy_gname γauth γfrac γtoks).
+      iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head bot (from_bot_list None)) 
         with "[Ht2 Hlock Hown_auth Hown_frac Hown_toks]") as "#Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.
@@ -155,7 +155,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iExists t, γ. by iFrame "# ∗".
       }
 
-      wp_apply (newLoop_spec _ _ nil Γ nil with "[Hown_frac_frag]").
+      wp_apply (newLoop_spec _ _ nil bot nil with "[Hown_frac_frag]").
       {
         iSplit; first done. iSplit; first done. iSplit; first done.
         iSplit; first done. iSplit; last done.

@@ -21,20 +21,19 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Definition from_sub_list (bot: lazy_gname) (curr: node_rep) : iProp Σ := 
-      ∃ (l: loc) (down: node_rep),
-      ⌜ node_down curr = Some l ⌝
-      ∗
-      l ↦ rep_to_node down
-      ∗
-      own (s_auth bot) (◯ {[ down ]})
-      ∗
-      own (s_toks bot) (GSet {[ node_key down ]})
-      ∗
-      ⌜ node_key curr = node_key down ⌝.
-
-    Definition from_bot_list (curr: node_rep) : iProp Σ := 
-      ⌜ node_down curr = None ⌝.
+    Definition from_bot_list (obot: option lazy_gname) (key: Z) (odown: option loc) : iProp Σ := 
+      match obot, odown with
+      | None, None => True
+      | Some bot, Some d => ∃ (down: node_rep),
+                            d ↦ rep_to_node down
+                            ∗
+                            own (s_auth bot) (◯ {[ down ]})
+                            ∗
+                            own (s_toks bot) (GSet {[ node_key down ]})
+                            ∗
+                            ⌜ key = node_key down ⌝
+      | _, _ => False
+      end.
 
     Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
       (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ :=
@@ -44,7 +43,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         | nil, nil => 
           ⌜ lvl = 1 ⌝
           ∗
-          is_lazy_list (levelN lvl) head q Stop top from_bot_list
+          is_lazy_list (levelN lvl) head q Stop top (from_bot_list None)
           ∗
           ⌜ node_down head = None ⌝
                  
@@ -52,7 +51,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           ∃ (l: loc) (down: node_rep),
           ⌜ lvl > 1 ⌝
           ∗
-          is_lazy_list (levelN lvl) head q Stop top (from_sub_list bot)
+          is_lazy_list (levelN lvl) head q Stop top (from_bot_list (Some bot))
           ∗
           ⌜ node_down head = Some l ⌝
           ∗

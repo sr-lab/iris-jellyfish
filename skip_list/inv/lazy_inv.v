@@ -32,7 +32,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Definition node_inv (l: loc) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
 
-    Fixpoint list_equiv (L: list node_rep) (P: node_rep → iProp Σ) : iProp Σ :=
+    Fixpoint list_equiv (L: list node_rep) (P: Z → option loc → iProp Σ) : iProp Σ :=
       match L with
       | nil => True
       | pred :: succs => 
@@ -51,7 +51,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
                        ∗
                        is_lock γ (node_lock pred) (node_inv l)
                        ∗
-                       P succ
+                       P (node_key succ) (node_down succ)
                        ∗
                        list_equiv succs P
         end
@@ -59,7 +59,8 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
     Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
 
-    Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) (P: node_rep → iProp Σ) : iProp Σ := 
+    Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) 
+      (P: Z → option loc → iProp Σ) : iProp Σ := 
       ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
       ⌜ Permutation L (elements S) ⌝
       ∗
@@ -76,7 +77,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       list_equiv ([head] ++ L) P.
 
     Definition is_lazy_list (head: node_rep) (q: frac)
-      (Skeys: gset Z) (Γ: lazy_gname) (P: node_rep → iProp Σ) : iProp Σ := 
+      (Skeys: gset Z) (Γ: lazy_gname) (P: Z → option loc → iProp Σ) : iProp Σ := 
       ∃ (Sfrac: gset node_rep),
       ⌜ key_equiv Sfrac Skeys ⌝
       ∗
@@ -86,7 +87,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     
 
     Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) 
-      (P: node_rep → iProp Σ) :
+      (P: Z → option loc → iProp Σ) :
       list_equiv (rep :: L) P ⊢ 
         (list_equiv L P ∗ (list_equiv L P -∗ list_equiv (rep :: L) P))
     .
@@ -99,7 +100,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) 
-      (P: node_rep → iProp Σ) :
+      (P: Z → option loc → iProp Σ) :
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
       list_equiv L P ⊢ 
         ∃ (l: loc) (γ: gname),
@@ -152,7 +153,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_invert_L (L: list node_rep) (head pred: node_rep) 
-      (P: node_rep → iProp Σ) :
+      (P: Z → option loc → iProp Σ) :
       In pred L →
       list_equiv ([head] ++ L) P ⊢ 
         ∃ (succ: node_rep) (L1 L2: list node_rep) (l: loc) (γ: gname), 
@@ -166,9 +167,9 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
           ∗ 
           is_lock γ (node_lock pred) (node_inv l)
           ∗
-          P pred
+          P (node_key pred) (node_down pred)
           ∗
-          (l ↦{#1/2} (rep_to_node succ) ∗ P pred -∗ list_equiv ([head] ++ L) P).
+          (l ↦{#1/2} (rep_to_node succ) ∗ P (node_key pred) (node_down pred) -∗ list_equiv ([head] ++ L) P).
     Proof.
       iIntros (Hin) "Hlist".
       iRevert (head Hin) "Hlist".
@@ -205,7 +206,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) 
-      (P: node_rep → iProp Σ) :
+      (P: Z → option loc → iProp Σ) :
       pred = head ∨ In pred L →
       list_equiv ([head] ++ L) P ⊢ 
         ∃ (succ: node_rep) (L1 L2: list node_rep) (l: loc) (γ: gname), 
@@ -241,7 +242,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_insert (head pred new succ: node_rep) (L: list node_rep) 
-      (l l': loc) (γ': gname) (P: node_rep → iProp Σ) :
+      (l l': loc) (γ': gname) (P: Z → option loc → iProp Σ) :
       node_key new < node_key tail →
       node_key pred < node_key new < node_key succ →
       Sorted node_lt ([head] ++ L ++ [tail]) →
@@ -253,7 +254,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         ∗
         is_lock γ' (node_lock new) (node_inv l')
         ∗
-        P new
+        P (node_key new) (node_down new)
         -∗ 
           ∃ (L' L1 L2: list node_rep), 
             l ↦ rep_to_node succ

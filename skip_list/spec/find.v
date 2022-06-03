@@ -18,7 +18,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvlN : namespace).
     
     Theorem find_full_spec (head curr: node_rep) (key: Z) 
-      (S: gset node_rep) (Γ: lazy_gname) (P: node_rep → iProp Σ) :
+      (S: gset node_rep) (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
         inv lvlN (lazy_list_inv head Γ P)
         ∗
@@ -201,7 +201,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
     
     Theorem find_frac_spec (head curr: node_rep) (key: Z)
-      (Γ: lazy_gname) (P: node_rep → iProp Σ) :
+      (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
         inv lvlN (lazy_list_inv head Γ P)
         ∗
@@ -298,7 +298,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem findLock_spec (head curr: node_rep) (key: Z)
-      (Γ: lazy_gname) (P: node_rep → iProp Σ) :
+      (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
         inv lvlN (lazy_list_inv head Γ P)
         ∗
