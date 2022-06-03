@@ -250,7 +250,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         assert (l = l') as <- by congruence.
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]").
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_let. wp_lam. wp_pures.
@@ -375,7 +375,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       wp_load.
       iPoseProof ("Himp" with "Hpt") as "Hlist".
-      iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]").
+      iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
 
       iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
@@ -392,7 +392,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         wp_apply (release_spec with "[Hnode Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
-        by iApply ("IH" with "HΦ").
+
+        iApply ("IH" with "HΦ").
+        iFrame "#". iPureIntro; lia.
     Qed.
 
   End Proofs.

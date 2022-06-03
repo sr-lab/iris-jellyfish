@@ -78,7 +78,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
               then SOME ("pred", "curr")
               else
                 release (nodeLock "pred");;
-                "find" "head" "k"
+                "find" "pred" "k"
           end
       end.
 

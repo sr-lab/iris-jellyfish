@@ -48,14 +48,14 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           ⌜ node_down head = None ⌝
                  
         | _ :: _, bot :: _ => 
-          ∃ (l: loc) (down: node_rep),
+          ∃ (d: loc) (down: node_rep),
           ⌜ lvl > 1 ⌝
           ∗
           is_lazy_list (levelN lvl) head q Stop top (from_bot_list (Some bot))
           ∗
-          ⌜ node_down head = Some l ⌝
+          ⌜ node_down head = Some d ⌝
           ∗
-          l ↦ rep_to_node down
+          d ↦ rep_to_node down
           ∗
           ⌜ node_key head = node_key down ⌝
           ∗
