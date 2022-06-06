@@ -26,3 +26,4 @@ skip_list/spec/new.v
 skip_list/spec/find.v
 skip_list/spec/contains.v
 skip_list/spec/insert.v
+skip_list/spec/add.v

@@ -76,5 +76,29 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       skip_list_equiv head MAX_HEIGHT q L_gset L_gname.
 
+    
+    Lemma skip_list_equiv_cons (top_head: node_rep) (lvl: Z) (q: frac)
+      (Stop: gset Z) (Sbots: list (gset Z)) 
+      (top: lazy_gname) (bots: list lazy_gname) :
+      skip_list_equiv top_head lvl q (Stop :: Sbots) (top :: bots) ⊢ 
+        ∃ (P: Z → option loc → iProp Σ),
+        inv (levelN lvl) (lazy_list_inv top_head top P)
+        ∗
+        skip_list_equiv top_head lvl q (Stop :: Sbots) (top :: bots).
+    Proof.
+      destruct Sbots as [|Sbot Sbots]; destruct bots as [|bot bots].
+      + iIntros "Htop". iExists (from_bot_list None).
+        iDestruct "Htop" as "(? & Hlazy & ?)".
+        iDestruct "Hlazy" as (Sfrac) "(? & ? & #Hinv)".
+        iFrame "# ∗". iExists Sfrac. iFrame.
+      + iIntros "?"; by iExFalso.
+      + iIntros "?"; by iExFalso.
+      + iIntros "Hlist". iExists (from_bot_list (Some bot)).
+        iDestruct "Hlist" as (d down) "(? & Hlazy & ?)".
+        iDestruct "Hlazy" as (Sfrac) "(? & ? & #Hinv)".
+        iFrame "# ∗". iExists d, down. iFrame.
+        iExists Sfrac. iFrame.
+    Qed.
+
   End Proofs.
 End SkipListInv.

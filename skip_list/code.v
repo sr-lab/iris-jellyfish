@@ -165,7 +165,12 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           if: "h" = "l"
           then SOME "pred"
           else
-            "loop" "pred" "k" "h" ("l" - #1)
+            match: nodeDown "pred" with
+                NONE => NONEV
+              | SOME "np" => 
+                let: "pred" := !"np" in
+                "loop" "pred" "k" "h" ("l" - #1)
+            end
       end.
       
   Definition addAll : val := 
@@ -192,10 +197,13 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     λ: "head" "k" "h",
       let: "opred" := topLevel !"head" "k" "h" #MAX_HEIGHT in
       match: "opred" with
-          NONE => #()
+          NONE => #false
         | SOME "pred" => 
-          addAll "pred" "k";;
-          #()
+          let: "onew" := addAll "pred" "k" in
+          match: "onew" with
+              NONE => #false
+            | SOME "new" => #true
+          end
       end.
 
 End SkipList.
