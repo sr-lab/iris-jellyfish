@@ -180,12 +180,11 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           NONE => NONEV
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
-          let: "curr" := Snd "pair" in
           match: nodeDown "pred" with
               NONE => tryInsert "pred" "k"
             | SOME "np" => 
-              let: "pred" := !"np" in
-              let: "onode" := "add" "pred" "k" in
+              let: "down" := !"np" in
+              let: "onode" := "add" "down" "k" in
               match: "onode" with 
                   NONE => NONEV
                 | SOME "node" => insert "pred" "k" "node"
