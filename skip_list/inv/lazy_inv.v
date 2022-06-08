@@ -277,7 +277,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
       iIntros (head L HeqL' Hsort).
       inversion HeqL'; subst.
-      iIntros (Hin); inversion Hin.
+      iIntros (Hin); inversion Hin as [Heq|HinL].
       * subst.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock' HP'".
         destruct L as [|a L].
@@ -311,7 +311,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
            iIntros "Hpt". iExists _, _.
            iFrame "# ∗". iSplit; first done.
            iExists _, _. by iFrame "# ∗".
-      * destruct L as [|head' L]; first by inversion H.
+      * destruct L as [|head' L]; first by inversion HinL.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock' HP'".
 
         simpl in Hsort; apply Sorted_inv in Hsort as (Hsort&Hhd).

@@ -149,36 +149,6 @@ Proof.
   rewrite /Zlt_range Zset_exclusive_range_spec; lia.
 Qed.
 
-Lemma Zlt_range_split z1 z2 z:
-  z1 < z < z2 → Zlt_range z1 z2 = Zlt_range z1 z ∪ Zlt_range z z2 ∪ {[ z ]}.
-Proof.
-  intros Hrange.
-  rewrite -leibniz_equiv_iff.
-  intros x. split.
-  + rewrite Zlt_range_spec. intros.
-    destruct (Ztrichotomy_inf x z) as [[Hlt|Heq]|Hgt].
-    - do 2 apply elem_of_union_l. rewrite Zlt_range_spec. lia.
-    - apply elem_of_union_r. rewrite elem_of_singleton //.
-    - apply elem_of_union_l, elem_of_union_r. rewrite Zlt_range_spec. lia.
-  + rewrite Zlt_range_spec. 
-    intros [[Hin|Hin]%elem_of_union|Hin]%elem_of_union. 
-    - rewrite Zlt_range_spec in Hin *; lia.
-    - rewrite Zlt_range_spec in Hin *; lia.
-    - apply elem_of_singleton in Hin; lia.
-Qed.
-
-Lemma Zlt_range_split_op z1 z2 z:
-  z1 < z < z2 → GSet (Zlt_range z1 z2) = 
-    GSet (Zlt_range z1 z) ⋅ GSet (Zlt_range z z2) ⋅ GSet ({[ z ]}).
-Proof.
-  intros Hrange. rewrite (Zlt_range_split z1 z2 z) //.
-  rewrite ?gset_disj_union; auto.
-  + intros z' [Hin%Zlt_range_spec|Hin%Zlt_range_spec]%elem_of_union.
-    - rewrite elem_of_singleton //; lia.
-    - rewrite elem_of_singleton //; lia.
-  + intros z'. rewrite ?Zlt_range_spec. lia.
-Qed.
-
 Lemma gset_union_diff (z: Z) (S Sminus: gset Z) :
   z ∈ S →
   z ∉ Sminus →

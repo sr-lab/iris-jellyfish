@@ -175,6 +175,37 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
         apply Sorted_inv in Hsort; intuition.
   Qed.
 
+  Lemma sorted_node_lt_nin (L1 L2: list node_rep) (pred succ new: node_rep) :
+    Sorted node_lt (L1 ++ [pred; succ] ++ L2) →
+    node_key pred < node_key new < node_key succ →
+    ¬ In new (L1 ++ [pred; succ] ++ L2).
+  Proof.
+    induction L1.
+    - rewrite //= => Hsort Hr Hin.
+      destruct Hin as [| Hin]; first (subst; lia). 
+      destruct Hin as [| Hin]; first (subst; lia). 
+      apply Sorted_StronglySorted in Hsort; last first.
+      { unfold Relations_1.Transitive; apply node_lt_transitive. }
+      apply StronglySorted_inv in Hsort as (Hsort&_).
+      apply StronglySorted_inv in Hsort as (Hsort&hd).
+      assert (node_key succ < node_key new); last by lia.
+      apply forall_node_lt_Zlt in hd.
+      eapply Forall_forall; eauto.
+      by apply elem_of_list_In, in_map.
+    - rewrite //=. intros Hsort Hr Hin.
+      destruct Hin.
+      * subst. apply Sorted_StronglySorted in Hsort; last first.
+        { unfold Relations_1.Transitive; apply node_lt_transitive. }
+        apply StronglySorted_inv in Hsort as (Hsort&Hhd).
+        assert (node_lt new pred); last first.
+        { unfold node_lt in *. lia. }
+        eapply Forall_forall; eauto.
+        apply elem_of_list_In.
+        apply in_app_iff. right. by left.
+      * eapply IHL1; eauto.
+        apply Sorted_inv in Hsort; intuition.
+  Qed.
+
   Lemma sorted_node_lt_hd_nin (x: node_rep) (L: list node_rep):
     Sorted node_lt (x :: L) → x ∉ L.
   Proof.

@@ -10,39 +10,27 @@ From SkipList.lazy_list Require Import node_lt node_rep code key_equiv.
 
 Class gset_list_unionGS Σ := GsetGS { 
   gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inG :> inG Σ (frac_authR (gsetUR node_rep));
-  gset_Z_disj_inG :> inG Σ (gset_disjUR Z)
+  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR node_rep))
 }.
 
 Local Open Scope Z.
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module NodeLt := NodeLt Params.
-  Export NodeLt.
+  Module KeyEquiv := KeyEquiv Params.
+  Export KeyEquiv.
 
   Record lazy_gname := mk_lazy_gname {
     s_auth: gname;
-    s_frac: gname;
-    s_tok: gname
+    s_frac: gname
   }.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
 
-    Definition node_inv (l: loc) (γt: gname) (k: Z) : iProp Σ := 
-      ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ
-                          ∗
-                          own γt (GSet (Zlt_range k (node_key succ))).
-    
-    (* 
-    * The invariant for the lazy list asserts that
-    * there exists an abstract list L equivalent to 
-    * the in-memory list. The underlying list L is 
-    * sorted and must contain the same elements as 
-    * the abstract set S.
-    *)
+    Definition node_inv (l: loc) : iProp Σ := 
+      ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
 
-    Fixpoint list_equiv (L: list node_rep) (γt: gname) : iProp Σ :=
+    Fixpoint list_equiv (L: list node_rep) : iProp Σ :=
       match L with
       | nil => True
       | pred :: succs => 
@@ -52,20 +40,20 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                  ∗
                  l ↦{#1 / 2} rep_to_node tail
                  ∗
-                 is_lock γ (node_lock pred) (node_inv l γt (node_key pred))
+                 is_lock γ (node_lock pred) (node_inv l)
 
         | succ :: t => ∃ (l: loc) (γ: gname), 
                        ⌜ node_next pred = Some l ⌝
                        ∗
                        l ↦{#1 / 2} rep_to_node succ
                        ∗
-                       is_lock γ (node_lock pred) (node_inv l γt (node_key pred))
+                       is_lock γ (node_lock pred) (node_inv l)
                        ∗
-                       list_equiv succs γt
+                       list_equiv succs
         end
       end.
 
-    Definition lazy_list_inv (head: node_rep) (γs γf γt: gname) : iProp Σ := 
+    Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) : iProp Σ := 
       ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
       ⌜ Permutation L (elements S) ⌝
       ∗
@@ -73,33 +61,31 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       ∗
       ⌜ key_equiv S Skeys ⌝
       ∗
-      own γs (● S)
+      own (s_auth Γ) (● S)
       ∗
-      own γf (●F S)
+      own (s_frac Γ) (●F S)
       ∗
-      own γt (GSet Skeys)
-      ∗
-      list_equiv ([head] ++ L) γt
+      list_equiv ([head] ++ L)
     .
 
     Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
       ∃ (l: loc) (head: node_rep) (Sfrac: gset node_rep),
-      ⌜ key_equiv Sfrac Skeys ⌝
-      ∗
-      own (s_frac Γ) (◯F{q} Sfrac)
-      ∗
       ⌜ #l = v ⌝
       ∗
       l ↦ rep_to_node head
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      inv N (lazy_list_inv head (s_auth Γ) (s_frac Γ) (s_tok Γ)).
+      ⌜ key_equiv Sfrac Skeys ⌝
+      ∗
+      own (s_frac Γ) (◯F{q} Sfrac)
+      ∗
+      inv N (lazy_list_inv head Γ).
     
 
-    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) (γt: gname) :
-      list_equiv (rep :: L) γt
-        ⊢ (list_equiv L γt ∗ (list_equiv L γt -∗ list_equiv (rep :: L) γt))
+    Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
+      list_equiv (rep :: L)
+        ⊢ (list_equiv L ∗ (list_equiv L -∗ list_equiv (rep :: L)))
     .
     Proof.
       destruct L as [|n].
@@ -109,17 +95,17 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         iExists l, γ. iFrame.
     Qed.
 
-    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) (γt: gname) :
+    Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) :
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
-      list_equiv L γt ⊢ 
+      list_equiv L ⊢ 
         ∃ (l: loc) (γ: gname),
           ⌜ node_next pred = Some l ⌝
           ∗
           l ↦{#1 / 2} (rep_to_node succ)
           ∗
-          is_lock γ (node_lock pred) (node_inv l γt (node_key pred))
+          is_lock γ (node_lock pred) (node_inv l)
           ∗
-          (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L γt)
+          (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L)
     .
     Proof.
       revert L. induction L1 => L HL.
@@ -161,9 +147,9 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         iApply "Himp". iApply "Himp'". iFrame.
     Qed.
 
-    Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) (γt: gname) :
+    Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) :
       pred = head ∨ In pred L →
-      list_equiv ([head] ++ L) γt ⊢ 
+      list_equiv ([head] ++ L) ⊢ 
         ∃ (succ: node_rep) (l: loc) (γ: gname), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
           ∗
@@ -171,9 +157,9 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
           ∗
           l ↦{#1/2} (rep_to_node succ)
           ∗ 
-          is_lock γ (node_lock pred) (node_inv l γt (node_key pred))
+          is_lock γ (node_lock pred) (node_inv l)
           ∗
-          (l ↦{#1/2} (rep_to_node succ) -∗ list_equiv ([head] ++ L) γt).
+          (l ↦{#1/2} (rep_to_node succ) -∗ list_equiv ([head] ++ L)).
     Proof.
       intros Hin; inversion Hin as [|Hin_L]; subst.
       + iIntros "Hlist". destruct L as [|succ' L].
@@ -220,26 +206,29 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
           iApply "Himp". by iApply "Himp'".
     Qed.
 
-    Lemma list_equiv_insert (head pred new succ: node_rep)
-      (L: list node_rep) (l l': loc) (γ': gname) (γt: gname) :
+    Lemma list_equiv_insert (head pred new succ: node_rep) (L: list node_rep) 
+      (l l': loc) (γ': gname) :
       node_key new < node_key tail →
       node_key pred < node_key new < node_key succ →
       Sorted node_lt ([head] ++ L ++ [tail]) →
       pred = head ∨ In pred L →
-      list_equiv ([head] ++ L) γt ⊢ 
+      list_equiv ([head] ++ L) ⊢ 
         ⌜ node_next pred = Some l ⌝ ∗ l↦{#1/2} rep_to_node succ 
         ∗ 
         ⌜ node_next new = Some l' ⌝ ∗ l'↦{#1/2} rep_to_node succ
         ∗
-        is_lock γ' (node_lock new) (node_inv l' γt (node_key new)) -∗ 
-          ∃ (L': list node_rep), 
-            l ↦ rep_to_node succ 
+        is_lock γ' (node_lock new) (node_inv l')
+        -∗ 
+          ∃ (L' L1 L2: list node_rep), 
+            l ↦ rep_to_node succ
+            ∗
+            ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
             ∗
             ⌜ Sorted node_lt ([head] ++ L' ++ [tail]) ⌝
             ∗
             ⌜ Permutation ([head] ++ L') ([head; new] ++ L) ⌝ 
             ∗
-            (l ↦{#1/2} (rep_to_node new) -∗ list_equiv ([head] ++ L') γt).
+            (l ↦{#1/2} (rep_to_node new) -∗ list_equiv ([head] ++ L')).
     Proof.
       iIntros (Hnew Hrange Hsort Hin) "Hlist (Hsome & Hpt & Hsome' & Hpt' & Hlock')".
       remember ([head] ++ L) as L' eqn:HeqL'.
@@ -251,20 +240,19 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
 
       iIntros (head L HeqL' Hsort).
       inversion HeqL'; subst.
-      iIntros (Hin); inversion Hin.
+      iIntros (Hin); inversion Hin as [Heq|HinL].
       * subst.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock'".
-        iExists (new :: L).
-        destruct L as [|].
-        ** simpl.
-           iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
+        destruct L as [|a L].
+        ** iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
            assert (l = l'') as <- by congruence.
-           iDestruct (mapsto_agree with "Hpt Hpt''") as %->.
-
-           iFrame. iSplit.
+           iDestruct (mapsto_agree with "Hpt Hpt''") as %Htail.
+           apply rep_to_node_inj in Htail; subst.
+           iExists (new :: nil), nil, nil.
+           iFrame. iSplit; first done. iSplit.
            { 
-             iPureIntro; apply Sorted_cons; auto.
-             econstructor; unfold node_lt; lia.
+             iPureIntro; apply Sorted_cons; econstructor; auto.
+             unfold node_lt; lia.
            }
            iSplit; first auto.
            iIntros "Hpt". iExists _, _.
@@ -274,10 +262,10 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
            assert (l = l'') as <- by congruence.
            iDestruct (mapsto_agree with "Hpt Hpt''") as %Heq.
            apply rep_to_node_inj in Heq; subst.
-
-           iFrame. iSplit.
+           iExists (new :: a :: L), nil, (L ++ [tail]).
+           iFrame. iSplit; first done. iSplit.
            { 
-             iPureIntro. simpl in Hsort.
+             iPureIntro.
              repeat apply Sorted_inv in Hsort as (Hsort&?).
              repeat econstructor; auto. 
              all: unfold node_lt; lia.
@@ -286,7 +274,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
            iIntros "Hpt". iExists _, _.
            iFrame "# ∗". iSplit; first done.
            iExists _, _. by iFrame "# ∗".
-      * destruct L as [|head' L]; first by inversion H0.
+      * destruct L as [|head' L]; first by inversion HinL.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock'".
 
         simpl in Hsort; apply Sorted_inv in Hsort as (Hsort&Hhd).
@@ -294,8 +282,13 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         iPoseProof ("IHL'" $! head' L with "[%] [%] [%] [$] [%] [$] [%] [$] [$]") 
           as "Hclose"; auto.
         
-        iDestruct "Hclose" as (L') "(Hpt' & %Hsort' & %Hperm' & Himp')".
-        iExists (head' :: L'). iFrame.
+        iDestruct "Hclose" as (L' L1 L2) "(Hpt' & %Hsplit & %Hsort' & %Hperm' & Himp')".
+        iExists (head' :: L'), (head :: L1), L2. iFrame.
+        iSplit.
+        {
+          rewrite /= in Hsplit.
+          rewrite /= Hsplit //.
+        }
         iSplit.
         {
           iPureIntro. inversion Hhd.

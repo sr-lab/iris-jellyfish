@@ -12,7 +12,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
   Import Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
 
     Theorem new_spec :
       {{{ True }}}
@@ -29,25 +29,19 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
-      iMod (own_alloc (GSet (Zlt_range INT_MIN INT_MAX)))
-        as (γtok) "Hown_tok"; first done.
-
-      assert (GSet (Zlt_range INT_MIN INT_MAX) =
-        GSet (Zlt_range INT_MIN INT_MAX) ⋅ GSet (∅)) as ->.
-      { rewrite gset_disj_union; f_equal; set_solver. }
-      iDestruct "Hown_tok" as "(Hown_tok & Hown_emp)".
 
       wp_lam. wp_alloc t as "Ht". wp_let.
       iDestruct "Ht" as "(Ht1 & Ht2)".
-      wp_apply (newlock_spec (node_inv t γtok (INT_MIN)) with "[Ht1 Hown_tok]").
+      wp_apply (newlock_spec (node_inv t) with "[Ht1]").
       { iExists tail; iFrame. }
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
       set (head := (INT_MIN, Some t, l)).
       wp_pures; wp_alloc h as "Hh".
       rewrite (fold_rep_to_node head).
 
-      iMod (inv_alloc N ⊤ (lazy_list_inv head γauth γfrac γtok) 
-        with "[Ht2 Hlock Hown_auth Hown_frac Hown_emp]") as "#Hinv".
+      set (Γ := mk_lazy_gname γauth γfrac).
+      iMod (inv_alloc N ⊤ (lazy_list_inv head Γ) 
+        with "[Ht2 Hlock Hown_auth Hown_frac]") as "#Hinv".
       + iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 
         { 
@@ -56,10 +50,11 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
         }
         iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
-      + iModIntro; iApply ("HΦ" $! (mk_lazy_gname γauth γfrac γtok)).
+      + iModIntro; iApply ("HΦ" $! Γ).
         iExists h, head, ∅.
-        iSplit; first rewrite /key_equiv //.
-        by iFrame "# ∗".
+        iFrame "# ∗".
+        iSplit; first done. iSplit; first done.
+        rewrite /key_equiv //.
     Qed.
 
   End Proofs.

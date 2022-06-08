@@ -14,13 +14,13 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
   Import Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
     
-    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) (γs γf γt: gname) :
+    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) (Γ: lazy_gname) :
       {{{ 
-        inv N (lazy_list_inv head γs γf γt)
+        inv N (lazy_list_inv head Γ)
         ∗
-        own γf (◯F S)
+        own (s_frac Γ) (◯F S)
         ∗
         ⌜ curr = head ∨ curr ∈ S ⌝
         ∗
@@ -28,7 +28,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       }}}
       find (rep_to_node curr) #key
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
-        own γf (◯F S)
+        own (s_frac Γ) (◯F S)
         ∗
         ⌜ key ∈ map node_key (elements S) ↔ node_key succ = key ⌝
       }}}.
@@ -40,8 +40,8 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       wp_lam. wp_let. wp_lam. wp_pures.
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
-      + wp_bind (Load _).
-        iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hown_tok & Hlist)" "Hclose".
+      + wp_bind (Load _). 
+        iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hlist)" "Hclose".
         iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -64,7 +64,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
+          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac]").
           {
             iNext; iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -107,7 +107,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           assert (l = l') as <- by congruence.
 
           wp_load.
-          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_tok]").
+          iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac]").
           {
             iNext; iExists S, Skeys, L.
             iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -169,7 +169,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
             { lia. }
 
             iNext; iApply "HΦ".
-      + iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hown_tok & Hlist)" "Hclose".
+      + iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hlist)" "Hclose".
         iMod "Hown_frac"; iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -190,7 +190,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
-      iDestruct "H" as (h head S) "(%Hequiv & Hown & %Hv & Hpt & %Hmin & #Hinv)".
+      iDestruct "H" as (h head S) "(%Hv & Hpt & %Hmin & %Hequiv & Hown & #Hinv)".
       wp_lam. wp_let. rewrite -Hv. wp_load.
       wp_apply (find_spec with "[Hown]").
       { iFrame "# ∗". iPureIntro; split. by left. lia. }
