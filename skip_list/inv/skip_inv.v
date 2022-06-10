@@ -35,6 +35,42 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       | _, _ => False
       end.
 
+    Fixpoint level_range (head: node_rep) (fst lst: Z) (q: frac) 
+      (L_gset: list (gset Z)) (L_gname: list lazy_gname) (next: lazy_gname) : iProp Σ :=
+      match L_gset, L_gname with
+      | nil, nil => ⌜ fst < lst ⌝
+      | Stop :: Sbots, top :: bots =>
+        match Sbots, bots with
+        | nil, nil => 
+          ∃ (d: loc) (down: node_rep),
+          ⌜ fst = lst ⌝
+          ∗
+          is_lazy_list (levelN fst) head q Stop top (from_bot_list (Some next))
+          ∗
+          ⌜ node_down head = Some d ⌝
+          ∗
+          d ↦ rep_to_node down
+          ∗
+          ⌜ node_key head = node_key down ⌝
+                 
+        | _ :: _, bot :: _ => 
+          ∃ (d: loc) (down: node_rep),
+          ⌜ fst > lst ⌝
+          ∗
+          is_lazy_list (levelN fst) head q Stop top (from_bot_list (Some bot))
+          ∗
+          ⌜ node_down head = Some d ⌝
+          ∗
+          d ↦ rep_to_node down
+          ∗
+          ⌜ node_key head = node_key down ⌝
+          ∗
+          level_range down (fst - 1) lst q Sbots bots next
+        | _, _ => False
+        end
+      | _, _ => False
+      end.
+
     Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
       (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ :=
       match L_gset, L_gname with

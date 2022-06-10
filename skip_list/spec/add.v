@@ -31,7 +31,13 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         ⌜ 1 ≤ h ≤ lvl ⌝
       }}}
         topLevel (rep_to_node curr) #key #h #lvl
-      {{{ curr' top_head' Stop' Sbots' top' bots', RET SOMEV (rep_to_node curr');
+      {{{ curr' top_head' Stops Stop' Sbots' tops top' bots', RET SOMEV (rep_to_node curr');
+        ⌜ Stop :: Sbots = Stops ++ (Stop' :: Sbots') ⌝
+        ∗
+        ⌜ top :: bots = tops ++ (top' :: bots') ⌝
+        ∗
+        level_range top_head lvl (h + 1) q Stops tops top'
+        ∗
         skip_list_equiv top_head' h q (Stop' :: Sbots') (top' :: bots')
         ∗
         (⌜ curr' = top_head' ⌝ ∨ own (s_auth top') (◯ {[ curr' ]}))
@@ -55,9 +61,10 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       wp_pures.
       case_bool_decide; wp_if.
       + assert (h = lvl) as <- by congruence.
-        wp_pures. 
-        iModIntro; iApply "HΦ".
-        iFrame "# ∗". iPureIntro; lia.
+        wp_pures. iModIntro.
+        iApply ("HΦ" $! _ _ nil _ _ nil _ _).
+        iFrame "# ∗". iPureIntro. 
+        do 2 (split; first done). lia.
       + assert (h ≠ lvl) by congruence.
         destruct Sbots as [|Sbot Sbots]; destruct bots as [|bot bots]; try by iExFalso.
         { iDestruct "Hlist" as "(%Hfalse & _)"; lia. }
@@ -80,7 +87,33 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             { by iLeft. }
             { rewrite -Heq_key -Heq; lia. }
             { lia. }
-            iNext; iApply "HΦ".
+
+            iNext. 
+            iIntros (curr' top_head' Stops Stop' Sbots' tops top' bots').
+            iIntros "(%HSbot_eq & %Hbot_eq & Hlvl_range & Hlist & Hown_curr')".
+            iApply "HΦ". iFrame "# ∗". 
+            iSplit; first rewrite HSbot_eq app_comm_cons //.
+            iSplit; first rewrite Hbot_eq app_comm_cons //.
+            destruct Stops; destruct tops; try by iExFalso.
+            ++ iDestruct "Hlvl_range" as %Hlvl_range.
+               inversion Hbot_eq; subst.
+               iExists l, down. iFrame "# ∗". 
+               iSplit; first (iPureIntro; lia).
+               iSplit; last done. 
+               iExists Sfrac. by iFrame.
+            ++ iAssert ⌜ lvl - 1 >= h + 1 ⌝%I with "[Hlvl_range]" as %Hge.
+               {
+                 destruct Stops; destruct tops; try by iExFalso.
+                 + iDestruct "Hlvl_range" as (? ?) "(%Hlvl_eq & _)". 
+                   iPureIntro; lia.
+                 + iDestruct "Hlvl_range" as (? ?) "(%Hlvl_gt & _)".
+                   iPureIntro; lia.
+               }
+               inversion Hbot_eq; subst.
+               iExists l, down. iFrame "# ∗".
+               iSplit; first (iPureIntro; lia).
+               iSplit; last done.
+               iExists Sfrac. by iFrame.
           * iDestruct (own_valid_2 with "Hown_auth Hown_pred") 
               as %[Hvalid%gset_included]%auth_both_valid_discrete.
             rewrite (list_equiv_invert_L L top_head pred); last first.
@@ -103,7 +136,33 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             iApply ("IH" with "[$] [$] [%] [%]").
             { lia. }
             { lia. }
-            iNext; iApply "HΦ".
+
+            iNext. 
+            iIntros (curr' top_head' Stops Stop' Sbots' tops top' bots').
+            iIntros "(%HSbot_eq & %Hbot_eq & Hlvl_range & Hlist & Hown_curr')".
+            iApply "HΦ". iFrame "# ∗". 
+            iSplit; first rewrite HSbot_eq app_comm_cons //.
+            iSplit; first rewrite Hbot_eq app_comm_cons //.
+            destruct Stops; destruct tops; try by iExFalso.
+            ++ iDestruct "Hlvl_range" as %Hlvl_range.
+               inversion Hbot_eq; subst.
+               iExists l, down. iFrame "# ∗". 
+               iSplit; first (iPureIntro; lia).
+               iSplit; last done. 
+               iExists Sfrac. by iFrame.
+            ++ iAssert ⌜ lvl - 1 >= h + 1 ⌝%I with "[Hlvl_range]" as %Hge.
+               {
+                 destruct Stops; destruct tops; try by iExFalso.
+                 + iDestruct "Hlvl_range" as (? ?) "(%Hlvl_eq & _)". 
+                   iPureIntro; lia.
+                 + iDestruct "Hlvl_range" as (? ?) "(%Hlvl_gt & _)".
+                   iPureIntro; lia.
+               }
+               inversion Hbot_eq; subst.
+               iExists l, down. iFrame "# ∗".
+               iSplit; first (iPureIntro; lia).
+               iSplit; last done.
+               iExists Sfrac. by iFrame.
         - iInv (levelN lvl) as (S Skeys L) "(>%Hperm & _ & _ & >Hown_auth & _ & _ & Hlist)" "_".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]"; first by congruence.
