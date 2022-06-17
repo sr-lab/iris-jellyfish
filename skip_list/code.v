@@ -111,7 +111,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       end.
 
   (* Lazy list insertion *)
-  Definition linkNode : val := 
+  Definition link : val := 
     λ: "pred" "k" "odown",
       match: nodeNext "pred" with
           NONE => 
@@ -140,7 +140,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
             release (nodeLock "pred");;
             NONEV
           else
-            linkNode "pred" "k" NONEV
+            link "pred" "k" NONEV
       end.
 
   Definition insert : val := 
@@ -151,7 +151,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
           let: "d" := ref "down" in
-          linkNode "pred" "k" (SOME "d")
+          link "pred" "k" (SOME "d")
       end.
 
   (* Skip list insertion *)

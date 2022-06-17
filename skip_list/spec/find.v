@@ -5,7 +5,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import lock misc.
 From SkipList.skip_list Require Import node_rep code key_equiv.
-From SkipList.skip_list.inv Require Import lazy_inv skip_inv.
+From SkipList.skip_list.inv Require Import list_equiv lazy_inv skip_inv.
 
 
 Local Open Scope Z.
@@ -15,22 +15,22 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvlN : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N: namespace).
     
-    Theorem find_full_spec (head curr: node_rep) (key: Z) 
-      (S: gset node_rep) (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
+    Theorem find_bot_spec (head curr: node_rep) (key: Z) 
+      (S: gset node_rep) (bot: bot_gname) (sub: sub_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
-        inv lvlN (lazy_list_inv head Γ P)
+        inv N (lazy_list_inv head P sub (Some bot))
         ∗
-        own (s_frac Γ) (◯F S)
+        own (s_frac bot) (◯F S)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
         find (rep_to_node curr) #key
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
-        own (s_frac Γ) (◯F S)
+        own (s_frac bot) (◯F S)
         ∗
         ⌜ pred = head ∨ pred ∈ S ⌝
         ∗
@@ -47,7 +47,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv lvlN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & Hown_toks & Hlist)" "Hclose".
+        iInv N as (? Skeys L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
           as %->%frac_auth_agree_L.
 
@@ -81,7 +83,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
           wp_load.
           iPoseProof ("Himp" with "Hpt") as "Hlist".
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
           { iNext; iExists S, Skeys, L; by iFrame. }
 
           iModIntro. wp_let. wp_lam. wp_pures.
@@ -121,7 +123,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
           wp_load.
           iPoseProof ("Himp" with "Hpt") as "Hlist".
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
           { iNext; iExists S, Skeys, L; by iFrame. }
 
           iModIntro. wp_let. wp_lam. wp_pures.
@@ -182,7 +184,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
             { lia. }
 
             iNext; iApply "HΦ".
-      + iInv lvlN as (S' Skeys L) "(>%Hperm & >%Hequiv & >%Hsort & >Hown_auth & >Hown_frac & Hown_toks & Hlist)" "Hclose".
+      + iInv N as (? Skeys L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
+        iDestruct "Hinv_bot" as "(>Hown_frac & _)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
           as %->%frac_auth_agree_L.
 
@@ -200,12 +204,12 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         congruence.
     Qed.
     
-    Theorem find_frac_spec (head curr: node_rep) (key: Z)
-      (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
+    Theorem find_sub_spec (head curr: node_rep) (key: Z)
+      (P: Z → option loc → iProp Σ) (sub: sub_gname) (obot: option bot_gname) :
       {{{ 
-        inv lvlN (lazy_list_inv head Γ P)
+        inv N (lazy_list_inv head P sub obot)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
@@ -213,9 +217,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
         ⌜ node_key pred < key ≤ node_key succ ⌝
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth Γ) (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
         ∗
-        (own (s_auth Γ) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
+        (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
         ∃ (l:loc) (γ: gname), ⌜ node_next pred = Some l ⌝ 
                               ∗ 
@@ -230,7 +234,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv lvlN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_frac & Hown_toks & Hlist)" "Hclose".
+        iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
 
         iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
         { by apply auth_update_alloc, (gset_local_update S _ S). }
@@ -250,7 +255,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         assert (l = l') as <- by congruence.
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+        iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_let. wp_lam. wp_pures.
@@ -280,7 +285,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
 
           iNext; iApply "HΦ".
-      + iInv lvlN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_frac & Hown_toks & Hlist)" "Hclose".
+      + iInv N as (S Skeys L) "(Hinv_sub & _)" "_".
+        iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
 
         iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
           with "[Hown_auth Hown_curr]" as %Hcurr_range.
@@ -298,11 +304,11 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem findLock_spec (head curr: node_rep) (key: Z)
-      (Γ: lazy_gname) (P: Z → option loc → iProp Σ) :
+      (P: Z → option loc → iProp Σ) (sub: sub_gname) (obot: option bot_gname) :
       {{{ 
-        inv lvlN (lazy_list_inv head Γ P)
+        inv N (lazy_list_inv head P sub obot)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
@@ -310,9 +316,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
         ⌜ node_key pred < key ≤ node_key succ ⌝
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth Γ) (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
         ∗
-        (own (s_auth Γ) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
+        (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
         ∃ (l: loc) (γ: gname), ⌜ node_next pred = Some l ⌝
                                ∗
@@ -329,7 +335,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iIntros (curr) "#Hown_curr %Hrange".
       
       wp_lam. wp_let.
-      wp_apply (find_frac_spec with "[Hown_curr]").
+      wp_apply (find_sub_spec with "[Hown_curr]").
       { by iFrame "#". }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
       iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock)".
@@ -343,7 +349,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Hnode" as (rep) "Hnode".
 
       wp_bind (Load _).
-      iInv lvlN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_frac & Hown_toks & Hlist)" "Hclose".
+      iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -375,13 +382,13 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       wp_load.
       iPoseProof ("Himp" with "Hpt") as "Hlist".
-      iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_toks]") as "_".
+      iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
 
       iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
       case_bool_decide as Heq; wp_if.
       + wp_pures. iApply "HΦ". iModIntro; iFrame "# ∗".
-        iSplit. done. iExists l, γ.
+        iSplit; first done. iExists l, γ.
         assert (succ = succ') as <-; last by iFrame "# ∗".
         apply (sorted_node_key_unique (L ++ [tail])).
         - apply node_rep_sorted_app in Hsort; by destruct Hsort.

@@ -19,11 +19,13 @@ skip_list/code.v
 skip_list/node_lt.v
 skip_list/key_equiv.v
 
+skip_list/inv/list_equiv.v
 skip_list/inv/lazy_inv.v
 skip_list/inv/skip_inv.v
 
 skip_list/spec/new.v
 skip_list/spec/find.v
 skip_list/spec/contains.v
+skip_list/spec/link.v
 skip_list/spec/insert.v
 skip_list/spec/add.v

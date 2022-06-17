@@ -7,7 +7,7 @@ From iris.bi Require Import updates.
 
 From SkipList.lib Require Import lock misc.
 From SkipList.skip_list Require Import node_lt node_rep code key_equiv.
-From SkipList.skip_list.inv Require Import lazy_inv.
+From SkipList.skip_list.inv Require Import list_equiv lazy_inv.
 
 
 Local Open Scope Z.
@@ -21,43 +21,29 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Definition from_bot_list (obot: option lazy_gname) (key: Z) (odown: option loc) : iProp Σ := 
-      match obot, odown with
-      | None, None => True
-      | Some bot, Some d => ∃ (down: node_rep),
-                            d ↦ rep_to_node down
-                            ∗
-                            own (s_auth bot) (◯ {[ down ]})
-                            ∗
-                            own (s_toks bot) (GSet {[ node_key down ]})
-                            ∗
-                            ⌜ key = node_key down ⌝
-      | _, _ => False
-      end.
-
     Fixpoint level_range (head: node_rep) (fst lst: Z) (q: frac) 
-      (L_gset: list (gset Z)) (L_gname: list lazy_gname) (next: lazy_gname) : iProp Σ :=
-      match L_gset, L_gname with
-      | nil, nil => ⌜ fst < lst ⌝
-      | Stop :: Sbots, top :: bots =>
-        match Sbots, bots with
-        | nil, nil => 
+      (subs: list sub_gname) (sub: sub_gname) : iProp Σ :=
+      match subs with
+      | nil => ⌜ fst < lst ⌝
+      | top_sub :: bot_subs =>
+        match bot_subs with
+        | nil =>
           ∃ (d: loc) (down: node_rep),
           ⌜ fst = lst ⌝
           ∗
-          is_lazy_list (levelN fst) head q Stop top (from_bot_list (Some next))
+          is_top_list (levelN fst) head top_sub sub
           ∗
           ⌜ node_down head = Some d ⌝
           ∗
           d ↦ rep_to_node down
           ∗
           ⌜ node_key head = node_key down ⌝
-                 
-        | _ :: _, bot :: _ => 
+
+        | bot_sub :: _ =>
           ∃ (d: loc) (down: node_rep),
           ⌜ fst > lst ⌝
           ∗
-          is_lazy_list (levelN fst) head q Stop top (from_bot_list (Some bot))
+          is_top_list (levelN fst) head top_sub bot_sub
           ∗
           ⌜ node_down head = Some d ⌝
           ∗
@@ -65,29 +51,28 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           ∗
           ⌜ node_key head = node_key down ⌝
           ∗
-          level_range down (fst - 1) lst q Sbots bots next
-        | _, _ => False
+          level_range down (fst - 1) lst q bot_subs sub
         end
-      | _, _ => False
       end.
 
     Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
-      (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ :=
-      match L_gset, L_gname with
-      | Stop :: Sbots, top :: bots =>
-        match Sbots, bots with
-        | nil, nil => 
+      (S: gset Z) (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
+      match subs with
+      | nil => False
+      | top_sub :: bot_subs =>
+        match bot_subs with
+        | nil =>
           ⌜ lvl = 1 ⌝
           ∗
-          is_lazy_list (levelN lvl) head q Stop top (from_bot_list None)
+          is_bot_list (levelN lvl) head q S top_sub bot
           ∗
           ⌜ node_down head = None ⌝
-                 
-        | _ :: _, bot :: _ => 
+
+        | bot_sub :: _ =>
           ∃ (d: loc) (down: node_rep),
           ⌜ lvl > 1 ⌝
           ∗
-          is_lazy_list (levelN lvl) head q Stop top (from_bot_list (Some bot))
+          is_top_list (levelN lvl) head top_sub bot_sub
           ∗
           ⌜ node_down head = Some d ⌝
           ∗
@@ -95,14 +80,12 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           ∗
           ⌜ node_key head = node_key down ⌝
           ∗
-          skip_list_equiv down (lvl - 1) q Sbots bots
-        | _, _ => False
+          skip_list_equiv down (lvl - 1) q S bot bot_subs
         end
-      | _, _ => False
       end.
 
     Definition is_skip_list (v: val) (q: frac) 
-      (L_gset: list (gset Z)) (L_gname: list lazy_gname) : iProp Σ := 
+      (S: gset Z) (bot: bot_gname) (subs: list sub_gname) : iProp Σ := 
       ∃ (l:loc) (head: node_rep),
       ⌜ #l = v ⌝
       ∗
@@ -110,30 +93,26 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      skip_list_equiv head MAX_HEIGHT q L_gset L_gname.
+      skip_list_equiv head MAX_HEIGHT q S bot subs.
 
     
     Lemma skip_list_equiv_cons (top_head: node_rep) (lvl: Z) (q: frac)
-      (Stop: gset Z) (Sbots: list (gset Z)) 
-      (top: lazy_gname) (bots: list lazy_gname) :
-      skip_list_equiv top_head lvl q (Stop :: Sbots) (top :: bots) ⊢ 
-        ∃ (P: Z → option loc → iProp Σ),
-        inv (levelN lvl) (lazy_list_inv top_head top P)
+      (S: gset Z) (bot: bot_gname)
+      (top_sub: sub_gname) (bot_subs: list sub_gname) :
+      skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs) ⊢ 
+        ∃ (P: Z → option loc → iProp Σ) (obot: option bot_gname),
+        inv (levelN lvl) (lazy_list_inv top_head P top_sub obot)
         ∗
-        skip_list_equiv top_head lvl q (Stop :: Sbots) (top :: bots).
+        skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs).
     Proof.
-      destruct Sbots as [|Sbot Sbots]; destruct bots as [|bot bots].
-      + iIntros "Htop". iExists (from_bot_list None).
+      destruct bot_subs as [|bot_sub bot_subs].
+      + iIntros "Htop". iExists from_bot_list, (Some bot).
         iDestruct "Htop" as "(? & Hlazy & ?)".
         iDestruct "Hlazy" as (Sfrac) "(? & ? & #Hinv)".
         iFrame "# ∗". iExists Sfrac. iFrame.
-      + iIntros "?"; by iExFalso.
-      + iIntros "?"; by iExFalso.
-      + iIntros "Hlist". iExists (from_bot_list (Some bot)).
-        iDestruct "Hlist" as (d down) "(? & Hlazy & ?)".
-        iDestruct "Hlazy" as (Sfrac) "(? & ? & #Hinv)".
+      + iIntros "Hlist". iExists (from_top_list bot_sub), None.
+        iDestruct "Hlist" as (d down) "(? & #Hinv & ?)".
         iFrame "# ∗". iExists d, down. iFrame.
-        iExists Sfrac. iFrame.
     Qed.
 
   End Proofs.
