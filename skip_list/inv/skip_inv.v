@@ -21,40 +21,6 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Fixpoint level_range (head: node_rep) (fst lst: Z) (q: frac) 
-      (subs: list sub_gname) (sub: sub_gname) : iProp Σ :=
-      match subs with
-      | nil => ⌜ fst < lst ⌝
-      | top_sub :: bot_subs =>
-        match bot_subs with
-        | nil =>
-          ∃ (d: loc) (down: node_rep),
-          ⌜ fst = lst ⌝
-          ∗
-          is_top_list (levelN fst) head top_sub sub
-          ∗
-          ⌜ node_down head = Some d ⌝
-          ∗
-          d ↦ rep_to_node down
-          ∗
-          ⌜ node_key head = node_key down ⌝
-
-        | bot_sub :: _ =>
-          ∃ (d: loc) (down: node_rep),
-          ⌜ fst > lst ⌝
-          ∗
-          is_top_list (levelN fst) head top_sub bot_sub
-          ∗
-          ⌜ node_down head = Some d ⌝
-          ∗
-          d ↦ rep_to_node down
-          ∗
-          ⌜ node_key head = node_key down ⌝
-          ∗
-          level_range down (fst - 1) lst q bot_subs sub
-        end
-      end.
-
     Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
       (S: gset Z) (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
