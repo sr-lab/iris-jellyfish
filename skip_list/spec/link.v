@@ -72,7 +72,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_bind (Store _ _).
       iInv N as (S Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
       iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
@@ -231,7 +231,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_bind (Store _ _).
       iInv N as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.

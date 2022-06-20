@@ -82,24 +82,27 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
     λ: "head" "k",
       let: "opair" := findLock !"head" "k" in
       match: "opair" with
-          NONE => #()
+          NONE => #false
         | SOME "pair" =>
           let: "pred" := Fst "pair" in
           let: "curr" := Snd "pair" in
           let: "ck" := (nodeKey "curr") in
           if: "k" = "ck"
           then
-            release (nodeLock "pred")
+            release (nodeLock "pred");;
+            #false
           else
             match: nodeNext "pred" with
                 NONE =>
-                release (nodeLock "pred")
+                release (nodeLock "pred");;
+                #false
               | SOME "np" =>
                 let: "succ" := !"np" in
                 let: "next" := ref "succ" in
                 let: "node" := ("k", SOME "next", newlock #()) in
                 "np" <- "node";;
-                release (nodeLock "pred")
+                release (nodeLock "pred");;
+                #true
             end
       end.
 

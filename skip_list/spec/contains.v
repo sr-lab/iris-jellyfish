@@ -77,7 +77,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_pures.
         - wp_bind (Load _).
           iInv (levelN lvl) as (S' Skeys L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
           * assert (d = l) as -> by congruence.

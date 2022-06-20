@@ -29,6 +29,10 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
+      iMod (own_alloc (GSet node_key_range))
+        as (γkeys) "Hown_keys"; 
+        first done.
+      assert (node_key_range = node_key_range ∖ ∅) as -> by set_solver.
 
       wp_lam. wp_alloc t as "Ht". wp_let.
       iDestruct "Ht" as "(Ht1 & Ht2)".
@@ -39,9 +43,9 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       wp_pures; wp_alloc h as "Hh".
       rewrite (fold_rep_to_node head).
 
-      set (Γ := mk_lazy_gname γauth γfrac).
+      set (Γ := mk_lazy_gname γauth γfrac γkeys).
       iMod (inv_alloc N ⊤ (lazy_list_inv head Γ) 
-        with "[Ht2 Hlock Hown_auth Hown_frac]") as "#Hinv".
+        with "[Ht2 Hlock Hown_auth Hown_frac Hown_keys]") as "#Hinv".
       + iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 
         { 

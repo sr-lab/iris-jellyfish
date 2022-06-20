@@ -48,7 +48,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
         iInv N as (? Skeys L) "(Hinv_sub & Hinv_bot)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
         iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
           as %->%frac_auth_agree_L.
@@ -184,7 +184,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
             { lia. }
 
             iNext; iApply "HΦ".
-      + iInv N as (? Skeys L) "(Hinv_sub & Hinv_bot)" "Hclose".
+      + iInv N as (? ? ?) "(Hinv_sub & Hinv_bot)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
         iDestruct "Hinv_bot" as "(>Hown_frac & _)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
@@ -235,7 +235,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
         iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
         iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
         { by apply auth_update_alloc, (gset_local_update S _ S). }
@@ -285,7 +285,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
 
           iNext; iApply "HΦ".
-      + iInv N as (S Skeys L) "(Hinv_sub & _)" "_".
+      + iInv N as (S ? ?) "(Hinv_sub & _)" "_".
         iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
 
         iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
@@ -299,7 +299,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         rewrite (list_equiv_invert); last first.
         { by rewrite -elem_of_list_In Hperm elem_of_elements. }
-        iDestruct "Hlist" as (? ? ? l ?) "(_ & _ & >%Hsome & _ & _ & _)".
+        iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & >%Hsome & _ & _ & _)".
         congruence.
     Qed.
 
@@ -350,7 +350,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (Load _).
       iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.

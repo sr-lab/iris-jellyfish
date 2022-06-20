@@ -43,9 +43,9 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hlist)" "Hclose".
+        iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
-        iMod "Hown_auth"; iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
+        iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
         { by apply auth_update_alloc, (gset_local_update S _ S). }
 
         iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) with "[Hown_auth Hown_curr]" as %Hcurr_range.
@@ -58,12 +58,11 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
         rewrite (list_equiv_invert); last first.
         { by rewrite -elem_of_list_In Hperm elem_of_elements. }
-        iDestruct "Hlist" as (succ l' γ) "(Hsucc_range & Hsome & Hpt & #Hlock & Himp)".
-        iMod "Hsucc_range" as %Hsucc_range;
-          rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
-        iMod "Hsome" as %Hsome; assert (l = l') as <- by congruence.
-        iMod "Hpt"; wp_load.
-        iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac]").
+        iDestruct "Hlist" as (succ l' γ) "(>%Hsucc_range & >%Hsome & Hpt & #Hlock & Himp)".
+        rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
+        assert (l = l') as <- by congruence.
+        wp_load.
+        iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_keys]").
         {
           iNext; iExists S, Skeys, L.
           iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -97,9 +96,9 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
           { lia. }
 
           iNext; iApply "HΦ".
-      + iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hlist)" "Hclose".
+      + iInv N as (S ? ?) "(>%Hperm & _ & _ & >Hown_auth & _ & _ & Hlist)" "_".
 
-        iMod "Hown_auth"; iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
+        iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
           with "[Hown_auth Hown_curr]" as %Hcurr_range.
         {
          iDestruct "Hown_curr" as "[Heq|Hown]"; first by iLeft.
@@ -110,8 +109,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
         rewrite (list_equiv_invert); last first.
         { by rewrite -elem_of_list_In Hperm elem_of_elements. }
-        iDestruct "Hlist" as (succ l γ) "(Hsucc_range & Hsome & Hpt & #Hlock & Himp)".
-        iMod "Hsome" as %Hsome; congruence.
+        iDestruct "Hlist" as (succ l γ) "(Hsucc_range & >%Hsome & Hpt & #Hlock & Himp)".
+        congruence.
     Qed.
 
     Theorem findLock_spec (head curr: node_rep) (key: Z) (Γ: lazy_gname) :
@@ -159,9 +158,9 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       iDestruct "Hnode" as (rep) "Hnode".
 
       wp_bind (Load _).
-      iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & Hown_auth & Hown_frac & Hlist)" "Hclose".
+      iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
-      iMod "Hown_auth"; iAssert ((⌜ pred = head ∨ pred ∈ S ⌝ ∗ ⌜succ ∈ S ∨ succ = tail⌝)%I) 
+      iAssert ((⌜ pred = head ∨ pred ∈ S ⌝ ∗ ⌜succ ∈ S ∨ succ = tail⌝)%I) 
         with "[Hown_auth Hown_pred Hown_succ]" as "(%Hpred_range & %Hsucc_range)".
       {
         iSplit.
@@ -183,7 +182,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       wp_load.
       iDestruct (mapsto_agree with "Hnode Hpt") as "%Hsucc".
       assert (rep = succ') as -> by by apply rep_to_node_inj.
-      iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac]").
+      iMod ("Hclose" with "[Hpt Himp Hown_auth Hown_frac Hown_keys]").
       {
         iNext; iExists S, Skeys, L.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -213,7 +212,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         is_lazy_list N v Skeys q Γ
       }}}
         add v #key
-      {{{ RET #();
+      {{{ (b: bool), RET #b; 
         is_lazy_list N v (Skeys ∪ {[ key ]}) q Γ
       }}}.
     Proof.
@@ -233,7 +232,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hrange; lia. }
 
-        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & Hlist)" "Hclose".
+        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
           as %[Hvalid%gset_included]%auth_both_valid_discrete.
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
@@ -242,7 +241,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { apply frac_auth_update, (gset_local_update_union _ _ {[ succ ]}). }
 
         wp_pures.
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_keys]") as "_".
         {
           iNext; iExists S, Skeys', L.
           assert (S ∪ {[ succ ]} ≡ S) as -> by set_solver.
@@ -252,7 +251,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
         wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ; iFrame. }
-        iIntros "_". iApply "HΦ".
+        iIntros "_". wp_pures. 
+        iModIntro. iApply "HΦ".
         iExists h, head, (Sfrag ∪ {[succ]}).
         iFrame "# ∗". iPureIntro. 
         split; first done. split; first done.
@@ -279,7 +279,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         rewrite (fold_rep_to_node new).
         
         wp_bind (Store _ _).
-        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & Hlist)" "Hclose".
+        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
         iAssert ⌜ pred = head ∨ In pred L ⌝%I
           with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -338,11 +338,17 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
   
         iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frac_frag]".
         { apply frac_auth_update, (gset_local_update_union _ _ {[ new ]}). }
+
+        rewrite (gset_union_diff key); first last.
+        { done. }
+        { rewrite Zlt_range_spec; lia. }
+        rewrite -gset_disj_union; last set_solver.
+        iDestruct "Hown_keys" as "(Hown_keys & Hown_key)".
   
         wp_store.
         iDestruct "Hpt" as "(Hpt & Hpt_dup)".
         iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_keys]") as "_".
         {
           iNext; iExists (S ∪ {[ new ]}), (Skeys' ∪ {[ key ]}), L'. 
           iFrame. iSplit; last first. iSplit; first done.
@@ -374,7 +380,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iModIntro. wp_pures. wp_lam. wp_pures.
         wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
         { iFrame "# ∗"; iExists new; iFrame. }
-        iIntros "_". iApply "HΦ".
+        iIntros "_". wp_pures.
+        iModIntro. iApply "HΦ".
         iExists h, head, (Sfrag ∪ {[ new ]}).
         iFrame "# ∗". iPureIntro.
         split; first done. split; first done.

@@ -66,7 +66,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_lam. wp_bind (Snd _).
 
         iInv N as (S Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & Hown_toks & Hlist)".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
         iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
@@ -149,7 +149,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_let. wp_match.
       wp_bind (Fst _).
       iInv N as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
       wp_proj.
 
       iAssert ⌜ key ≠ node_key succ ⌝%I

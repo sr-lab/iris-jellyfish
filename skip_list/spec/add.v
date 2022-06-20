@@ -74,7 +74,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_pures.
         - wp_bind (Load _).
           iInv (levelN lvl) as (S' Skeys L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
           * assert (d = l) as -> by congruence.
@@ -186,7 +186,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hbot" as (Sfrac) "(%Hequiv & Hown_frag & #Hinv)".
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_pures.
         - wp_bind (Load _).
-          iInv (levelN lvl) as (? Skeys L) "(Hinv_sub & _)" "_".
+          iInv (levelN lvl) as (? ? L) "(Hinv_sub & _)" "_".
           iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]"; first by congruence.
@@ -211,7 +211,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_match.
         - wp_bind (Load _).
           iInv (levelN lvl) as (S' Skeys L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & Hown_toks & Hlist)".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
           * assert (d = l) as -> by congruence.
             wp_load.
@@ -287,7 +287,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                { iRight; by iFrame. }
                iExists l, down. by iFrame.
         - iAssert (|={⊤}=> False)%I as "Hfalse"; last by iMod "Hfalse".
-          iInv (levelN lvl) as (? Skeys L) "(Hinv_sub & _)" "_".
+          iInv (levelN lvl) as (? ? L) "(Hinv_sub & _)" "_".
           iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
         
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]"; first by congruence.
