@@ -7,7 +7,9 @@ lazy_list/node_rep.v
 lazy_list/code.v
 lazy_list/node_lt.v
 lazy_list/key_equiv.v
-lazy_list/inv.v
+
+lazy_list/inv/list_equiv.v
+lazy_list/inv/inv.v
 
 lazy_list/spec/new.v
 lazy_list/spec/contains.v

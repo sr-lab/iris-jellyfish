@@ -8,26 +8,14 @@ From SkipList.lib Require Import lock misc.
 From SkipList.lazy_list Require Import node_lt node_rep code key_equiv.
 
 
-Class gset_list_unionGS Σ := GsetGS { 
-  gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR node_rep));
-  gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
-}.
-
 Local Open Scope Z.
-Module LazyListInv (Params: LAZY_LIST_PARAMS).
+Module ListEquiv (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module KeyEquiv := KeyEquiv Params.
   Export KeyEquiv.
 
-  Record lazy_gname := mk_lazy_gname {
-    s_auth: gname;
-    s_frac: gname;
-    s_keys: gname
-  }.
-
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !lockG Σ} (N : namespace).
 
     Definition node_inv (l: loc) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
@@ -54,39 +42,6 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
                        list_equiv succs
         end
       end.
-
-    Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
-
-    Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
-      ⌜ Permutation L (elements S) ⌝
-      ∗
-      ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
-      ∗
-      ⌜ key_equiv S Skeys ⌝
-      ∗
-      own (s_auth Γ) (● S)
-      ∗
-      own (s_frac Γ) (●F S)
-      ∗
-      own (s_keys Γ) (GSet (node_key_range ∖ Skeys))
-      ∗
-      list_equiv ([head] ++ L)
-    .
-
-    Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (l: loc) (head: node_rep) (Sfrac: gset node_rep),
-      ⌜ #l = v ⌝
-      ∗
-      l ↦ rep_to_node head
-      ∗
-      ⌜ node_key head = INT_MIN ⌝
-      ∗
-      ⌜ key_equiv Sfrac Skeys ⌝
-      ∗
-      own (s_frac Γ) (◯F{q} Sfrac)
-      ∗
-      inv N (lazy_list_inv head Γ).
     
 
     Lemma list_equiv_cons (rep: node_rep) (L: list node_rep) :
@@ -314,4 +269,4 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     Qed.
 
   End Proofs.
-End LazyListInv.
+End ListEquiv.
