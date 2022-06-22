@@ -183,7 +183,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
       destruct bot_subs as [|bot_sub bot_subs].
       + iDestruct "Hlist" as "(%Hlvl & Hbot & %Hnone)".
-        iDestruct "Hbot" as (Sfrac) "(%Hequiv & Hown_frag & #Hinv)".
+        iDestruct "Hbot" as "(Hown_frag & #Hinv)".
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_pures.
         - wp_bind (Load _).
           iInv (levelN lvl) as (? ? L) "(Hinv_sub & _)" "_".
@@ -199,13 +199,13 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite Hpred_down; by iExFalso.
         - wp_apply (tryInsert_spec with "[Hown_frag]").
           { done. }
-          { iFrame "#". iSplit; last (iPureIntro; lia). iExists Sfrac; by iFrame. }
+          { iFrame "# ∗". iPureIntro; lia. }
 
           iIntros (v new) "(Hbot & Hopt)".
           iApply "HΦ". iFrame "# ∗".
           iSplit; first done. iSplit; last done.
-          iDestruct "Hbot" as (Sfrac') "(Hequiv' & Hown_frac' & _)".
-          iExists Sfrac'. iFrame.         
+          iDestruct "Hbot" as "(Hown_frac' & _)".
+          iFrame.         
       + iDestruct "Hlist" as (l down) "(%Hlvl & #Hinv & %Hsome & Hpt & %Heq_key & Hmatch)".
         unfold is_top_list.
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_match.
@@ -303,7 +303,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
     Theorem add_spec (key height: Z) (v: val) (S: gset Z) (q: frac)
       (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) 
-      (Hheight: 1 ≤ height ≤ MAX_HEIGHT):
+      (Hheight: 1 ≤ height ≤ MAX_HEIGHT) :
       {{{ is_skip_list v S q bot subs }}}
         add v #key #height
       {{{ (b: bool), RET #b; 

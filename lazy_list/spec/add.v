@@ -109,7 +109,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         }
 
         rewrite (list_equiv_invert); last done.
-        iDestruct "Hlist" as (succ l γ) "(Hsucc_range & >%Hsome & Hpt & #Hlock & Himp)".
+        iDestruct "Hlist" as (? ? ?) "(_ & >%Hsome & _ & _ & _)".
         congruence.
     Qed.
 
@@ -160,17 +160,17 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       wp_bind (Load _).
       iInv lazyN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
-      iAssert ((⌜ pred = head ∨ In pred L ⌝ ∗ ⌜ In succ L ∨ succ = tail ⌝)%I) 
+      iAssert (⌜ pred = head ∨ In pred L ⌝ ∗ ⌜ In succ L ∨ succ = tail ⌝)%I
         with "[Hown_auth Hown_pred Hown_succ]" as "(%Hpred_range & %Hsucc_range)".
       {
         iSplit.
-        - iDestruct "Hown_pred" as "[Heq|Hown]"; first by iLeft.
+        + iDestruct "Hown_pred" as "[Heq|Hown]"; first by iLeft.
           iDestruct (own_valid_2 with "Hown_auth Hown") 
             as %[Hvalid%gset_included]%auth_both_valid_discrete.
           iPureIntro; right.
           rewrite -elem_of_list_In Hperm elem_of_elements. 
           set_solver.
-        - iDestruct "Hown_succ" as "[Hown|Heq]"; last by iRight.
+        + iDestruct "Hown_succ" as "[Hown|Heq]"; last by iRight.
           iDestruct (own_valid_2 with "Hown_auth Hown") 
             as %[Hvalid%gset_included]%auth_both_valid_discrete.
           iPureIntro; left.
@@ -179,12 +179,12 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert L head pred); last done.
-      iDestruct "Hlist" as (succ' l' γ') "(>%Hsucc'_in_L & >%Hsome' & Hpt & _ & Himp)".
+      iDestruct "Hlist" as (succ' l' γ') "(>%Hsucc'_in_L & >%Hsome' & >Hpt & _ & Himp)".
       assert (l = l') as <- by congruence.
-
-      wp_load.
       iDestruct (mapsto_agree with "Hnode Hpt") as "%Hsucc".
       assert (rep = succ') as -> by by apply rep_to_node_inj.
+
+      wp_load.
       iPoseProof ("Himp" with "Hpt") as "Hlist".
       iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_keys]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
@@ -192,7 +192,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
       case_bool_decide as Heq; wp_if.
       + wp_pures. iApply "HΦ". iModIntro; iFrame "# ∗".
-        iSplit. done. iExists l, γ.
+        iSplit; first done. iExists l, γ.
         assert (succ = succ') as <-; last by iFrame "# ∗".
         apply (sorted_node_key_unique (L ++ [tail])).
         - apply node_rep_sorted_app in Hsort; by destruct Hsort.
@@ -203,7 +203,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         wp_apply (release_spec with "[Hnode Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
-        by iApply ("IH" with "HΦ").
+        iApply ("IH" with "HΦ").
+        iFrame "#". iPureIntro; lia.
     Qed.
 
     Theorem add_spec (key: Z) (v: val) (S: gset Z) (q: frac)  (Γ: lazy_gname)
@@ -221,18 +222,19 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       wp_lam. wp_let. rewrite -Hv. wp_load.
 
       wp_apply findLock_spec.
-      { iFrame "#". iSplit; first by iLeft. by rewrite Hmin. }
+      { iFrame "#". iSplit; first by iLeft. iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
       iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock & Hpt & Hlocked)".
 
       wp_pures. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
-      + wp_lam. wp_bind (Snd _).
-        assert (key = node_key succ) as Heq by congruence.
+      + assert (key = node_key succ) as Heq by congruence.
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hrange; lia. }
 
+        wp_lam. wp_bind (Snd _).
         iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+        
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
           as %[Hvalid%gset_included]%auth_both_valid_discrete.
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
@@ -243,7 +245,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { rewrite Heq. eapply key_equiv_in; first done. set_solver. }
         assert (Skeys ∪ {[ key ]} = Skeys) as -> by set_solver.
 
-        wp_pures.
+        wp_proj.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_keys]") as "_".
         { iNext; iExists S', Skeys, L; by iFrame. }
         iModIntro.
@@ -286,15 +288,12 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { done. }
         { auto. }
         { assert (node_key new = key) as -> by auto; lia. }
-        { rewrite /node_key//=; lia. }
+        { rewrite /node_key/=; lia. }
 
         iDestruct ("Hlist" with "[Hpt Hpt' Hlock]") as "Hlist".
         { iNext; by iFrame "# ∗". }
         iDestruct "Hlist" as (L' L1 L2) "(Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
-  
-        iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
-          as %HsubS%frac_auth_included_total%gset_included.
-        
+          
         assert (key ∉ Skeys) as Hnin'.
         {
           intros Hfalse.
@@ -340,16 +339,16 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
   
           simpl in Hperm'; apply Permutation_cons_inv in Hperm'.
           intros x; split.
-          - rewrite elem_of_elements Hperm' elem_of_list_In.
+          + rewrite elem_of_elements Hperm' elem_of_list_In.
             intros Hin. destruct Hin as [Heq|Hin].
-            * set_solver.
-            * apply elem_of_union_l. 
+            - set_solver.
+            - apply elem_of_union_l. 
               by rewrite -elem_of_elements -Hperm elem_of_list_In.
-          - rewrite elem_of_elements Hperm'. 
+          + rewrite elem_of_elements Hperm'. 
             intros Hin. apply elem_of_union in Hin as [Hin|Heq].
-            * rewrite elem_of_list_In. right.
+            - rewrite elem_of_list_In. right.
               by rewrite -elem_of_list_In Hperm elem_of_elements.
-            * set_solver.
+            - set_solver.
         }
   
         iModIntro. wp_pures. wp_lam. wp_pures.

@@ -11,7 +11,7 @@ From SkipList.skip_list.inv Require Import list_equiv.
 
 Class gset_list_unionGS Σ := GsetGS { 
   gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR node_rep));
+  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR Z));
   gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
 }.
 
@@ -70,8 +70,8 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       list_equiv ([head] ++ L) P.
 
-    Definition bot_list_inv (Γ: bot_gname) (S: gset node_rep) (Skeys: gset Z) : iProp Σ := 
-      own (s_frac Γ) (●F S)
+    Definition bot_list_inv (Γ: bot_gname) (Skeys: gset Z) : iProp Σ := 
+      own (s_frac Γ) (●F Skeys)
       ∗
       own (s_keys Γ) (GSet (node_key_range ∖ Skeys)).
     
@@ -82,7 +82,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       match obot with
       | None => True
-      | Some bot => bot_list_inv bot S Skeys
+      | Some bot => bot_list_inv bot Skeys
       end.
 
     Definition is_top_list (head: node_rep) (top bot: sub_gname) : iProp Σ := 
@@ -90,10 +90,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
     Definition is_bot_list (head: node_rep) (Skeys: gset Z) (q: frac)
       (sub: sub_gname) (bot: bot_gname) : iProp Σ := 
-      ∃ (Sfrac: gset node_rep),
-      ⌜ key_equiv Sfrac Skeys ⌝
-      ∗
-      own (s_frac bot) (◯F{q} Sfrac)
+      own (s_frac bot) (◯F{q} Skeys)
       ∗
       inv N (lazy_list_inv head sub (Some bot) from_bot_list).
 

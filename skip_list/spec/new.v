@@ -74,8 +74,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iExists t, γ. by iFrame "# ∗".
         }
 
-        iApply ("IH" $! top_head (lvl+1) top (bot_sub :: bot_subs) 
-          with "[%] [%] [Hlist Hh]").
+        iApply ("IH" $! top_head (lvl+1) top (bot_sub :: bot_subs) with "[%] [%] [Hlist Hh]").
         { done. }
         { lia. }
         {
@@ -103,7 +102,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (GSet node_key_range))
         as (γtoks) "Hown_toks"; 
         first done.
-      iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
+      iMod (own_alloc (●F (∅ : gset Z) ⋅ ◯F (∅: gset Z)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
       iMod (own_alloc (GSet node_key_range))
@@ -137,14 +136,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       }
 
       wp_apply (newLoop_spec _ _ bot sub nil with "[Hown_frac_frag]").
-      {
-        iSplit; first done. iSplit; first done. 
-        iSplit; first done. iSplit; last done.
-        iExists ∅; iFrame "# ∗"; rewrite /key_equiv //.
-      }
+      { by iFrame "# ∗". }
 
       iIntros (h top_head subs) "(Hh & %Hmin & Hlist)"; wp_let.
-      iModIntro; iApply ("HΦ" $! _ bot subs).
+      iModIntro; iApply "HΦ".
       iExists h, top_head. by iFrame.
     Qed.
 

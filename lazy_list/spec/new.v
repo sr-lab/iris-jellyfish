@@ -39,6 +39,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       iDestruct "Ht" as "(Ht1 & Ht2)".
       wp_apply (newlock_spec (node_inv t) with "[Ht1]").
       { iExists tail; iFrame. }
+
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
       set (head := (INT_MIN, Some t, l)).
       wp_pures; wp_alloc h as "Hh".
@@ -47,7 +48,8 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       set (Γ := mk_lazy_gname γauth γfrac γkeys).
       iMod (inv_alloc lazyN ⊤ (lazy_list_inv head Γ) 
         with "[Ht2 Hlock Hown_auth Hown_frac Hown_keys]") as "#Hinv".
-      + iNext; iExists ∅, ∅, nil. iFrame.
+      {
+        iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 
         { 
           assert (node_lt head tail); last (simpl; auto).
@@ -55,8 +57,10 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
         }
         iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
-      + iModIntro; iApply ("HΦ" $! Γ).
-        iExists h, head. by iFrame "# ∗".
+      }
+
+      iModIntro; iApply "HΦ".
+      iExists h, head. by iFrame "# ∗".
     Qed.
 
   End Proofs.

@@ -48,11 +48,10 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
               let: "nk" := (nodeKey "next") in
               let: "ck" := (nodeKey "curr") in
               if: "nk" = "ck" 
-              then
-                SOME ("pred", "curr")
+              then SOME ("pred", "curr")
               else
                 release (nodeLock "pred");;
-                "find" "head" "k"
+                "find" "pred" "k"
           end
       end.
   

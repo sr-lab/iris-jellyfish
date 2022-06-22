@@ -32,46 +32,6 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
     unfold node_lt in Hlt. lia.
   Qed.
 
-  Lemma node_rep_sorted_eq (l l': list node_rep) :
-    Sorted node_lt l →
-    Sorted node_lt l' →
-    Permutation l l' →
-    l = l'.
-  Proof.
-    revert l'.
-    induction l.
-    - intros l' ?? ?%Permutation.Permutation_nil. subst. auto.
-    - intros l' Hsorted Hsorted' Hperm.
-      destruct l' as [| a' l'].
-      { symmetry in Hperm. apply Permutation.Permutation_nil in Hperm. congruence. } 
-      destruct_decide (decide (a = a')) as Hcase.
-      { intros; subst.  f_equal.
-        eapply IHl.
-        { eapply Sorted_inv; eauto. }
-        { eapply Sorted_inv; eauto. }
-        apply Permutation.Permutation_cons_inv in Hperm; eauto.
-      }
-      
-      exfalso. cut (node_key a < node_key a' ∧ node_key a' < node_key a); first lia.
-      split.
-      * apply Sorted_StronglySorted in Hsorted; last eauto with *.
-        inversion Hsorted as [| ??? Hall]; subst.
-        assert (List.In a' (a :: l)) as [|]; subst.
-        { apply elem_of_list_In. rewrite Hperm. by left. }
-        ** congruence. 
-        ** eapply List.Forall_forall in Hall; eauto.
-        ** unfold Relations_1.Transitive.
-          apply node_lt_transitive.
-      * apply Sorted_StronglySorted in Hsorted'; last eauto with *.
-        inversion Hsorted' as [| ??? Hall]; subst.
-        assert (List.In a (a' :: l')) as [|]; subst.
-        { apply elem_of_list_In. rewrite -Hperm. by left. }
-        ** congruence. 
-        ** eapply List.Forall_forall in Hall; eauto.
-        ** unfold Relations_1.Transitive.
-          apply node_lt_transitive.
-  Qed.
-
   Lemma node_rep_sorted_app (L1 L2: list node_rep) :
     Sorted node_lt (L1 ++ L2) → Sorted node_lt L1 ∧ Sorted node_lt L2.
   Proof.
@@ -122,19 +82,19 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
   Proof.
     revert head.
     induction L as [| curr L] => head.
-    - intros (?&?) Hsort. exists head, tail, nil, nil.
+    + intros (?&?) Hsort. exists head, tail, nil, nil.
       split_and!; auto. 
       rewrite /tail/node_key/=; eauto. lia.
       rewrite /tail/node_key//.
-    - intros (?&?) Hsort.
+    + intros (?&?) Hsort.
       apply node_rep_sorted_app in Hsort as [_ Hsort].
       rewrite -app_comm_cons in Hsort.
       destruct (Z_lt_dec (node_key curr) k).
-      * edestruct IHL as (pred&succ&L1&L2&Hrange&Hmax&Heq); eauto.
+      - edestruct IHL as (pred&succ&L1&L2&Hrange&Hmax&Heq); eauto.
         destruct Hrange.
         exists pred, succ, (head :: L1), L2.
         split_and!; eauto. simpl in *. rewrite Heq. auto.
-      * exists head, curr, nil, (L ++ [tail]).
+      - exists head, curr, nil, (L ++ [tail]).
         split_and!; eauto; first lia.
         apply Sorted_StronglySorted in Hsort; last first.
         { unfold Relations_1.Transitive; apply node_lt_transitive. }
@@ -177,7 +137,7 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
     node_key succ = k.
   Proof.
     induction L1.
-    - rewrite //= => Hsort Hr Hin. inversion Hin as [|[Heq|Hin']]; subst; try lia.
+    + rewrite //= => Hsort Hr Hin. inversion Hin as [|[Heq|Hin']]; subst; try lia.
       exfalso. apply Sorted_StronglySorted in Hsort; last first.
       { unfold Relations_1.Transitive; apply node_lt_transitive. }
       apply StronglySorted_inv in Hsort as (Hsort&_).
@@ -186,9 +146,9 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
       apply forall_node_lt_Zlt in hd.
       eapply Forall_forall; eauto.
       by apply elem_of_list_In.
-    - rewrite //=. intros Hsort ? Hin.
+    + rewrite //=. intros Hsort ? Hin.
       inversion Hin.
-      * subst.
+      - subst.
         exfalso. apply Sorted_StronglySorted in Hsort; last first.
         { unfold Relations_1.Transitive; apply node_lt_transitive. }
         apply StronglySorted_inv in Hsort as (Hsort&Hhd).
@@ -197,7 +157,7 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
         eapply Forall_forall; eauto.
         apply elem_of_list_In.
         apply in_app_iff. right. by left.
-      * eapply IHL1; eauto.
+      - eapply IHL1; eauto.
         apply Sorted_inv in Hsort; intuition.
   Qed.
 
@@ -207,7 +167,7 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
     ¬ In new (L1 ++ [pred; succ] ++ L2).
   Proof.
     induction L1.
-    - rewrite //= => Hsort Hr Hin.
+    + rewrite //= => Hsort Hr Hin.
       destruct Hin as [| Hin]; first (subst; lia). 
       destruct Hin as [| Hin]; first (subst; lia). 
       apply Sorted_StronglySorted in Hsort; last first.
@@ -218,9 +178,9 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
       apply forall_node_lt_Zlt in hd.
       eapply Forall_forall; eauto.
       by apply elem_of_list_In, in_map.
-    - rewrite //=. intros Hsort Hr Hin.
+    + rewrite //=. intros Hsort Hr Hin.
       destruct Hin.
-      * subst. apply Sorted_StronglySorted in Hsort; last first.
+      - subst. apply Sorted_StronglySorted in Hsort; last first.
         { unfold Relations_1.Transitive; apply node_lt_transitive. }
         apply StronglySorted_inv in Hsort as (Hsort&Hhd).
         assert (node_lt new pred); last first.
@@ -228,7 +188,7 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
         eapply Forall_forall; eauto.
         apply elem_of_list_In.
         apply in_app_iff. right. by left.
-      * eapply IHL1; eauto.
+      - eapply IHL1; eauto.
         apply Sorted_inv in Hsort; intuition.
   Qed.
 
@@ -238,17 +198,17 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
     induction L => Hsort.
     eauto with *.
     apply not_elem_of_cons; split.
-    * apply Sorted_inv in Hsort as (?&Hhd).
+    + apply Sorted_inv in Hsort as (?&Hhd).
       inversion Hhd; subst.
       unfold node_lt in H1.
       assert (node_key x ≠ node_key a) by lia. congruence.
-    * eapply IHL.
+    + eapply IHL.
       apply Sorted_inv in Hsort as (Hsort&Hhd).
       apply Sorted_inv in Hsort as (?&Hhd').
       apply Sorted_cons; eauto.
       inversion Hhd'. subst.
-      ** econstructor. 
-      ** econstructor. inversion Hhd.
+      - econstructor. 
+      - econstructor. inversion Hhd.
         by eapply node_lt_transitive.
   Qed.
 
@@ -256,8 +216,8 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
     Sorted node_lt L → NoDup L.
   Proof.
     induction L as [|a L] => Hsorted.
-    - econstructor.
-    - specialize (sorted_node_lt_hd_nin a L Hsorted); auto.
+    + econstructor.
+    + specialize (sorted_node_lt_hd_nin a L Hsorted); auto.
       apply Sorted_inv in Hsorted as (Hsorted&?).
       econstructor; eauto.
   Qed.

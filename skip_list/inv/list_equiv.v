@@ -49,12 +49,11 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Lemma list_equiv_cons (rep: node_rep) (L: list node_rep)
       (P: Z → option loc → iProp Σ) :
       list_equiv (rep :: L) P ⊢ 
-        (list_equiv L P ∗ (list_equiv L P -∗ list_equiv (rep :: L) P))
-    .
+        (list_equiv L P ∗ (list_equiv L P -∗ list_equiv (rep :: L) P)).
     Proof.
       destruct L as [|n].
-      * iIntros "Hrep". by iFrame.
-      * iIntros "Hlist". iDestruct "Hlist" as (l γ) "(Hsome & Hpt & Hlock & HP & Hmatch)".
+      + iIntros "Hrep". by iFrame.
+      + iIntros "Hlist". iDestruct "Hlist" as (l γ) "(Hsome & Hpt & Hlock & HP & Hmatch)".
         iFrame. iIntros "Hlist". iFrame.
         iExists l, γ. iFrame.
     Qed.
@@ -70,8 +69,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           is_lock γ (node_lock pred) (node_inv l)
           ∗
-          (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L P)
-    .
+          (l ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L P).
     Proof.
       revert L. induction L1 => L HL.
       + destruct L as [|curr L].
@@ -241,40 +239,40 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       iIntros (head L HeqL' Hsort).
       inversion HeqL'; subst.
       iIntros (Hin); inversion Hin as [Heq|HinL].
-      * subst.
+      + subst.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock' HP'".
         destruct L as [|a L].
-        ** iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
-           assert (l = l'') as <- by congruence.
-           iDestruct (mapsto_agree with "Hpt Hpt''") as %Htail.
-           apply rep_to_node_inj in Htail; subst.
-           iExists (new :: nil), nil, nil.
-           iFrame. iSplit; first done. iSplit.
-           { 
-             iPureIntro; apply Sorted_cons; econstructor; auto.
-             unfold node_lt; lia.
-           }
-           iSplit; first auto.
-           iIntros "Hpt". iExists _, _.
-           iFrame "# ∗". iSplit; first done.
-           iExists _, _. by iFrame "# ∗".
-        ** iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock & HP & Hmatch)".
-           assert (l = l'') as <- by congruence.
-           iDestruct (mapsto_agree with "Hpt Hpt''") as %Heq.
-           apply rep_to_node_inj in Heq; subst.
-           iExists (new :: a :: L), nil, (L ++ [tail]).
-           iFrame. iSplit; first done. iSplit.
-           { 
-             iPureIntro.
-             repeat apply Sorted_inv in Hsort as (Hsort&?).
-             repeat econstructor; auto. 
-             all: unfold node_lt; lia.
-           }
-           iSplit; first auto.
-           iIntros "Hpt". iExists _, _.
-           iFrame "# ∗". iSplit; first done.
-           iExists _, _. by iFrame "# ∗".
-      * destruct L as [|head' L]; first by inversion HinL.
+        - iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock)".
+          assert (l = l'') as <- by congruence.
+          iDestruct (mapsto_agree with "Hpt Hpt''") as %Htail.
+          apply rep_to_node_inj in Htail; subst.
+          iExists (new :: nil), nil, nil.
+          iFrame. iSplit; first done. iSplit.
+          { 
+            iPureIntro; apply Sorted_cons; econstructor; auto.
+            unfold node_lt; lia.
+          }
+          iSplit; first auto.
+          iIntros "Hpt". iExists _, _.
+          iFrame "# ∗". iSplit; first done.
+          iExists _, _. by iFrame "# ∗".
+        - iDestruct "Hlist" as (l'' γ) "(%Hsome'' & Hpt'' & #Hlock & HP & Hmatch)".
+          assert (l = l'') as <- by congruence.
+          iDestruct (mapsto_agree with "Hpt Hpt''") as %Heq.
+          apply rep_to_node_inj in Heq; subst.
+          iExists (new :: a :: L), nil, (L ++ [tail]).
+          iFrame. iSplit; first done. iSplit.
+          { 
+            iPureIntro.
+            repeat apply Sorted_inv in Hsort as (Hsort&?).
+            repeat econstructor; auto. 
+            all: unfold node_lt; lia.
+          }
+          iSplit; first auto.
+          iIntros "Hpt". iExists _, _.
+          iFrame "# ∗". iSplit; first done.
+          iExists _, _. by iFrame "# ∗".
+      + destruct L as [|head' L]; first by inversion HinL.
         iIntros "Hlist %Hsome Hpt %Hsome' Hpt' #Hlock' HP'".
 
         simpl in Hsort; apply Sorted_inv in Hsort as (Hsort&Hhd).

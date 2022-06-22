@@ -73,8 +73,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       destruct bot_subs as [|bot_sub bot_subs].
       + iIntros "Htop". iExists from_bot_list, (Some bot).
         iDestruct "Htop" as "(? & Hlazy & ?)".
-        iDestruct "Hlazy" as (Sfrac) "(? & ? & #Hinv)".
-        iFrame "# ∗". iExists Sfrac. iFrame.
+        iDestruct "Hlazy" as "(? & #Hinv)".
+        iFrame "# ∗".
       + iIntros "Hlist". iExists (from_top_list bot_sub), None.
         iDestruct "Hlist" as (d down) "(? & #Hinv & ?)".
         iFrame "# ∗". iExists d, down. iFrame.

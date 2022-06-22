@@ -74,7 +74,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
 
         destruct Lm as [|next Lm].
         - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
-          { simpl in *. by rewrite -Hsplit_sep. }
+          { rewrite app_ass -Hsplit_sep //. }
           iDestruct "Hlist" as (l' γ) "(>%Hsome & Hpt & #Hlock & Himp)".
           assert (l = l') as <- by congruence.
 
@@ -109,10 +109,10 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
               rewrite /node_key /= in Hrange; lia. }
 
             destruct L1.
-            ** rewrite //= in Hsplit_join. 
+            ++ rewrite //= in Hsplit_join. 
                inversion Hsplit_join as [[Heq1 Heq2]]; subst.
                by rewrite Heq2; left.
-            ** inversion Hsplit_join as [[Heq1 Heq2]]; subst.
+            ++ inversion Hsplit_join as [[Heq1 Heq2]]; subst.
                by rewrite Heq2 in_app_iff; right; right; left.
         - assert (next ∈ S).
           {
@@ -159,7 +159,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           assert (S ∪ {[ next ]} = S) as -> by set_solver.
         
           rewrite (list_equiv_split curr next ([head] ++ L)); last first.
-          { simpl in *. by rewrite -Hsplit_sep. }
+          { rewrite app_ass -Hsplit_sep //. }
           iDestruct "Hlist" as (l' γ) "(>%Hsome & Hpt & #Hlock & Himp)".
           assert (l = l') as <- by congruence.
 
@@ -182,14 +182,14 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
               apply sorted_node_lt_no_dup in Hsort.
 
               destruct Lm as [|next' Lm] using rev_ind.
-              -- left. eapply (no_dup_elem_unique (Ls ++ [curr]) L2 (Ls ++ L1) L2 succ).
-                 { rewrite app_ass //=. }
-                 rewrite app_ass //= app_ass //=.
-              -- right. apply in_app_iff. right. left.
-                 eapply (no_dup_elem_unique (Ls ++ [curr; next] ++ Lm) L2 (Ls ++ L1) L2 succ).
-                 { rewrite app_ass //= in Hsort. rewrite app_ass //=. }
-                 rewrite app_ass //= in Hsplit_sep.
-                 rewrite //= app_ass app_ass //=.
+              + left. eapply (no_dup_elem_unique (Ls ++ [curr]) L2 (Ls ++ L1) L2 succ).
+                { rewrite app_ass //=. }
+                rewrite app_ass //= app_ass //=.
+              + right. apply in_app_iff. right. left.
+                eapply (no_dup_elem_unique (Ls ++ [curr; next] ++ Lm) L2 (Ls ++ L1) L2 succ).
+                { rewrite app_ass //= in Hsort. rewrite app_ass //=. }
+                rewrite app_ass //= in Hsplit_sep.
+                rewrite //= app_ass app_ass //=.
             }
 
             rewrite -Hsplit_sep in Hsort.
@@ -239,18 +239,20 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (h head) "(%Hv & Hpt & %Hmin & Hown & #Hinv)".
       wp_lam. wp_let. rewrite -Hv. wp_load.
+
       wp_apply (find_spec with "[Hown]").
       { iFrame "# ∗". iSplit. by iLeft. iPureIntro; lia. }
+
       iIntros (pred succ) "(Hown & %Hkey_in_S)".
       wp_let. wp_match. wp_pures. wp_lam. wp_pures.
 
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit. 
-        iExists h, head. by iFrame "# ∗".
+        { iExists h, head. by iFrame "# ∗". }
         iPureIntro.
         rewrite Hkey_in_S; congruence.
       + iApply "HΦ". iSplit. 
-        iExists h, head. by iFrame "# ∗".
+        { iExists h, head. by iFrame "# ∗". }
         iPureIntro; intros Hin. 
         rewrite Hkey_in_S in Hin; congruence.
     Qed.

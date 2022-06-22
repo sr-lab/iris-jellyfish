@@ -52,7 +52,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & %Hpred_next & #Hlock & Hpt & Hlocked & HP) HΦ".
-      iDestruct "Hbot" as (Sfrag) "(%Hequiv & Hown_frag & #Hinv)".
+      iDestruct "Hbot" as "(Hown_frag & #Hinv)".
 
       wp_lam. wp_pures. 
       wp_lam. wp_pures.
@@ -71,7 +71,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_bind (Store _ _).
       iInv N as (S Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
       iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
@@ -101,23 +101,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (key ∉ Skeys') as Hnin'.
       {
         intros Hfalse.
-        rewrite -elem_of_elements Hequiv' elem_of_list_In -Hperm in_map_iff in Hfalse.
+        rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
         destruct Hfalse as [x [Hkey Hin]].
-        
-        apply (sorted_node_lt_nin L1 L2 pred succ x).
-        { rewrite -Hsplit //. }
-        { rewrite Hkey; lia. }
-        rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
-      }
-
-      assert (key ∉ Skeys) as Hnin.
-      {
-        intros Hfalse.
-        rewrite -elem_of_elements Hequiv elem_of_list_In in_map_iff in Hfalse.
-        destruct Hfalse as [x [Hkey Hin]].
-        rewrite -elem_of_list_In elem_of_elements in Hin.
-        assert (x ∈ S) as HinS by set_solver; clear Hin.
-        rewrite -elem_of_elements -Hperm elem_of_list_In in HinS.
         
         apply (sorted_node_lt_nin L1 L2 pred succ x).
         { rewrite -Hsplit //. }
@@ -130,7 +115,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (ε ∪ {[ new ]} = {[ new ]}) as -> by set_solver.
 
       iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frac_frag]".
-      { apply frac_auth_update, (gset_local_update_union _ _ {[ new ]}). }
+      { apply frac_auth_update, (gset_local_update_union _ _ {[ key ]}). }
 
       rewrite (gset_union_diff key); first last.
       { done. }
@@ -159,16 +144,16 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
         simpl in Hperm'; apply Permutation_cons_inv in Hperm'.
         intros x; split.
-        - rewrite elem_of_elements Hperm' elem_of_list_In.
+        + rewrite elem_of_elements Hperm' elem_of_list_In.
           intros Hin. destruct Hin as [Heq|Hin].
-          * set_solver.
-          * apply elem_of_union_l. 
+          - set_solver.
+          - apply elem_of_union_l. 
             by rewrite -elem_of_elements -Hperm elem_of_list_In.
-        - rewrite elem_of_elements Hperm'. 
+        + rewrite elem_of_elements Hperm'. 
           intros Hin. apply elem_of_union in Hin as [Hin|Heq].
-          * rewrite elem_of_list_In. right.
+          - rewrite elem_of_list_In. right.
             by rewrite -elem_of_list_In Hperm elem_of_elements.
-          * set_solver.
+          - set_solver.
       }
 
       iModIntro. wp_pures. wp_lam. wp_pures.
@@ -176,10 +161,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { iFrame "# ∗"; iExists new; iFrame. }
       iIntros "_". wp_pures. 
       iModIntro. iApply "HΦ".
-      iSplitR "Hown_tok Hown_key Hown_auth_frag"; last by iFrame.
-      iExists (Sfrag ∪ {[ new ]}).
-      iFrame "# ∗". iPureIntro.
-      apply key_equiv_insert_nin; auto.
+      by iFrame "# ∗".
     Qed.
 
     Theorem link_top_spec (key: Z) (head pred succ: node_rep) 
@@ -230,7 +212,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_bind (Store _ _).
       iInv N as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -256,7 +238,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (key ∉ Skeys') as Hnin'.
       {
         intros Hfalse.
-        rewrite -elem_of_elements Hequiv' elem_of_list_In -Hperm in_map_iff in Hfalse.
+        rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
         destruct Hfalse as [x [Hkey Hin]].
         
         apply (sorted_node_lt_nin L1 L2 pred succ x).
@@ -295,16 +277,16 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
         simpl in Hperm'; apply Permutation_cons_inv in Hperm'.
         intros x; split.
-        - rewrite elem_of_elements Hperm' elem_of_list_In.
+        + rewrite elem_of_elements Hperm' elem_of_list_In.
           intros Hin. destruct Hin as [Heq|Hin].
-          * set_solver.
-          * apply elem_of_union_l. 
+          - set_solver.
+          - apply elem_of_union_l. 
             by rewrite -elem_of_elements -Hperm elem_of_list_In.
-        - rewrite elem_of_elements Hperm'. 
+        + rewrite elem_of_elements Hperm'. 
           intros Hin. apply elem_of_union in Hin as [Hin|Heq].
-          * rewrite elem_of_list_In. right.
+          - rewrite elem_of_list_In. right.
             by rewrite -elem_of_list_In Hperm elem_of_elements.
-          * set_solver.
+          - set_solver.
       }
 
       iModIntro. wp_pures. wp_lam. wp_pures.
