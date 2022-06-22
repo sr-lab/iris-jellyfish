@@ -94,6 +94,17 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
           done.
   Qed.
 
+  Lemma node_rep_forall_app (rep: node_rep) (L1 L2: list node_rep) :
+    Forall (node_lt rep) (L1 ++ L2) → Forall (node_lt rep) L1 ∧ Forall (node_lt rep) L2.
+  Proof.
+    induction L1.
+    + rewrite //=; intros; intuition; econstructor.
+    + intros Hs.
+      inversion Hs as [|? ? Ha Hall]; subst; eauto.
+      apply IHL1 in Hall. destruct Hall as [HL1 HL2].
+      by split; first econstructor.
+  Qed.
+
   Lemma forall_node_lt_Zlt (L: list node_rep) (rep: node_rep) :
     Forall (node_lt rep) L →
     Forall (Z.lt (node_key rep)) (map node_key L).
@@ -103,29 +114,44 @@ Module NodeLt (Params: LAZY_LIST_PARAMS).
 
   Lemma node_rep_split_join (L: list node_rep) (head: node_rep) (k: Z):
     node_key head < k < INT_MAX →
+    Sorted node_lt ([head] ++ L ++ [tail]) →
     ∃ (pred succ: node_rep) (L1 L2: list node_rep),
       node_key pred < k ≤ node_key succ ∧
+      node_key succ ≤ INT_MAX ∧
       [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2.
   Proof.
     revert head.
     induction L as [| curr L] => head.
-    - intros (?&?). exists head, tail, nil, nil.
-      split_and!; auto. rewrite /tail/node_key//=; eauto. lia.
-    - intros (?&?).
+    - intros (?&?) Hsort. exists head, tail, nil, nil.
+      split_and!; auto. 
+      rewrite /tail/node_key/=; eauto. lia.
+      rewrite /tail/node_key//.
+    - intros (?&?) Hsort.
+      apply node_rep_sorted_app in Hsort as [_ Hsort].
+      rewrite -app_comm_cons in Hsort.
       destruct (Z_lt_dec (node_key curr) k).
-      * edestruct IHL as (pred&succ&L1&L2&Hrange&Heq); eauto.
+      * edestruct IHL as (pred&succ&L1&L2&Hrange&Hmax&Heq); eauto.
         destruct Hrange.
         exists pred, succ, (head :: L1), L2.
-        split_and!;eauto. simpl in *. rewrite Heq. auto.
+        split_and!; eauto. simpl in *. rewrite Heq. auto.
       * exists head, curr, nil, (L ++ [tail]).
-        split_and!; eauto; lia.
+        split_and!; eauto; first lia.
+        apply Sorted_StronglySorted in Hsort; last first.
+        { unfold Relations_1.Transitive; apply node_lt_transitive. }
+        inversion Hsort as [|? ? _ Hall]; subst.
+        apply node_rep_forall_app in Hall.
+        destruct Hall as [_ Hall].
+        inversion Hall as [|? ? Hfalse]; subst.
+        rewrite /node_lt in Hfalse.
+        assert (node_key tail = INT_MAX) by auto.
+        lia.
   Qed.
 
   Lemma node_rep_split_sep (L Li Lf L1 Le: list node_rep) 
     (head curr pred succ: node_rep) (k: Z) :
     Sorted node_lt ([head] ++ L ++ [tail]) →
     node_key curr < k < INT_MAX →
-    node_key pred < k ≤ node_key succ  →
+    node_key pred < k ≤ node_key succ →
     [head] ++ L = Li ++ [curr] ++ Lf →
     [curr] ++ Lf ++ [tail] = L1 ++ [pred; succ] ++ Le →
     ∃ (Lm: list node_rep), 

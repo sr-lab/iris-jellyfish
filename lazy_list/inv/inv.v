@@ -11,7 +11,7 @@ From SkipList.lazy_list.inv Require Import list_equiv.
 
 Class gset_list_unionGS Σ := GsetGS { 
   gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR node_rep));
+  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR Z));
   gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
 }.
 
@@ -44,23 +44,21 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       ∗
       own (s_auth Γ) (● S)
       ∗
-      own (s_frac Γ) (●F S)
+      own (s_frac Γ) (●F Skeys)
       ∗
       own (s_keys Γ) (GSet (node_key_range ∖ Skeys))
       ∗
       list_equiv ([head] ++ L).
 
     Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (l: loc) (head: node_rep) (Sfrac: gset node_rep),
+      ∃ (l: loc) (head: node_rep),
       ⌜ #l = v ⌝
       ∗
       l ↦{#q} rep_to_node head
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      ⌜ key_equiv Sfrac Skeys ⌝
-      ∗
-      own (s_frac Γ) (◯F{q} Sfrac)
+      own (s_frac Γ) (◯F{q} Skeys)
       ∗
       inv lazyN (lazy_list_inv head Γ).
 
@@ -70,12 +68,12 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         is_lazy_list v S q1 Γ ∗ is_lazy_list v S q2 Γ.
     Proof.
       iIntros "Hlist".
-      iDestruct "Hlist" as (h head Sfrac) "(%Hv & Hpt & %Hmin & %Hequiv & Hown_frag &#Hinv)".
+      iDestruct "Hlist" as (h head) "(%Hv & Hpt & %Hmin & Hown_frag &#Hinv)".
       iDestruct "Hpt" as "(Hpt1 & Hpt2)".
       iDestruct "Hown_frag" as "(Hown_frag1 & Hown_frag2)".
       iSplitL "Hpt1 Hown_frag1".
-      + iExists h, head, Sfrac. by iFrame "# ∗".
-      + iExists h, head, Sfrac. by iFrame "# ∗".
+      + iExists h, head. by iFrame "# ∗".
+      + iExists h, head. by iFrame "# ∗".
     Qed.
     
     Lemma is_lazy_list_join (v: val) (S1 S2: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
@@ -83,34 +81,15 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
         is_lazy_list v (S1 ∪ S2) (q1 + q2) Γ.
     Proof.
       iIntros "(Hlist1 & Hlist2)".
-      iDestruct "Hlist1" as (h head Sfrac1) "(%Hv & Hpt1 & %Hmin & %Hequiv1 & Hown_frag1 & #Hinv)".
-      iDestruct "Hlist2" as (h' head' Sfrac2) "(%Hv' & Hpt2 & _ & %Hequiv2 & Hown_frag2 & _)".
+      iDestruct "Hlist1" as (h head) "(%Hv & Hpt1 & %Hmin & Hown_frag1 & #Hinv)".
+      iDestruct "Hlist2" as (h' head') "(%Hv' & Hpt2 & _ & Hown_frag2 & _)".
 
       assert (h = h') as <- by congruence.
       iDestruct (mapsto_agree with "Hpt1 Hpt2") as %<-.
       iCombine "Hpt1 Hpt2" as "Hpt".
       iCombine "Hown_frag1 Hown_frag2" as "Hown_frag".
-      rewrite gset_op.
-
-      iAssert (|={⊤}=> is_lazy_list v (S1 ∪ S2) (q1 + q2) Γ)%I with "[Hpt Hown_frag]" as "Hlist"; last first.
-      { admit. }
-
-      iInv lazyN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
-      iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
-        as %Hsub%frac_auth_included_total%gset_included.
-
-      assert (key_equiv (Sfrac1 ∪ Sfrac2) (S1 ∪ S2)).
-      { 
-        eapply (key_equiv_union L S); auto.
-        by do 2 apply node_rep_sorted_app in Hsort as [? Hsort].
-      }
-
-      iMod ("Hclose" with "[Hown_auth Hown_frac Hown_keys Hlist]") as "_".
-      { iNext; iExists S, Skeys, L; by iFrame. }
-
-      iModIntro. 
-      iExists h, head, (Sfrac1 ∪ Sfrac2). by iFrame "# ∗".
-    Admitted.
+      iExists h, head. by iFrame "# ∗".
+    Qed.
 
   End Proofs.
 End LazyListInv.

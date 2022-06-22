@@ -75,14 +75,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           as %Hsub%frac_auth_included_total%gset_included.
         iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frag]".
         { apply frac_auth_update, (gset_local_update_union _ _ {[ succ ]}). }
+        assert (S = S ∪ {[ succ ]}) as <- by set_solver.
 
         wp_proj.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
-        {
-          iNext; iExists S, Skeys', L.
-          assert (S = S ∪ {[ succ ]}) as <- by set_solver.
-          by iFrame.
-        }
+        { iNext; iExists S, Skeys', L; by iFrame. }
         iModIntro.
 
         wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.

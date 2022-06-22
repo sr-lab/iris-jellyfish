@@ -27,7 +27,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
         as (γauth) "[Hown_auth Hown_auth_frag]"; 
         first by apply auth_both_valid.
-      iMod (own_alloc (●F (∅ : gset node_rep) ⋅ ◯F (∅: gset node_rep)))
+      iMod (own_alloc (●F (∅ : gset Z) ⋅ ◯F (∅: gset Z)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
       iMod (own_alloc (GSet node_key_range))
@@ -56,10 +56,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
         iSplit; first rewrite /key_equiv //.
         iExists t, γ. by iFrame "# ∗".
       + iModIntro; iApply ("HΦ" $! Γ).
-        iExists h, head, ∅.
-        iFrame "# ∗".
-        iSplit; first done. iSplit; first done.
-        rewrite /key_equiv //.
+        iExists h, head. by iFrame "# ∗".
     Qed.
 
   End Proofs.
