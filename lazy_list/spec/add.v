@@ -13,11 +13,11 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
   Import Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
-    Theorem find_spec (head curr: node_rep) (key: Z) (Γ: lazy_gname) :
+    Theorem find_spec (key: Z) (head curr: node_rep) (Γ: lazy_gname) :
       {{{ 
-        inv N (lazy_list_inv head Γ)
+        inv lazyN (lazy_list_inv head Γ)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[curr]}))
         ∗
@@ -44,7 +44,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _).
-        iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+        iInv lazyN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
         iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
         { by apply auth_update_alloc, (gset_local_update S _ S). }
@@ -97,7 +97,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
           { lia. }
 
           iNext; iApply "HΦ".
-      + iInv N as (S ? ?) "(>%Hperm & _ & _ & >Hown_auth & _ & _ & Hlist)" "_".
+      + iInv lazyN as (S ? ?) "(>%Hperm & _ & _ & >Hown_auth & _ & _ & Hlist)" "_".
 
         iAssert ((⌜ curr = head ∨ curr ∈ S ⌝)%I) 
           with "[Hown_auth Hown_curr]" as %Hcurr_range.
@@ -114,9 +114,9 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         congruence.
     Qed.
 
-    Theorem findLock_spec (head curr: node_rep) (key: Z) (Γ: lazy_gname) :
+    Theorem findLock_spec (key: Z) (head curr: node_rep) (Γ: lazy_gname) :
       {{{ 
-        inv N (lazy_list_inv head Γ)
+        inv lazyN (lazy_list_inv head Γ)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[curr]}))
         ∗
@@ -159,7 +159,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       iDestruct "Hnode" as (rep) "Hnode".
 
       wp_bind (Load _).
-      iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+      iInv lazyN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
       iAssert ((⌜ pred = head ∨ pred ∈ S ⌝ ∗ ⌜succ ∈ S ∨ succ = tail⌝)%I) 
         with "[Hown_auth Hown_pred Hown_succ]" as "(%Hpred_range & %Hsucc_range)".
@@ -207,14 +207,14 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         by iApply ("IH" with "HΦ").
     Qed.
 
-    Theorem add_spec (v: val) (key: Z) (Skeys: gset Z) (q: frac)  (Γ: lazy_gname)
+    Theorem add_spec (key: Z) (v: val) (Skeys: gset Z) (q: frac)  (Γ: lazy_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
       {{{
-        is_lazy_list N v Skeys q Γ
+        is_lazy_list v Skeys q Γ
       }}}
         add v #key
       {{{ (b: bool), RET #b; 
-        is_lazy_list N v (Skeys ∪ {[ key ]}) q Γ
+        is_lazy_list v (Skeys ∪ {[ key ]}) q Γ
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
@@ -233,7 +233,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hrange; lia. }
 
-        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+        iInv lazyN as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
           as %[Hvalid%gset_included]%auth_both_valid_discrete.
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
@@ -280,7 +280,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         rewrite (fold_rep_to_node new).
         
         wp_bind (Store _ _).
-        iInv N as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+        iInv lazyN as (S Skeys' L) "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
 
         iAssert ⌜ pred = head ∨ In pred L ⌝%I
           with "[Hown_auth Hown_pred]" as %Hpred_range.

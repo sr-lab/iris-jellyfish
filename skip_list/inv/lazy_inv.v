@@ -15,21 +15,21 @@ Class gset_list_unionGS Σ := GsetGS {
   gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
 }.
 
+Record sub_gname := mk_sub_gname {
+  s_auth: gname;
+  s_toks: gname
+}.
+
+Record bot_gname := mk_bot_gname {
+  s_frac: gname;
+  s_keys: gname
+}.
+
 Local Open Scope Z.
 Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module ListEquiv := ListEquiv Params.
   Export ListEquiv.
-
-  Record sub_gname := mk_sub_gname {
-    s_auth: gname;
-    s_toks: gname
-  }.
-
-  Record bot_gname := mk_bot_gname {
-    s_frac: gname;
-    s_keys: gname
-  }.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N: namespace).
@@ -75,8 +75,8 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       own (s_keys Γ) (GSet (node_key_range ∖ Skeys)).
     
-    Definition lazy_list_inv (head: node_rep) (P: Z → option loc → iProp Σ) 
-      (sub: sub_gname) (obot: option bot_gname) : iProp Σ := 
+    Definition lazy_list_inv (head: node_rep) (sub: sub_gname) (obot: option bot_gname)
+      (P: Z → option loc → iProp Σ) : iProp Σ := 
       ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
       sub_list_inv head sub P S Skeys L
       ∗
@@ -86,16 +86,16 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       end.
 
     Definition is_top_list (head: node_rep) (top bot: sub_gname) : iProp Σ := 
-      inv N (lazy_list_inv head (from_top_list bot) top None).
+      inv N (lazy_list_inv head top None (from_top_list bot)).
 
-    Definition is_bot_list (head: node_rep) (q: frac)
-      (Skeys: gset Z) (sub: sub_gname) (bot: bot_gname) : iProp Σ := 
+    Definition is_bot_list (head: node_rep) (Skeys: gset Z) (q: frac)
+      (sub: sub_gname) (bot: bot_gname) : iProp Σ := 
       ∃ (Sfrac: gset node_rep),
       ⌜ key_equiv Sfrac Skeys ⌝
       ∗
       own (s_frac bot) (◯F{q} Sfrac)
       ∗
-      inv N (lazy_list_inv head from_bot_list sub (Some bot)).
+      inv N (lazy_list_inv head sub (Some bot) from_bot_list).
 
   End Proofs.
 End LazyListInv.

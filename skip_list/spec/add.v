@@ -18,10 +18,10 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem topLevel_spec (curr top_head: node_rep) (key h lvl: Z) (q: frac)
-      (S: gset Z) (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem topLevel_spec (key h lvl: Z) (top_head curr: node_rep) (S: gset Z) (q: frac)
+      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{
-        skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs)
+        skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs)
         ∗
         (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
@@ -31,12 +31,12 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       }}}
         topLevel (rep_to_node curr) #key #h #lvl
       {{{ curr' top_head' top_sub' bot_subs', RET SOMEV (rep_to_node curr');
-        skip_list_equiv top_head' h q S bot (top_sub' :: bot_subs')
+        skip_list_equiv h top_head' S q bot (top_sub' :: bot_subs')
         ∗
         ( 
-          skip_list_equiv top_head' h q (S ∪ {[ key ]}) bot (top_sub' :: bot_subs')
+          skip_list_equiv h top_head' (S ∪ {[ key ]}) q bot (top_sub' :: bot_subs')
           -∗
-          skip_list_equiv top_head lvl q (S ∪ {[ key ]}) bot (top_sub :: bot_subs)
+          skip_list_equiv lvl top_head (S ∪ {[ key ]}) q bot (top_sub :: bot_subs)
         )
         ∗
         (⌜ curr' = top_head' ⌝ ∨ own (s_auth top_sub') (◯ {[ curr' ]}))
@@ -138,11 +138,11 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite Hpred_down; by iExFalso.
     Qed.
 
-    Theorem addAll_spec (curr top_head: node_rep) (key lvl: Z) (q: frac)
-      (S: gset Z) (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem addAll_spec (key lvl: Z) (top_head curr: node_rep) (S: gset Z) (q: frac)
+      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
       INT_MIN < key < INT_MAX →
       {{{
-        skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs)
+        skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs)
         ∗
         (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
@@ -150,7 +150,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       }}}
         addAll (rep_to_node curr) #key
       {{{ v new, RET v;
-        skip_list_equiv top_head lvl q (S ∪ {[ key ]}) bot (top_sub :: bot_subs)
+        skip_list_equiv lvl top_head (S ∪ {[ key ]}) q bot (top_sub :: bot_subs)
         ∗
         ( 
           ⌜ v = NONEV ⌝ ∨ 
@@ -300,14 +300,14 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           by rewrite Hpred_down.
     Qed.
 
-    Theorem add_spec (v: val) (key height: Z) (q: frac)
-      (S: gset Z) (bot: bot_gname) (subs: list sub_gname)
+    Theorem add_spec (key height: Z) (v: val) (S: gset Z) (q: frac)
+      (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) 
       (Hheight: 1 ≤ height ≤ MAX_HEIGHT):
-      {{{ is_skip_list v q S bot subs }}}
+      {{{ is_skip_list v S q bot subs }}}
         add v #key #height
       {{{ (b: bool), RET #b; 
-        is_skip_list v q (S ∪ {[ key ]}) bot subs
+        is_skip_list v (S ∪ {[ key ]}) q bot subs
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".

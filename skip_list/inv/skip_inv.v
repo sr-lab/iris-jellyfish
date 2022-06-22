@@ -21,8 +21,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Fixpoint skip_list_equiv (head: node_rep) (lvl: Z) (q: frac) 
-      (S: gset Z) (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
+    Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (S: gset Z) (q: frac) 
+      (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
       | nil => False
       | top_sub :: bot_subs =>
@@ -30,7 +30,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         | nil =>
           ⌜ lvl = 1 ⌝
           ∗
-          is_bot_list (levelN lvl) head q S top_sub bot
+          is_bot_list (levelN lvl) head S q top_sub bot
           ∗
           ⌜ node_down head = None ⌝
 
@@ -42,34 +42,33 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           ∗
           ⌜ node_down head = Some d ⌝
           ∗
-          d ↦ rep_to_node down
+          d ↦{#q} rep_to_node down
           ∗
           ⌜ node_key head = node_key down ⌝
           ∗
-          skip_list_equiv down (lvl - 1) q S bot bot_subs
+          skip_list_equiv (lvl - 1) down S q bot bot_subs
         end
       end.
 
-    Definition is_skip_list (v: val) (q: frac) 
-      (S: gset Z) (bot: bot_gname) (subs: list sub_gname) : iProp Σ := 
+    Definition is_skip_list (v: val) (S: gset Z) (q: frac) 
+      (bot: bot_gname) (subs: list sub_gname) : iProp Σ := 
       ∃ (l:loc) (head: node_rep),
       ⌜ #l = v ⌝
       ∗
-      l ↦ rep_to_node head
+      l ↦{#q} rep_to_node head
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      skip_list_equiv head MAX_HEIGHT q S bot subs.
+      skip_list_equiv MAX_HEIGHT head S q bot subs.
 
     
-    Lemma skip_list_equiv_cons (top_head: node_rep) (lvl: Z) (q: frac)
-      (S: gset Z) (bot: bot_gname)
-      (top_sub: sub_gname) (bot_subs: list sub_gname) :
-      skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs) ⊢ 
+    Lemma skip_list_equiv_cons (top_head: node_rep) (lvl: Z) (S: gset Z) (q: frac) 
+      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+      skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs) ⊢ 
         ∃ (P: Z → option loc → iProp Σ) (obot: option bot_gname),
-        inv (levelN lvl) (lazy_list_inv top_head P top_sub obot)
+        inv (levelN lvl) (lazy_list_inv top_head top_sub obot P)
         ∗
-        skip_list_equiv top_head lvl q S bot (top_sub :: bot_subs).
+        skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs).
     Proof.
       destruct bot_subs as [|bot_sub bot_subs].
       + iIntros "Htop". iExists from_bot_list, (Some bot).

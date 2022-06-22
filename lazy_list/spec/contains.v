@@ -15,11 +15,11 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
   Import Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
-    Theorem find_spec (head curr: node_rep) (key: Z) (S: gset node_rep) (Γ: lazy_gname) :
+    Theorem find_spec (key: Z) (head curr: node_rep) (S: gset node_rep) (Γ: lazy_gname) :
       {{{ 
-        inv N (lazy_list_inv head Γ)
+        inv lazyN (lazy_list_inv head Γ)
         ∗
         own (s_frac Γ) (◯F S)
         ∗
@@ -42,7 +42,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
 
       destruct (node_next curr) as [l|] eqn:Hcurr_next; wp_pures.
       + wp_bind (Load _). 
-        iInv N as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+        iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -170,7 +170,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
             { lia. }
 
             iNext; iApply "HΦ".
-      + iInv N as (? ? ?) "(>%Hperm & _ & _ & _ & >Hown_frac & _ & Hlist)" "_".
+      + iInv lazyN as (? ? ?) "(>%Hperm & _ & _ & _ & >Hown_frac & _ & Hlist)" "_".
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -180,12 +180,12 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
         congruence.
     Qed.
     
-    Theorem contains_spec (v: val) (key: Z) (Skeys: gset Z) (Γ: lazy_gname)
+    Theorem contains_spec (key: Z) (v: val) (Skeys: gset Z) (Γ: lazy_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_lazy_list N v Skeys 1 Γ }}}
+      {{{ is_lazy_list v Skeys 1 Γ }}}
         contains v #key
       {{{ (b: bool), RET #b; 
-        is_lazy_list N v Skeys 1 Γ
+        is_lazy_list v Skeys 1 Γ
         ∗
         ⌜ if b then key ∈ Skeys else key ∉ Skeys ⌝
       }}}.

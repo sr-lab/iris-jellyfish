@@ -17,10 +17,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N: namespace).
     
-    Theorem find_bot_spec (head curr: node_rep) (key: Z) 
-      (S: gset node_rep) (bot: bot_gname) (sub: sub_gname) (P: Z → option loc → iProp Σ) :
+    Theorem find_bot_spec (key: Z) (head curr: node_rep) (S: gset node_rep) 
+      (bot: bot_gname) (sub: sub_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
-        inv N (lazy_list_inv head P sub (Some bot))
+        inv N (lazy_list_inv head sub (Some bot) P)
         ∗
         own (s_frac bot) (◯F S)
         ∗
@@ -204,10 +204,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         congruence.
     Qed.
     
-    Theorem find_sub_spec (head curr: node_rep) (key: Z)
-      (P: Z → option loc → iProp Σ) (sub: sub_gname) (obot: option bot_gname) :
+    Theorem find_sub_spec (key: Z) (head curr: node_rep)
+      (sub: sub_gname) (obot: option bot_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
-        inv N (lazy_list_inv head P sub obot)
+        inv N (lazy_list_inv head sub obot P)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
@@ -303,10 +303,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         congruence.
     Qed.
 
-    Theorem findLock_spec (head curr: node_rep) (key: Z)
-      (P: Z → option loc → iProp Σ) (sub: sub_gname) (obot: option bot_gname) :
+    Theorem findLock_spec (key: Z) (head curr: node_rep)
+      (sub: sub_gname) (obot: option bot_gname) (P: Z → option loc → iProp Σ) :
       {{{ 
-        inv N (lazy_list_inv head P sub obot)
+        inv N (lazy_list_inv head sub obot P)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗

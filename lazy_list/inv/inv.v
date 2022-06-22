@@ -28,7 +28,9 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Export ListEquiv.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+
+    Definition lazyN := nroot .@ "lazy".
 
     Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
 
@@ -60,7 +62,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       ∗
       own (s_frac Γ) (◯F{q} Sfrac)
       ∗
-      inv N (lazy_list_inv head Γ).
+      inv lazyN (lazy_list_inv head Γ).
 
 
     Lemma is_lazy_list_sep (v: val) (S: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
@@ -93,7 +95,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       iAssert (|={⊤}=> is_lazy_list v (S1 ∪ S2) (q1 + q2) Γ)%I with "[Hpt Hown_frag]" as "Hlist"; last first.
       { admit. }
 
-      iInv N as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
+      iInv lazyN as (S Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
       iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
         as %Hsub%frac_auth_included_total%gset_included.
 

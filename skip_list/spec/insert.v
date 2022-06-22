@@ -18,11 +18,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
 
-    Theorem tryInsert_spec (curr head: node_rep) (key: Z) 
-      (q: frac) (Skeys: gset Z) (sub: sub_gname) (bot: bot_gname) :
+    Theorem tryInsert_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) (q: frac)
+      (sub: sub_gname) (bot: bot_gname) :
       INT_MIN < key < INT_MAX →
       {{{
-        is_bot_list N head q Skeys sub bot
+        is_bot_list N head Skeys q sub bot
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
@@ -30,7 +30,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       }}}
         tryInsert (rep_to_node curr) #key
       {{{ v new, RET v;
-        is_bot_list N head q (Skeys ∪ {[ key ]}) sub bot
+        is_bot_list N head (Skeys ∪ {[ key ]}) q sub bot
         ∗
         ( 
           ⌜ v = NONEV ⌝ ∨ 
@@ -114,10 +114,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iApply "HΦ". iSplitL "Hlazy"; last iRight; by iFrame.
     Qed.
 
-    Theorem insert_spec (curr down head: node_rep) (key: Z) (top bot: sub_gname) :
+    Theorem insert_spec (key: Z) (head down curr: node_rep) (top bot: sub_gname) :
       INT_MIN < key < INT_MAX →
       {{{
-        inv N (lazy_list_inv head (from_top_list bot) top None)
+        inv N (lazy_list_inv head top None (from_top_list bot))
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth top) (◯ {[ curr ]}))
         ∗

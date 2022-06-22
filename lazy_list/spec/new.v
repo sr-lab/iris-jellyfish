@@ -13,13 +13,13 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
   Import Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
     Theorem new_spec :
       {{{ True }}}
         new #()
       {{{ Γ v, RET v; 
-        is_lazy_list N v ∅ 1 Γ
+        is_lazy_list v ∅ 1 Γ
       }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
@@ -45,7 +45,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       rewrite (fold_rep_to_node head).
 
       set (Γ := mk_lazy_gname γauth γfrac γkeys).
-      iMod (inv_alloc N ⊤ (lazy_list_inv head Γ) 
+      iMod (inv_alloc lazyN ⊤ (lazy_list_inv head Γ) 
         with "[Ht2 Hlock Hown_auth Hown_frac Hown_keys]") as "#Hinv".
       + iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit. 

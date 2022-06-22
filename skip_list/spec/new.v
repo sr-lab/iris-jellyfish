@@ -15,14 +15,14 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem newLoop_spec (head: node_rep) (lvl: Z) (bot: bot_gname) 
+    Theorem newLoop_spec (lvl: Z) (head: node_rep) (bot: bot_gname) 
       (bot_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
         ⌜ 1 ≤ lvl ⌝
         ∗
-        skip_list_equiv head lvl 1 ∅ bot (bot_sub :: bot_subs)
+        skip_list_equiv lvl head ∅ 1 bot (bot_sub :: bot_subs)
       }}}
         newLoop (rep_to_node head) #lvl
       {{{ h top_head subs, RET #h;
@@ -30,7 +30,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key top_head = INT_MIN ⌝
         ∗
-        skip_list_equiv top_head MAX_HEIGHT 1 ∅ bot subs
+        skip_list_equiv MAX_HEIGHT top_head ∅ 1 bot subs
       }}}.
     Proof.
       iIntros (Φ) "(Hmin & Hlvl & Hlist) HΦ".
@@ -61,7 +61,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         rewrite (fold_rep_to_node top_head).
 
         set (top := mk_sub_gname γauth γtoks).
-        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head (from_top_list bot_sub) top None) 
+        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv top_head top None (from_top_list bot_sub)) 
           with "[Ht2 Hlock Hown_auth Hown_toks]") as "#Hinv".
         {
           iNext; iExists ∅, ∅, nil. iFrame.
@@ -92,7 +92,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       {{{ True }}}
         new #()
       {{{ v bot subs, RET v;
-        is_skip_list v 1 ∅ bot subs
+        is_skip_list v ∅ 1 bot subs
       }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
@@ -123,7 +123,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
       set (sub := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac γkeys).
-      iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head from_bot_list sub (Some bot)) 
+      iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head sub (Some bot) from_bot_list) 
         with "[Ht2 Hlock Hown_auth Hown_toks Hown_frac Hown_keys]") as "#Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.

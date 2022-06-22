@@ -18,10 +18,10 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
-    Theorem findPred_spec (curr top_head: node_rep) (lvl key: Z)
-      (S: gset Z) (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem findPred_spec (key lvl: Z) (top_head curr: node_rep) (S: gset Z) 
+      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{ 
-        skip_list_equiv top_head lvl 1 S bot (top_sub :: bot_subs)
+        skip_list_equiv lvl top_head S 1 bot (top_sub :: bot_subs)
         ∗
         (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
@@ -29,7 +29,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
       }}}
         findPred (rep_to_node curr) #key
       {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
-        skip_list_equiv top_head lvl 1 S bot (top_sub :: bot_subs)
+        skip_list_equiv lvl top_head S 1 bot (top_sub :: bot_subs)
         ∗
         ⌜ key ∈ S ↔ node_key succ = key ⌝
       }}}.
@@ -139,13 +139,13 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           rewrite Hpred_down; by iExFalso.
     Qed.
     
-    Theorem contains_spec (v: val) (key: Z) 
-      (S: gset Z) (bot: bot_gname) (subs: list sub_gname)
+    Theorem contains_spec (key: Z) (v: val) (S: gset Z) 
+      (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_skip_list v 1 S bot subs }}}
+      {{{ is_skip_list v S 1 bot subs }}}
         contains v #key
       {{{ (b: bool), RET #b; 
-        is_skip_list v 1 S bot subs
+        is_skip_list v S 1 bot subs
         ∗
         ⌜ if b then key ∈ S else key ∉ S ⌝
       }}}.

@@ -18,12 +18,11 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
 
-    Theorem link_bot_spec (head pred succ: node_rep) (key: Z)
-      (q: frac) (Skeys: gset Z) (sub: sub_gname) (bot: bot_gname) 
-      (l: loc) (γ: gname) (odown: option loc) :
+    Theorem link_bot_spec (key: Z) (head pred succ: node_rep) (Skeys: gset Z) (q: frac)
+      (sub: sub_gname) (bot: bot_gname) (l: loc) (γ: gname) (odown: option loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
-        is_bot_list N head q Skeys sub bot
+        is_bot_list N head Skeys q sub bot
         ∗
         (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
         ∗
@@ -41,7 +40,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }}}
         link (rep_to_node pred) #key (oloc_to_val odown)
       {{{ new, RET SOMEV (rep_to_node new);
-        is_bot_list N head q (Skeys ∪ {[ key ]}) sub bot
+        is_bot_list N head (Skeys ∪ {[ key ]}) q sub bot
         ∗ 
         own (s_auth sub) (◯ {[ new ]})
         ∗ 
@@ -183,11 +182,11 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       apply key_equiv_insert_nin; auto.
     Qed.
 
-    Theorem link_top_spec (head pred succ: node_rep) (key: Z) (top bot: sub_gname)
-      (l: loc) (γ: gname) (odown: option loc) :
+    Theorem link_top_spec (key: Z) (head pred succ: node_rep) 
+      (top bot: sub_gname) (l: loc) (γ: gname) (odown: option loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
-        inv N (lazy_list_inv head (from_top_list bot) top None)
+        inv N (lazy_list_inv head top None (from_top_list bot))
         ∗
         (⌜ pred = head ⌝ ∨ own (s_auth top) (◯ {[ pred ]}))
         ∗
