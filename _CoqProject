@@ -2,11 +2,12 @@
 
 lib/lock.v
 lib/misc.v
+lib/node_rep.v
+lib/node_lt.v
+lib/key_equiv.v
 
-lazy_list/node_rep.v
+
 lazy_list/code.v
-lazy_list/node_lt.v
-lazy_list/key_equiv.v
 
 lazy_list/inv/list_equiv.v
 lazy_list/inv/inv.v
@@ -16,10 +17,7 @@ lazy_list/spec/contains.v
 lazy_list/spec/add.v
 
 
-skip_list/node_rep.v
 skip_list/code.v
-skip_list/node_lt.v
-skip_list/key_equiv.v
 
 skip_list/inv/list_equiv.v
 skip_list/inv/lazy_inv.v

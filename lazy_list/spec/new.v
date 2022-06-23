@@ -1,8 +1,8 @@
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc.
-From SkipList.lazy_list Require Import node_rep code key_equiv.
+From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
+From SkipList.lazy_list Require Import code.
 From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
@@ -41,9 +41,9 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       { iExists tail; iFrame. }
 
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
-      set (head := (INT_MIN, Some t, l)).
       wp_pures; wp_alloc h as "Hh".
-      rewrite (fold_rep_to_node head).
+      rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
+      set (head := (INT_MIN, Some t, None, l)).
 
       set (Γ := mk_lazy_gname γauth γfrac γkeys).
       iMod (inv_alloc lazyN ⊤ (lazy_list_inv head Γ) 

@@ -4,15 +4,15 @@ From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc.
-From SkipList.lazy_list Require Import node_lt node_rep code key_equiv.
+From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
+From SkipList.lazy_list Require Import code.
 
 
 Local Open Scope Z.
 Module ListEquiv (Params: LAZY_LIST_PARAMS).
   Import Params.
-  Module KeyEquiv := KeyEquiv Params.
-  Export KeyEquiv.
+  Module LazyList := LazyList Params.
+  Export LazyList.
 
   Section Proofs.
     Context `{!heapGS Σ, !lockG Σ} (N : namespace).

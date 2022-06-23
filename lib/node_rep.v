@@ -3,10 +3,16 @@ From iris.heap_lang Require Import notation.
 Local Open Scope Z.
 
 Definition node_rep : Type := Z * option loc * option loc * val.
+
 Definition node_key (n: node_rep) : Z := n.1.1.1.
 Definition node_next (n: node_rep) : option loc := n.1.1.2.
 Definition node_down (n: node_rep) : option loc := n.1.2.
 Definition node_lock (n: node_rep) : val := n.2.
+
+Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
+Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
+Definition nodeDown : val := λ: "l", Snd (Fst "l").
+Definition nodeLock : val := λ: "l", Snd "l".
 
 Definition oloc_to_val (ol: option loc) : val := 
   match ol with

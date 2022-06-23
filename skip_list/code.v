@@ -1,5 +1,4 @@
-From SkipList.lib Require Import lock.
-From SkipList.skip_list Require Import node_rep.
+From SkipList.lib Require Import lock node_rep.
 
 
 Local Open Scope Z.
@@ -9,11 +8,6 @@ Module Type SKIP_LIST_PARAMS.
   Parameter MAX_HEIGHT : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
 End SKIP_LIST_PARAMS.
-
-Definition nodeKey : val := λ: "l", Fst (Fst (Fst "l")).
-Definition nodeNext : val := λ: "l", Snd (Fst (Fst "l")).
-Definition nodeDown : val := λ: "l", Snd (Fst "l").
-Definition nodeLock : val := λ: "l", Snd "l".
 
 Module SkipList (Params: SKIP_LIST_PARAMS).
   Import Params.

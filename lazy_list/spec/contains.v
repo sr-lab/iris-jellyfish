@@ -3,8 +3,8 @@ From Coq Require Import Sorting.Sorted.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc.
-From SkipList.lazy_list Require Import node_rep code key_equiv.
+From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
+From SkipList.lazy_list Require Import code.
 From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
@@ -60,7 +60,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           as (Ls&Lf&Hcurr).
         { rewrite in_inv //. }
   
-        edestruct (node_rep_split_join Lf curr key) 
+        edestruct (node_rep_split_join Lf curr tail key) 
           as (pred&succ&L1&L2&?&?&Hsplit_join); auto.
         {
           rewrite -app_ass Hcurr app_ass in Hsort.
@@ -68,7 +68,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
           simpl in *. by destruct Hsort as [_ ?].
         }
   
-        feed pose proof (node_rep_split_sep L Ls Lf L1 L2 head curr pred succ key) 
+        feed pose proof (node_rep_split_sep L Ls Lf L1 L2 head curr pred succ tail key) 
           as Htemp; auto.
         destruct Htemp as [Lm Hsplit_sep].
 

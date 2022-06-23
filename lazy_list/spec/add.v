@@ -1,8 +1,8 @@
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc.
-From SkipList.lazy_list Require Import node_rep code key_equiv.
+From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
+From SkipList.lazy_list Require Import code.
 From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
@@ -267,8 +267,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
 
         wp_pures.
-        set (new := (key, Some l', lk)).
-        rewrite (fold_rep_to_node new).
+        rewrite (fold_rep_to_node (key, Some l', None, lk)).
+        set (new := (key, Some l', None, lk)).
         
         wp_bind (Store _ _).
         iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".

@@ -1,5 +1,4 @@
-From SkipList.lib Require Import lock.
-From SkipList.lazy_list Require Import node_rep.
+From SkipList.lib Require Import lock node_rep.
 
 
 Local Open Scope Z.
@@ -8,10 +7,6 @@ Module Type LAZY_LIST_PARAMS.
   Parameter INT_MAX : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
 End LAZY_LIST_PARAMS.
-
-Definition nodeKey : val := λ: "l", Fst (Fst "l").
-Definition nodeNext : val := λ: "l", Snd  (Fst "l").
-Definition nodeLock : val := λ: "l", Snd "l".
 
 Module LazyList (Params: LAZY_LIST_PARAMS).
   Import Params.
@@ -56,13 +51,13 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
       end.
   
   Definition dummy_lock : val := #{|loc_car := 0|}.
-  Definition tail : node_rep := (INT_MAX, None, dummy_lock).  
+  Definition tail : node_rep := (INT_MAX, None, None, dummy_lock).  
 
   (* Lazy list creation *)
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      ref (#INT_MIN, SOME "t", newlock #()).
+      ref (#INT_MIN, SOME "t", NONEV, newlock #()).
 
   (* Lazy list lookup *)
   Definition contains : val := 
@@ -98,7 +93,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
               | SOME "np" =>
                 let: "succ" := !"np" in
                 let: "next" := ref "succ" in
-                let: "node" := ("k", SOME "next", newlock #()) in
+                let: "node" := ("k", SOME "next", NONEV, newlock #()) in
                 "np" <- "node";;
                 release (nodeLock "pred");;
                 #true
