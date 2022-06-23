@@ -51,7 +51,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
       wp_lam. wp_let. wp_let. wp_let.
 
-      rewrite skip_list_equiv_cons.
+      rewrite skip_list_equiv_inv.
       iDestruct "Hlist" as (P obot) "(Hinv & Hlist)".
       wp_apply (find_sub_spec with "[Hinv]").
       { by iFrame "# ∗". }
@@ -174,7 +174,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       iIntros (Φ curr top_head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange HΦ".
 
       wp_lam. wp_let.
-      iPoseProof (skip_list_equiv_cons with "Hlist") as (P obot) "(Hinv & Hlist)".
+      iPoseProof (skip_list_equiv_inv with "Hlist") as (P obot) "(Hinv & Hlist)".
       wp_apply (find_sub_spec with "[Hinv]").
       { iFrame "# ∗". iPureIntro; lia. }
 
