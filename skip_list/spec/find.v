@@ -9,6 +9,7 @@ From SkipList.skip_list.inv Require Import list_equiv lazy_inv skip_inv.
 
 
 Local Open Scope Z.
+
 Module FindSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := SkipListInv Params.

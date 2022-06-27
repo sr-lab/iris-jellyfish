@@ -11,6 +11,7 @@ From SkipList.skip_list.inv Require Import list_equiv lazy_inv.
 
 
 Local Open Scope Z.
+
 Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := LazyListInv Params.

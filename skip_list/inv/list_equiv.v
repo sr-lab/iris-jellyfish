@@ -9,6 +9,7 @@ From SkipList.skip_list Require Import code.
 
 
 Local Open Scope Z.
+
 Module ListEquiv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module SkipList := SkipList Params.

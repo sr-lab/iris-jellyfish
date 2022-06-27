@@ -10,6 +10,7 @@ From SkipList.skip_list.spec Require Import link.
 
 
 Local Open Scope Z.
+
 Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Link := LinkSpec Params.

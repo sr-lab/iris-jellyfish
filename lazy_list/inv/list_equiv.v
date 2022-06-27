@@ -9,6 +9,7 @@ From SkipList.lazy_list Require Import code.
 
 
 Local Open Scope Z.
+
 Module ListEquiv (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module LazyList := LazyList Params.

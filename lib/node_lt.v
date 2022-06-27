@@ -8,7 +8,6 @@ From SkipList.lib Require Import node_rep.
 
 Local Open Scope Z.
 
-
 Definition node_lt (x y: node_rep) : Prop := 
   node_key x < node_key y.
 

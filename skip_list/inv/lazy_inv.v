@@ -26,6 +26,7 @@ Record bot_gname := mk_bot_gname {
 }.
 
 Local Open Scope Z.
+
 Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module ListEquiv := ListEquiv Params.

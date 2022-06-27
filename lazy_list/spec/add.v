@@ -1,3 +1,5 @@
+From Coq Require Import Sorting.Sorted.
+
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
@@ -7,10 +9,11 @@ From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
 Local Open Scope Z.
+
 Module AddSpec (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module Invariant := LazyListInv Params.
-  Import Invariant.
+  Export Invariant.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
@@ -209,13 +212,9 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
     Theorem add_spec (key: Z) (v: val) (S: gset Z) (q: frac)  (Γ: lazy_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
-      {{{
-        is_lazy_list v S q Γ
-      }}}
+      {{{ is_lazy_list v S q Γ }}}
         add v #key
-      {{{ (b: bool), RET #b; 
-        is_lazy_list v (S ∪ {[ key ]}) q Γ
-      }}}.
+      {{{ (b: bool), RET #b; is_lazy_list v (S ∪ {[ key ]}) q Γ }}}.
     Proof.
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (h head) "(%Hv & Hpt_head & %Hmin & Hown_frag & #Hinv)".

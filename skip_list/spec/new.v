@@ -7,10 +7,11 @@ From SkipList.skip_list.inv Require Import list_equiv lazy_inv skip_inv.
 
 
 Local Open Scope Z.
+
 Module NewSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := SkipListInv Params.
-  Import Invariant.
+  Export Invariant.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
@@ -90,9 +91,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
     Theorem new_spec : 
       {{{ True }}}
         new #()
-      {{{ v bot subs, RET v;
-        is_skip_list v ∅ 1 bot subs
-      }}}.
+      {{{ v bot subs, RET v; is_skip_list v ∅ 1 bot subs }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
 

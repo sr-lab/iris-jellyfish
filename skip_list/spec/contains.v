@@ -10,10 +10,11 @@ From SkipList.skip_list.spec Require Import find.
 
 
 Local Open Scope Z.
+
 Module ContainsSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Find := FindSpec Params.
-  Import Find.
+  Export Find.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.

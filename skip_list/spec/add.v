@@ -10,10 +10,11 @@ From SkipList.skip_list.spec Require Import insert.
 
 
 Local Open Scope Z.
+
 Module AddSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Insert := InsertSpec Params.
-  Import Insert.
+  Export Insert.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
@@ -306,9 +307,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       (Hheight: 1 ≤ height ≤ MAX_HEIGHT) :
       {{{ is_skip_list v S q bot subs }}}
         add v #key #height
-      {{{ (b: bool), RET #b; 
-        is_skip_list v (S ∪ {[ key ]}) q bot subs
-      }}}.
+      {{{ (b: bool), RET #b; is_skip_list v (S ∪ {[ key ]}) q bot subs }}}.
     Proof.
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (h head) "(%Hv & Hpt & %Hmin & Hlist)".

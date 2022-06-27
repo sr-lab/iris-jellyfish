@@ -9,10 +9,11 @@ From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
 Local Open Scope Z.
+
 Module ContainsSpec (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module Invariant := LazyListInv Params.
-  Import Invariant.
+  Export Invariant.
 
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
@@ -225,7 +226,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
         iDestruct "Hlist" as (? ? ?) "(_ & >%Hsome & _ & _ & _)".
         congruence.
     Qed.
-    
+
     Theorem contains_spec (key: Z) (v: val) (S: gset Z) (Γ: lazy_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
       {{{ is_lazy_list v S 1 Γ }}}

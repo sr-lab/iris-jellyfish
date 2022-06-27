@@ -6,26 +6,23 @@ lib/node_rep.v
 lib/node_lt.v
 lib/key_equiv.v
 
-
 lazy_list/code.v
-
 lazy_list/inv/list_equiv.v
 lazy_list/inv/inv.v
 
 lazy_list/spec/new.v
 lazy_list/spec/contains.v
 lazy_list/spec/add.v
-
+lazy_list/client.v
 
 skip_list/code.v
-
 skip_list/inv/list_equiv.v
 skip_list/inv/lazy_inv.v
 skip_list/inv/skip_inv.v
-
 skip_list/spec/new.v
 skip_list/spec/find.v
 skip_list/spec/contains.v
 skip_list/spec/link.v
 skip_list/spec/insert.v
 skip_list/spec/add.v
+skip_list/client.v

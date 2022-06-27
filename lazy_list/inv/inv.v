@@ -22,6 +22,7 @@ Record lazy_gname := mk_lazy_gname {
 }.
 
 Local Open Scope Z.
+
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Import Params.
   Module ListEquiv := ListEquiv Params.

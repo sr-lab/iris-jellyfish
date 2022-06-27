@@ -2,6 +2,12 @@ From iris.algebra Require Import local_updates gset.
 
 
 Local Open Scope Z.
+  
+Fixpoint set_list_union (S: gset Z) (L: list Z) : gset Z :=
+  match L with
+  | nil => S
+  | h :: t => set_list_union (S ∪ {[ h ]}) t
+  end.
 
 Fixpoint Zset_inclusive_range (z: Z) (gap : nat) : gset Z :=
   match gap with
@@ -38,6 +44,27 @@ Proof.
   + inversion H.
     - apply in_or_app. by left.
     - apply in_or_app. right. by left.
+Qed.
+
+Lemma in_set_list_union (key: Z) (S: gset Z) (L: list Z) :
+  key ∈ (set_list_union S L) ↔ key ∈ S ∨ key ∈ L.
+Proof.
+  split; revert S.
+  + induction L as [|a L]; intros S Hin.
+    - by left.
+    - apply IHL in Hin. set_solver.
+  + induction L as [|a L]; intros S Hin.
+    - by destruct Hin as [Hin | Hin]; last inversion Hin.
+    - apply IHL. set_solver.
+Qed.
+
+Lemma in_empty_set_list_union (key: Z) (L: list Z) :
+  key ∈ (set_list_union ∅ L) ↔ key ∈ L.
+Proof.
+  split; intros Hin.
+  + apply in_set_list_union in Hin.
+    by destruct Hin; first exfalso.
+  + apply in_set_list_union. by right. 
 Qed.
 
 Lemma no_dup_elem_unique {A: Type} (L1 L2 L1' L2': list A) elem elem1 elem2 :

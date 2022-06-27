@@ -10,6 +10,7 @@ From SkipList.skip_list.spec Require Import find.
 
 
 Local Open Scope Z.
+
 Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Find := FindSpec Params.
