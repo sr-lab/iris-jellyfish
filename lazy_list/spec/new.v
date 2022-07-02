@@ -41,8 +41,8 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
 
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
       wp_pures; wp_alloc h as "Hh".
-      rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
-      set (head := (INT_MIN, Some t, None, l)).
+      rewrite (fold_rep_to_node (INT_MIN, t, None, l)).
+      set (head := (INT_MIN, t, None, l)).
 
       set (Γ := mk_lazy_gname γauth γfrac γkeys).
       iMod (inv_alloc lazyN ⊤ (lazy_list_inv head Γ) 
@@ -55,7 +55,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
           rewrite /node_lt/node_key//=; apply HMIN_MAX. 
         }
         iSplit; first rewrite /key_equiv //.
-        iExists t, γ. by iFrame "# ∗".
+        iExists γ. by iFrame "# ∗".
       }
 
       iModIntro; iApply "HΦ".

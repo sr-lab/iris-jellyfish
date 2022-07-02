@@ -29,7 +29,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       | top_sub :: bot_subs =>
         match bot_subs with
         | nil =>
-          ⌜ lvl = 1 ⌝
+          ⌜ lvl = 0 ⌝
           ∗
           is_bot_list (levelN lvl) head S q top_sub bot
           ∗
@@ -37,7 +37,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
         | bot_sub :: _ =>
           ∃ (d: loc) (down: node_rep),
-          ⌜ lvl > 1 ⌝
+          ⌜ lvl > 0 ⌝
           ∗
           is_top_list (levelN lvl) head top_sub bot_sub
           ∗

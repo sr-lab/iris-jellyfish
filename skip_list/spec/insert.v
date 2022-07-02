@@ -56,7 +56,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock & Hpt & Hlocked)".
+      iDestruct "Hlock" as (γ) "(#Hlock & Hpt & Hlocked)".
 
       wp_pures. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
@@ -94,10 +94,12 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
         wp_apply (link_bot_spec with "[Hpt Hlocked Hown_frag]").
         { done. }
-        { iFrame "# ∗". iPureIntro. by split; first lia. }
+        { iFrame "# ∗". iPureIntro; lia. }
         
         iIntros (new) "(Hlazy & Hkey & Hown_frag & Hown_tok & Hown_key)".
-        iApply "HΦ". iFrame. iRight; by iFrame.
+        wp_pures.
+        iModIntro; iApply "HΦ". 
+        iFrame. iRight; by iFrame.
     Qed.
 
     Theorem insert_spec (key: Z) (head down curr: node_rep) (top bot: sub_gname) :
@@ -116,7 +118,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         ⌜ node_key down = key ⌝
       }}}
         insert (rep_to_node curr) #key (rep_to_node down)
-      {{{ new, RET SOMEV (rep_to_node new);
+      {{{ new, RET rep_to_node new;
         own (s_auth top) (◯ {[ new ]})
         ∗ 
         own (s_toks top) (GSet {[ node_key new ]})
@@ -130,9 +132,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (l γ) "(%Hsome & #Hlock & Hpt & Hlocked)".
+      iDestruct "Hlock" as (γ) "(#Hlock & Hpt & Hlocked)".
 
-      wp_let. wp_match.
+      wp_let.
       wp_bind (Fst _).
       iInv N as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
@@ -151,7 +153,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { rewrite -elem_of_list_In Hperm elem_of_elements. set_solver. }
 
         rewrite list_equiv_invert_L; last done.
-        iDestruct "Hlist" as (? ? ? ? ? ) "(_ & _ & _ & _ & _ & HP & _)".
+        iDestruct "Hlist" as (? ? ? ? ) "(_ & _ & _ & _ & HP & _)".
         destruct (node_down succ) as [d|]; last by iExFalso.
         iDestruct "HP" as (?) "(_ & _ & Hown_tok' & %Hsucc)".
 
@@ -174,10 +176,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       wp_apply (link_top_spec with "[Hpt Hlocked HP]").
       { done. }
-      { 
-        iFrame "# ∗"; iPureIntro. 
-        by split; first lia.
-      }
+      { iFrame "# ∗"; iPureIntro; lia. }
       iApply "HΦ".
     Qed.
 

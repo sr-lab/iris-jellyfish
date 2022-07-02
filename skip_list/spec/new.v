@@ -21,7 +21,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       {{{ 
         ⌜ node_key head = INT_MIN ⌝
         ∗
-        ⌜ 1 ≤ lvl ⌝
+        ⌜ 0 ≤ lvl ⌝
         ∗
         skip_list_equiv lvl head ∅ 1 bot (bot_sub :: bot_subs)
       }}}
@@ -58,7 +58,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         
         iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
         wp_pures.
-        set (top_head := (INT_MIN, Some t, Some h, l)).
+        set (top_head := (INT_MIN, t, Some h, l)).
         rewrite (fold_rep_to_node top_head).
 
         set (top := mk_sub_gname γauth γtoks).
@@ -72,7 +72,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_lt/node_key//=; apply HMIN_MAX.
           }
           iSplit; first rewrite /key_equiv //.
-          iExists t, γ. by iFrame "# ∗".
+          iExists γ. by iFrame "# ∗".
         }
 
         iApply ("IH" $! top_head (lvl+1) top (bot_sub :: bot_subs) with "[%] [%] [Hlist Hh]").
@@ -116,12 +116,12 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
       wp_pures.
-      rewrite (fold_rep_to_node (INT_MIN, Some t, None, l)).
-      set (bot_head := (INT_MIN, Some t, None, l)).
+      rewrite (fold_rep_to_node (INT_MIN, t, None, l)).
+      set (bot_head := (INT_MIN, t, None, l)).
 
       set (sub := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac γkeys).
-      iMod (inv_alloc (levelN 1) ⊤ (lazy_list_inv bot_head sub (Some bot) from_bot_list) 
+      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv bot_head sub (Some bot) from_bot_list) 
         with "[Ht2 Hlock Hown_auth Hown_toks Hown_frac Hown_keys]") as "#Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.
@@ -131,14 +131,14 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
         iSplit; first rewrite /key_equiv //.
-        iExists t, γ. by iFrame "# ∗".
+        iExists γ. by iFrame "# ∗".
       }
 
       wp_apply (newLoop_spec _ _ bot sub nil with "[Hown_frac_frag]").
       { by iFrame "# ∗". }
 
-      iIntros (h top_head subs) "(Hh & %Hmin & Hlist)"; wp_let.
-      iModIntro; iApply "HΦ".
+      iIntros (h top_head subs) "(Hh & %Hmin & Hlist)".
+      iApply "HΦ".
       iExists h, top_head. by iFrame.
     Qed.
 

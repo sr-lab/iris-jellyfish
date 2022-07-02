@@ -20,7 +20,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
 
     Theorem link_bot_spec (key: Z) (head pred succ: node_rep) (Skeys: gset Z) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) (l: loc) (γ: gname) (odown: option loc) :
+      (sub: sub_gname) (bot: bot_gname) (γ: gname) (odown: option loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
         is_bot_list N head Skeys q sub bot
@@ -29,18 +29,16 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key pred < key < node_key succ ⌝
         ∗
-        ⌜ node_next pred = Some l ⌝
+        is_lock γ (node_lock pred) (node_inv (node_next pred))
         ∗
-        is_lock γ (node_lock pred) (node_inv l)
-        ∗
-        l ↦{#1 / 2} rep_to_node succ
+        node_next pred ↦{#1 / 2} rep_to_node succ
         ∗
         locked γ
         ∗
         from_bot_list key odown
       }}}
         link (rep_to_node pred) #key (oloc_to_val odown)
-      {{{ new, RET SOMEV (rep_to_node new);
+      {{{ new, RET rep_to_node new;
         is_bot_list N head (Skeys ∪ {[ key ]}) q sub bot
         ∗ 
         own (s_auth sub) (◯ {[ new ]})
@@ -52,22 +50,21 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ⌜ node_key new = key ⌝
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & %Hpred_next & #Hlock & Hpt & Hlocked & HP) HΦ".
+      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & #Hlock & Hpt & Hlocked & HP) HΦ".
       iDestruct "Hbot" as "(Hown_frag & #Hinv)".
 
       wp_lam. wp_pures. 
       wp_lam. wp_pures.
-      rewrite Hpred_next; wp_match.
       wp_load. wp_let. 
-      wp_alloc l' as "Hpt'". wp_let.
+      wp_alloc l as "Hpt'". wp_let.
       iDestruct "Hpt'" as "(Hpt' & Hpt'_dup)".
       
-      wp_apply (newlock_spec (node_inv l') with "[Hpt'_dup]").
+      wp_apply (newlock_spec (node_inv l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
       iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
 
       wp_pures.
-      set (new := (key, Some l', odown, lk)).
+      set (new := (key, l, odown, lk)).
       rewrite (fold_rep_to_node new).
       
       wp_bind (Store _ _).
@@ -86,7 +83,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         set_solver.
       }
 
-      rewrite (list_equiv_insert head pred new succ L l l' γ'); first last.
+      rewrite (list_equiv_insert head pred new succ L γ'); first last.
       { done. }
       { auto. }
       { assert (node_key new = key) as -> by auto; lia. }
@@ -166,7 +163,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem link_top_spec (key: Z) (head pred succ: node_rep) 
-      (top bot: sub_gname) (l: loc) (γ: gname) (odown: option loc) :
+      (top bot: sub_gname) (γ: gname) (odown: option loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
         inv N (lazy_list_inv head top None (from_top_list bot))
@@ -175,18 +172,16 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key pred < key < node_key succ ⌝
         ∗
-        ⌜ node_next pred = Some l ⌝
+        is_lock γ (node_lock pred) (node_inv (node_next pred))
         ∗
-        is_lock γ (node_lock pred) (node_inv l)
-        ∗
-        l ↦{#1 / 2} rep_to_node succ
+        node_next pred ↦{#1 / 2} rep_to_node succ
         ∗
         locked γ
         ∗
         from_top_list bot key odown
       }}}
         link (rep_to_node pred) #key (oloc_to_val odown)
-      {{{ new, RET SOMEV (rep_to_node new);
+      {{{ new, RET rep_to_node new;
         own (s_auth top) (◯ {[ new ]})
         ∗ 
         own (s_toks top) (GSet {[ node_key new ]})
@@ -194,21 +189,20 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ⌜ node_key new = key ⌝
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & %Hpred_next & #Hlock & Hpt & Hlocked & HP) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & #Hlock & Hpt & Hlocked & HP) HΦ".
 
       wp_lam. wp_pures. 
       wp_lam. wp_pures.
-      rewrite Hpred_next; wp_match.
       wp_load. wp_let. 
-      wp_alloc l' as "Hpt'". wp_let.
+      wp_alloc l as "Hpt'". wp_let.
       iDestruct "Hpt'" as "(Hpt' & Hpt'_dup)".
       
-      wp_apply (newlock_spec (node_inv l') with "[Hpt'_dup]").
+      wp_apply (newlock_spec (node_inv l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
       iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
 
       wp_pures.
-      set (new := (key, Some l', odown, lk)).
+      set (new := (key, l, odown, lk)).
       rewrite (fold_rep_to_node new).
       
       wp_bind (Store _ _).
@@ -226,7 +220,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         set_solver.
       }
 
-      rewrite (list_equiv_insert head pred new succ L l l' γ'); first last.
+      rewrite (list_equiv_insert head pred new succ L γ'); first last.
       { done. }
       { auto. }
       { assert (node_key new = key) as -> by auto; lia. }

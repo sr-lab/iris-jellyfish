@@ -57,7 +57,7 @@ Section Proofs.
   Lemma addList_spec (v: val) (S: gset Z) (q: frac) 
     (bot: bot_gname) (subs: list sub_gname) (L: list node) :
     (∀ (k: Z), k ∈ keys L → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: Z), h ∈ heights L → 1 ≤ h ≤ Params.MAX_HEIGHT) →
+    (∀ (h: Z), h ∈ heights L → 0 ≤ h ≤ Params.MAX_HEIGHT) →
     {{{ is_skip_list v S q bot subs }}}
       addList v (L2tuple L)
     {{{ RET #(); is_skip_list v (set_list_union S (keys L)) q bot subs }}}.
@@ -88,7 +88,7 @@ Section Proofs.
   Lemma skip_list_client_spec (L1 L2: list node) (key: Z) :
     (Params.INT_MIN < key < Params.INT_MAX) →
     (∀ (k: Z), k ∈ keys L1 ∨ k ∈ keys L2 → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: Z), h ∈ heights L1 ∨ h ∈ heights L2 → 1 ≤ h ≤ Params.MAX_HEIGHT) →
+    (∀ (h: Z), h ∈ heights L1 ∨ h ∈ heights L2 → 0 ≤ h ≤ Params.MAX_HEIGHT) →
     {{{ True }}}
       skip_list_client L1 L2 key
     {{{ (b: bool), RET #b;

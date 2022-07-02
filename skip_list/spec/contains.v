@@ -29,7 +29,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
         findPred (rep_to_node curr) #key
-      {{{ pred succ, RET SOMEV ((rep_to_node pred), (rep_to_node succ));
+      {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
         skip_list_equiv lvl top_head Skeys 1 bot (top_sub :: bot_subs)
         ∗
         ⌜ key ∈ Skeys ↔ node_key succ = key ⌝
@@ -69,7 +69,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           
           destruct Hpred_range as [|Hin]; first by congruence.
           rewrite list_equiv_invert_L; last done.
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
         - iModIntro. iApply "HΦ". 
           by iFrame "# ∗".
@@ -107,7 +107,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (succ' ? ? l' γ) "(Hsucc'_range & _ & Hsome' & Hpt' & Hlock & HP & Himp)".
+            iDestruct "Hlist" as (succ' ? ? γ) "(>%Hsucc'_range & _ & Hpt' & Hlock & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -121,7 +121,6 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             { iNext; iExists S, Skeys', L; by iFrame. }
 
             iModIntro; wp_let.
-            iDestruct "Hsucc'_range" as %Hsucc'_range; iDestruct "Hsome'" as %Hsome'.
             iApply ("IH" with "[$] [Hauth_down'_dup] [%]").
             { by iRight. }
             { rewrite -Hdown'_key; lia. }
@@ -141,7 +140,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           }
 
           rewrite list_equiv_invert_L; last done.
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
     Qed.
     
@@ -158,14 +157,14 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (h head) "(%Hv & Hpt & %Hmin & Hlist)".
-      wp_lam. wp_let. rewrite -Hv. wp_load.
+      wp_lam. wp_let. rewrite -Hv. wp_load. wp_let.
       destruct subs as [|sub subs]; first by iExFalso.
 
       wp_apply (findPred_spec with "[Hlist]").
       { iFrame. iSplit. by iLeft. iPureIntro; lia. }
 
       iIntros (pred succ) "(Hlist & %Hkey_in_S)".
-      wp_let. wp_match. wp_pures. wp_lam. wp_pures.
+      wp_pures. wp_lam. wp_pures.
       
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit.

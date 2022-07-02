@@ -28,10 +28,10 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
         ∗
-        ⌜ 1 ≤ h ≤ lvl ⌝
+        ⌜ 0 ≤ h ≤ lvl ⌝
       }}}
         topLevel (rep_to_node curr) #key #h #lvl
-      {{{ curr' top_head' top_sub' bot_subs', RET SOMEV (rep_to_node curr');
+      {{{ curr' top_head' top_sub' bot_subs', RET rep_to_node curr';
         skip_list_equiv h top_head' S q bot (top_sub' :: bot_subs')
         ∗
         ( 
@@ -61,8 +61,8 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       wp_pures.
       case_bool_decide; wp_if.
       + assert (h = lvl) as <- by congruence.
-        wp_pures. iModIntro.
-        iApply "HΦ". iFrame "# ∗". 
+        iModIntro; iApply "HΦ". 
+        iFrame "# ∗". 
         iSplit; last (iPureIntro; lia).
         iIntros "?"; iFrame.
       + assert (h ≠ lvl) by congruence.
@@ -101,7 +101,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L L top_head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (succ' ? ? l' ?) "(_ & _ & _ & Hpt' & _ & HP & Himp)".
+            iDestruct "Hlist" as (succ' ? ? ?) "(_ & _ & Hpt' & _ & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -135,7 +135,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
     Qed.
 
@@ -196,7 +196,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
         - wp_apply (tryInsert_spec with "[Hown_frag]").
           { done. }
@@ -243,7 +243,9 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
                iIntros (new') "(Hown_new & Hown_tok & %Hkey')".
                rewrite Hkey -Hkey'.
-               iApply "HΦ". iFrame "# ∗".
+               wp_pures.
+               iModIntro; iApply "HΦ". 
+               iFrame "# ∗".
                iSplitR "Hown_new Hown_tok Hown_key"; last first.
                { iRight; by iFrame. }
                iExists l, down. by iFrame.
@@ -252,7 +254,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L L top_head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (succ' ? ? l' ?) "(_ & _ & _ & Hpt' & _ & HP & Himp)".
+            iDestruct "Hlist" as (succ' ? ? ?) "(_ & _ & Hpt' & _ & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -283,7 +285,9 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
                iIntros (new') "(Hown_new & Hown_tok & %Hkey')".
                rewrite Hkey -Hkey'.
-               iApply ("HΦ" $! _ new'). iFrame "# ∗".
+               wp_pures.
+               iModIntro; iApply ("HΦ" $! _ new'). 
+               iFrame "# ∗".
                iSplitR "Hown_new Hown_tok Hown_key"; last first.
                { iRight; by iFrame. }
                iExists l, down. by iFrame.
@@ -297,14 +301,14 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ? ?) "(_ & _ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
           by rewrite Hpred_down.
     Qed.
 
     Theorem add_spec (key height: Z) (v: val) (S: gset Z) (q: frac)
       (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) 
-      (Hheight: 1 ≤ height ≤ MAX_HEIGHT) :
+      (Hheight: 0 ≤ height ≤ MAX_HEIGHT) :
       {{{ is_skip_list v S q bot subs }}}
         add v #key #height
       {{{ (b: bool), RET #b; is_skip_list v (S ∪ {[ key ]}) q bot subs }}}.
@@ -313,7 +317,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "H" as (h head) "(%Hv & Hpt & %Hmin & Hlist)".
 
       wp_lam. wp_let. wp_let.
-      rewrite -Hv. wp_load.
+      rewrite -Hv. wp_load. wp_let.
 
       destruct subs as [|sub subs]; first by iExFalso.
       wp_apply (topLevel_spec  with "[Hlist]").
@@ -321,7 +325,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
       iIntros (curr top_head top_sub bot_subs).
       iIntros "(Hlist & Himp & #Hown_curr & %Hcurr_range)".
-      wp_let. wp_match.
+      wp_let.
 
       wp_apply (addAll_spec with "[Hlist]").
       { done. }
