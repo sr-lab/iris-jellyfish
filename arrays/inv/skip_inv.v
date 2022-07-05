@@ -10,8 +10,6 @@ From SkipList.arrays Require Import code.
 From SkipList.arrays.inv Require Import list_equiv lazy_inv.
 
 
-Local Open Scope Z.
-
 Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := LazyListInv Params.
@@ -20,15 +18,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Fixpoint exp2 (n: nat) : frac :=
-      match n with
-      | O => 1
-      | S n => 2 * exp2 n
-      end.
-
-    Definition min_frac : frac := 1 / exp2 (MAX_HEIGHT + 1).
-
-    Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (S: gset Z) (ql qf: frac) 
+    Fixpoint skip_list_equiv (lvl: nat) (head: node_rep) (S: gset Z) (q: frac) 
       (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
       | nil => False
@@ -37,18 +27,14 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         | nil =>
           ⌜ lvl = 0 ⌝
           ∗
-          ⌜ (ql = 1/2)%Qp ⌝
-          ∗
-          is_bot_list lvl ql head S qf top_sub bot
+          is_bot_list lvl head S q top_sub bot
 
         | bot_sub :: _ =>
           ⌜ lvl > 0 ⌝
           ∗
-          ⌜ (ql < 1/2)%Qp ⌝
+          is_top_list lvl head top_sub bot_sub
           ∗
-          is_top_list lvl ql head top_sub bot_sub
-          ∗
-          skip_list_equiv (lvl - 1) head S (ql*2) qf bot bot_subs
+          skip_list_equiv (lvl - 1) head S q bot bot_subs
         end
       end.
 
@@ -61,62 +47,62 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ⌜ node_key head = INT_MIN ⌝
       ∗
-      skip_list_equiv MAX_HEIGHT head S min_frac q bot subs.
+      skip_list_equiv MAX_HEIGHT head S q bot subs.
 
     
-    Lemma skip_list_equiv_inv (top_head: node_rep) (lvl: Z) (S: gset Z) (ql qf: frac) 
+    Lemma skip_list_equiv_inv (top_head: node_rep) (lvl: nat) (S: gset Z) (q: frac) 
       (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
-      skip_list_equiv lvl top_head S ql qf bot (top_sub :: bot_subs) ⊢ 
+      skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs) ⊢ 
         ∃ (P: node_rep → iProp Σ) (obot: option bot_gname),
-        inv (levelN lvl) (lazy_list_inv lvl ql top_head top_sub obot P)
+        inv (levelN lvl) (lazy_list_inv lvl top_head top_sub obot P)
         ∗
-        skip_list_equiv lvl top_head S ql qf bot (top_sub :: bot_subs).
+        skip_list_equiv lvl top_head S q bot (top_sub :: bot_subs).
     Proof.
       destruct bot_subs as [|bot_sub bot_subs].
       + iIntros "Htop". iExists from_bot_list, (Some bot).
-        iDestruct "Htop" as "(? & ? & ? & #Hinv)".
+        iDestruct "Htop" as "(? & ? & #Hinv)".
         iFrame "# ∗".
       + iIntros "Hlist". iExists (from_top_list bot_sub), None.
-        iDestruct "Hlist" as "(? & ? & #Hinv & ?)".
+        iDestruct "Hlist" as "(? & #Hinv & ?)".
         iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_sep (lvl: Z) (head: node_rep) (S: gset Z) (ql q1 q2: frac) 
+    Lemma skip_list_equiv_sep (lvl: nat) (head: node_rep) (S: gset Z) (q1 q2: frac) 
       (bot: bot_gname) (subs: list sub_gname) :
-      skip_list_equiv lvl head S ql (q1 + q2) bot subs ⊢ 
-        skip_list_equiv lvl head S ql q1 bot subs ∗ skip_list_equiv lvl head S ql q2 bot subs.
+      skip_list_equiv lvl head S (q1 + q2) bot subs ⊢ 
+        skip_list_equiv lvl head S q1 bot subs ∗ skip_list_equiv lvl head S q2 bot subs.
     Proof.
-      iRevert (lvl head ql).
+      iRevert (lvl head).
       iInduction subs as [|top_sub bot_subs] "IHsubs"; 
-        iIntros (lvl head ql) "Hlist"; 
+        iIntros (lvl head) "Hlist"; 
         first by iExFalso.
 
       destruct bot_subs as [|bot_sub bot_subs].
-      + iDestruct "Hlist" as "(%Hlvl & %Hql & Hown_frag & #Hinv)".
+      + iDestruct "Hlist" as "(%Hlvl & Hown_frag & #Hinv)".
         iDestruct "Hown_frag" as "(Hown_frag1 & Hown_frag2)".
         by iFrame "# ∗".
-      + iDestruct "Hlist" as "(%Hlvl & %Hql & #Hinv & Hmatch)".
+      + iDestruct "Hlist" as "(%Hlvl & #Hinv & Hmatch)".
         iPoseProof ("IHsubs" with "Hmatch") as "(Hlist1 & Hlist2)".
         iSplitL "Hlist1"; by iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_join (lvl: Z) (head: node_rep) (S1 S2: gset Z) (ql q1 q2: frac) 
+    Lemma skip_list_equiv_join (lvl: nat) (head: node_rep) (S1 S2: gset Z) (q1 q2: frac) 
       (bot: bot_gname) (subs: list sub_gname) :
-      skip_list_equiv lvl head S1 ql q1 bot subs ∗ skip_list_equiv lvl head S2 ql q2 bot subs ⊢ 
-        skip_list_equiv lvl head (S1 ∪ S2) ql (q1 + q2) bot subs.
+      skip_list_equiv lvl head S1 q1 bot subs ∗ skip_list_equiv lvl head S2 q2 bot subs ⊢ 
+        skip_list_equiv lvl head (S1 ∪ S2) (q1 + q2) bot subs.
     Proof.
-      iRevert (lvl head ql).
+      iRevert (lvl head).
       iInduction subs as [|top_sub bot_subs] "IHsubs"; 
-        iIntros (lvl head ql) "(Hlist1 & Hlist2)"; 
+        iIntros (lvl head) "(Hlist1 & Hlist2)"; 
         first by iExFalso.
 
       destruct bot_subs as [|bot_sub bot_subs].
-      + iDestruct "Hlist1" as "(%Hlvl & %Hql & Hown_frag1 & #Hinv)".
-        iDestruct "Hlist2" as "(_ & _ & Hown_frag2 & _)".
+      + iDestruct "Hlist1" as "(%Hlvl & Hown_frag1 & #Hinv)".
+        iDestruct "Hlist2" as "(_ & Hown_frag2 & _)".
         iCombine "Hown_frag1 Hown_frag2" as "Hown_frag".
         by iFrame "# ∗".
-      + iDestruct "Hlist1" as "(%Hlvl & Hql & #Hinv & Hmatch1)".
-        iDestruct "Hlist2" as "(_ & _ & _ & Hmatch2)".
+      + iDestruct "Hlist1" as "(%Hlvl & #Hinv & Hmatch1)".
+        iDestruct "Hlist2" as "(_ & _ & Hmatch2)".
         iCombine "Hmatch1 Hmatch2" as "Hmatch".
         iPoseProof ("IHsubs" with "Hmatch") as "Hlist".
         by iFrame "# ∗".

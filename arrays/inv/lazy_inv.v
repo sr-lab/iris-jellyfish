@@ -24,15 +24,13 @@ Record bot_gname := mk_bot_gname {
   s_frac: gname
 }.
 
-Local Open Scope Z.
-
 Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module ListEquiv := ListEquiv Params.
   Export ListEquiv.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z) (q: frac).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: nat).
 
     Definition from_sub_list (obot: option sub_gname) (rep: node_rep) : iProp Σ := 
       match obot with
@@ -62,7 +60,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       own (s_toks Γ) (GSet (node_key_range ∖ Skeys))
       ∗
-      list_equiv lvl q ([head] ++ L) P.
+      list_equiv lvl ([head] ++ L) P.
 
     Definition bot_list_inv (Γ: bot_gname) (Skeys: gset Z) : iProp Σ := 
       own (s_frac Γ) (●F Skeys).
@@ -77,7 +75,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       | Some bot => bot_list_inv bot Skeys
       end.
 
-    Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
+    Definition levelN (lvl: nat) := nroot .@ "level" .@ lvl.
 
     Definition is_top_list (head: node_rep) (top bot: sub_gname) : iProp Σ := 
       inv (levelN lvl) (lazy_list_inv head top None (from_top_list bot)).

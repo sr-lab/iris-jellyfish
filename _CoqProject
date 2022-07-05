@@ -31,3 +31,4 @@ arrays/code.v
 arrays/inv/list_equiv.v
 arrays/inv/lazy_inv.v
 arrays/inv/skip_inv.v
+arrays/spec/new.v

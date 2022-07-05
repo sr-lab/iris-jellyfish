@@ -16,10 +16,16 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
   Export SkipList.
 
   Section Proofs.
-    Context `{!heapGS Σ, !lockG Σ} (lvl: Z) (q: frac).
+    Context `{!heapGS Σ, !lockG Σ} (lvl: nat).
+
+    Fixpoint exp2 (n: nat) : frac :=
+      match n with
+      | O => 1
+      | S n => 2 * exp2 n
+      end.
 
     Definition node_inv (next: loc) : iProp Σ := 
-      ∃ (s: loc), (next +ₗ lvl) ↦{#1 / 2} #s.
+      ∃ (vs: list val), next ↦∗{#1 / 2} vs.
 
     Fixpoint list_equiv (L: list node_rep) (P: node_rep → iProp Σ) : iProp Σ :=
       match L with
@@ -29,14 +35,14 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         | nil => ∃ (γ: gname) (t: loc), 
                  (node_next pred +ₗ lvl) ↦{#1 / 2} #t
                  ∗
-                 t ↦{#q} rep_to_node tail
+                 t ↦{#1 / exp2 (lvl + 1)} rep_to_node tail
                  ∗
                  is_lock γ (node_lock pred) (node_inv (node_next pred))
 
         | succ :: _ => ∃ (γ: gname) (s: loc), 
                        (node_next pred +ₗ lvl) ↦{#1 / 2} #s
                        ∗
-                       s ↦{#q} rep_to_node succ
+                       s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ
                        ∗
                        is_lock γ (node_lock pred) (node_inv (node_next pred))
                        ∗
@@ -66,11 +72,15 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         ∃ (γ: gname) (s: loc),
           (node_next pred +ₗ lvl) ↦{#1 / 2} #s
           ∗
-          s ↦{#q} rep_to_node succ
+          s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ
           ∗
           is_lock γ (node_lock pred) (node_inv (node_next pred))
           ∗
-          ((node_next pred +ₗ lvl) ↦{#1 / 2} #s ∗ s ↦{#q} rep_to_node succ -∗ list_equiv L P).
+          ((node_next pred +ₗ lvl) ↦{#1 / 2} #s 
+            ∗ 
+            s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ 
+            -∗ 
+              list_equiv L P).
     Proof.
       revert L. induction L1 => L HL.
       + destruct L as [|curr L].
@@ -122,18 +132,19 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           (node_next pred +ₗ lvl) ↦{#1/2} #s
           ∗
-          s ↦{#q} rep_to_node succ
+          s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ
           ∗ 
           is_lock γ (node_lock pred) (node_inv (node_next pred))
           ∗
           P pred
           ∗
           ((node_next pred +ₗ lvl) ↦{#1/2} #s
-           ∗
-           s ↦{#q} rep_to_node succ
-           ∗ 
-           P pred -∗ 
-           list_equiv ([head] ++ L) P).
+            ∗
+            s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ
+            ∗ 
+            P pred 
+            -∗ 
+              list_equiv ([head] ++ L) P).
     Proof.
       iIntros (Hin) "Hlist".
       iRevert (head Hin) "Hlist".
@@ -177,11 +188,15 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           (node_next pred +ₗ lvl) ↦{#1/2} #s
           ∗
-          s ↦{#q} rep_to_node succ
+          s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ
           ∗ 
           is_lock γ (node_lock pred) (node_inv (node_next pred))
           ∗
-          ((node_next pred +ₗ lvl) ↦{#1/2} #s ∗ s ↦{#q} rep_to_node succ -∗ list_equiv ([head] ++ L) P).
+          ((node_next pred +ₗ lvl) ↦{#1/2} #s 
+            ∗ 
+            s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ 
+            -∗ 
+              list_equiv ([head] ++ L) P).
     Proof.
       intros Hin; destruct Hin as [Heq|Hin]; first subst.
       + iIntros "Hlist". destruct L as [|succ' L].
@@ -213,9 +228,9 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         ∗ 
         (node_next new +ₗ lvl) ↦{#1/2} #s
         ∗ 
-        s ↦{#q} rep_to_node succ 
+        s ↦{#1 / exp2 (lvl + 1)} rep_to_node succ 
         ∗
-        n ↦{#q} rep_to_node new 
+        n ↦{#1 / exp2 (lvl + 1)} rep_to_node new 
         ∗
         is_lock γ' (node_lock new) (node_inv (node_next new))
         ∗

@@ -19,7 +19,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition new : val := 
     λ: "_", 
       let: "np" := ref (rep_to_node tail) in
-      let: "next" := AllocN #MAX_HEIGHT "np" in
+      let: "next" := AllocN #(MAX_HEIGHT + 1) "np" in
         ref (#INT_MIN, "next", NONEV, newlock #()).
 
   (* Find function *)
