@@ -22,7 +22,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       ∗
       is_lock γ (node_lock head) (in_lock (node_next head))
       ∗
-      inv (nodeN tail) (node_inv t tail)
+      inv (nodeN t) (node_inv t tail)
+      ∗
+      t ↦{#lfrac lvl} rep_to_node tail
       ∗
       (node_next head +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat (MAX_HEIGHT - lvl)) #t 
       ∗
@@ -36,7 +38,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       remember (Z.to_nat (MAX_HEIGHT - lvl)) as diff eqn:Hdiff.
       iRevert (lvl subs Hdiff).
       iInduction diff as [|d] "IHdiff";
-        iIntros (lvl subs Hdiff) "(Hlist & #Hlock & #Ht & Hnext & %Hmax & %Hmin)".
+        iIntros (lvl subs Hdiff) "(Hlist & #Hlock & #Hinvt & Ht & Hnext & %Hmax & %Hmin)".
 
       + assert (lvl = MAX_HEIGHT) as -> by lia.
         iModIntro. iExists subs. iFrame.
@@ -44,6 +46,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
         rewrite replicate_S array_cons.
         iDestruct "Hnext" as "(Hnext' & Hnext)".
+        iDestruct "Ht" as "(Ht & Ht')".
 
         iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
           as (γauth) "[Hown_auth _]"; 
@@ -54,7 +57,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
         set (sub := mk_sub_gname γauth γtoks).
         iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv (lvl + 1) head sub None (from_top_list top_sub)) 
-          with "[Hnext' Hown_auth Hown_toks]") as "Hinv".
+          with "[Hnext' Ht' Hown_auth Hown_toks]") as "Hinv".
         {
           iNext; iExists ∅, ∅, nil. iFrame.
           iSplit; first done. iSplit.
@@ -64,8 +67,11 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_lt /node_key Hmin /=; apply HMIN_MAX.
           }
           iSplit; first rewrite /key_equiv //.
-          rewrite loc_add_assoc.
-          iExists γ, t. iFrame "# ∗".
+          iExists γ, t.
+          rewrite loc_add_assoc /lfrac.
+          assert (Z.to_nat (lvl + 1 + 2) = S (Z.to_nat (lvl + 2))) as -> by lia.
+          rewrite /= Qp_div_div comm_L.
+          iFrame "# ∗".
         }
 
         iApply ("IHdiff" $! (lvl + 1) (sub :: top_sub :: bot_subs) with "[%]").
@@ -78,6 +84,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iFrame "# ∗". iPureIntro; lia.
         }
 
+        rewrite /lfrac /= Qp_div_div comm_L.
+        assert (Z.to_nat (lvl + 1 + 2) = S (Z.to_nat (lvl + 2))) as -> by lia.
         rewrite -loc_add_assoc.
         iFrame "# ∗". iPureIntro.
         by split; first lia.
@@ -91,8 +99,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iIntros (Φ) "_ HΦ".
 
       wp_lam. wp_alloc t as "Ht". wp_let.
-      iDestruct "Ht" as "(Ht & _)".
-      iMod (inv_alloc (nodeN tail) ⊤ (node_inv t tail) with "Ht") as "#Ht".
+      iDestruct "Ht" as "(Ht & Ht')".
+      iMod (inv_alloc (nodeN t) ⊤ (node_inv t tail) with "Ht'") as "#Hinvt".
 
       wp_alloc next as "Hnext".
       { pose proof HMAX_HEIGHT; lia. } 
@@ -107,6 +115,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
       rewrite replicate_S array_cons.
       iDestruct "Hnext" as "(Hnext' & Hnext)".
+      iDestruct "Ht" as "(Ht & Ht')".
 
       wp_pures.
       rewrite (fold_rep_to_node (INT_MIN, next, None, l)).
@@ -126,7 +135,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       set (sub := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac).
       iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv 0 head sub (Some bot) from_bot_list) 
-        with "[Hnext' Hown_auth Hown_toks Hown_frac]") as "Hinv".
+        with "[Hnext' Ht' Hown_auth Hown_toks Hown_frac]") as "Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit.
@@ -136,7 +145,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         }
         iSplit; first rewrite /key_equiv //.
         iExists γ, t.
-        rewrite loc_add_0 /node_next /=.
+        rewrite loc_add_0 /lfrac /= Qp_mul_1_r Qp_div_div.
         iFrame "# ∗".
       }
 
@@ -146,8 +155,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
       iPoseProof (array_inv 0 head t bot [sub] γ with "[Hskip Hlock Ht Hnext]") as "Hskip".
       {
-        rewrite loc_add_assoc /node_next /=. 
-        assert (0 + 1 = 1) as -> by lia.
+        rewrite loc_add_0 /lfrac /= Qp_mul_1_r Qp_div_div.
         assert (MAX_HEIGHT - 0 = MAX_HEIGHT) as -> by lia.
         iFrame "# ∗". iPureIntro.
         split; last done.

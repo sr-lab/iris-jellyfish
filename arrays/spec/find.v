@@ -91,7 +91,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_bind (Load _).
-        iInv (nodeN succ) as "Hpt" "Hclose"; unfold node_inv.
+        iInv (nodeN s) as "Hpt" "Hclose"; unfold node_inv.
         wp_load.
         iMod ("Hclose" with "Hpt") as "_".
         
@@ -173,7 +173,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         rewrite (list_equiv_split lvl curr next ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as (γ s) "(Hpt & #Hs & #Hlock & Himp)".
+        iDestruct "Hlist" as (γ n) "(Hpt & #Hn & #Hlock & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -181,7 +181,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_bind (Load _).
-        iInv (nodeN next) as "Hpt" "Hclose"; unfold node_inv.
+        iInv (nodeN n) as "Hpt" "Hclose"; unfold node_inv.
         wp_load.
         iMod ("Hclose" with "Hpt") as "_".
 
@@ -271,16 +271,16 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert); last done.
-      iDestruct "Hlist" as (s succ ? ? γ) "(>%Hsucc_range & _ & Hpt & #Hs & #Hlock & Himp)".
+      iDestruct "Hlist" as (s succ ? ? γ) "(>%Hsucc_range & _ & Hpt & #Hinvs & Hs & #Hlock & Himp)".
       rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
 
       wp_load.
-      iPoseProof ("Himp" with "Hpt") as "Hlist".
+      iPoseProof ("Himp" with "[$]") as "Hlist".
       iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
 
       iModIntro. wp_bind (Load _).
-      iInv (nodeN succ) as "Hpt" "Hclose"; unfold node_inv.
+      iInv (nodeN s) as "Hpt" "Hclose"; unfold node_inv.
       wp_load.
       iMod ("Hclose" with "Hpt") as "_".
 
