@@ -18,7 +18,7 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !lockG Σ} (N : namespace).
 
-    Definition node_inv (l: loc) : iProp Σ := 
+    Definition in_lock (l: loc) : iProp Σ := 
       ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
 
     Fixpoint list_equiv (L: list node_rep) : iProp Σ :=
@@ -29,12 +29,12 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
         | nil => ∃ (γ: gname),
                  node_next pred ↦{#1 / 2} rep_to_node tail
                  ∗
-                 is_lock γ (node_lock pred) (node_inv (node_next pred))
+                 is_lock γ (node_lock pred) (in_lock (node_next pred))
 
         | succ :: t => ∃ (γ: gname),
                        node_next pred ↦{#1 / 2} rep_to_node succ
                        ∗
-                       is_lock γ (node_lock pred) (node_inv (node_next pred))
+                       is_lock γ (node_lock pred) (in_lock (node_next pred))
                        ∗
                        list_equiv succs
         end
@@ -58,7 +58,7 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
         ∃ (γ: gname),
           node_next pred ↦{#1 / 2} rep_to_node succ
           ∗
-          is_lock γ (node_lock pred) (node_inv (node_next pred))
+          is_lock γ (node_lock pred) (in_lock (node_next pred))
           ∗
           (node_next pred ↦{#1 / 2} rep_to_node succ -∗ list_equiv L).
     Proof.
@@ -109,7 +109,7 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
           ∗
           node_next pred ↦{#1/2} rep_to_node succ
           ∗ 
-          is_lock γ (node_lock pred) (node_inv (node_next pred))
+          is_lock γ (node_lock pred) (in_lock (node_next pred))
           ∗
           (node_next pred ↦{#1/2} rep_to_node succ -∗ list_equiv ([head] ++ L)).
     Proof.
@@ -169,7 +169,7 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
         ∗ 
         node_next new ↦{#1/2} rep_to_node succ
         ∗
-        is_lock γ' (node_lock new) (node_inv (node_next new))
+        is_lock γ' (node_lock new) (in_lock (node_next new))
         -∗ 
           ∃ (L' L1 L2: list node_rep), 
             node_next pred ↦ rep_to_node succ

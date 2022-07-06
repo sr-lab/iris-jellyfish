@@ -32,3 +32,5 @@ arrays/inv/list_equiv.v
 arrays/inv/lazy_inv.v
 arrays/inv/skip_inv.v
 arrays/spec/new.v
+arrays/spec/find.v
+arrays/spec/contains.v

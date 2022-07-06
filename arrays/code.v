@@ -6,8 +6,9 @@ Local Open Scope Z.
 Module Type SKIP_LIST_PARAMS.
   Parameter INT_MIN : Z.
   Parameter INT_MAX : Z.
-  Parameter MAX_HEIGHT : nat.
+  Parameter MAX_HEIGHT : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
+  Parameter (HMAX_HEIGHT: 0 ≤ MAX_HEIGHT).
 End SKIP_LIST_PARAMS.
 
 Module SkipList (Params: SKIP_LIST_PARAMS).

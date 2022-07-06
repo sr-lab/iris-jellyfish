@@ -36,7 +36,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
 
       wp_lam. wp_alloc t as "Ht". wp_let.
       iDestruct "Ht" as "(Ht1 & Ht2)".
-      wp_apply (newlock_spec (node_inv t) with "[Ht1]").
+      wp_apply (newlock_spec (in_lock t) with "[Ht1]").
       { iExists tail; iFrame. }
 
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".

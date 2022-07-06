@@ -29,7 +29,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key pred < key < node_key succ ⌝
         ∗
-        is_lock γ (node_lock pred) (node_inv (node_next pred))
+        is_lock γ (node_lock pred) (in_lock (node_next pred))
         ∗
         node_next pred ↦{#1 / 2} rep_to_node succ
         ∗
@@ -59,7 +59,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_alloc l as "Hpt'". wp_let.
       iDestruct "Hpt'" as "(Hpt' & Hpt'_dup)".
       
-      wp_apply (newlock_spec (node_inv l) with "[Hpt'_dup]").
+      wp_apply (newlock_spec (in_lock l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
       iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
 
@@ -172,7 +172,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key pred < key < node_key succ ⌝
         ∗
-        is_lock γ (node_lock pred) (node_inv (node_next pred))
+        is_lock γ (node_lock pred) (in_lock (node_next pred))
         ∗
         node_next pred ↦{#1 / 2} rep_to_node succ
         ∗
@@ -197,7 +197,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_alloc l as "Hpt'". wp_let.
       iDestruct "Hpt'" as "(Hpt' & Hpt'_dup)".
       
-      wp_apply (newlock_spec (node_inv l) with "[Hpt'_dup]").
+      wp_apply (newlock_spec (in_lock l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
       iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
 

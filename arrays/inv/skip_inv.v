@@ -10,6 +10,8 @@ From SkipList.arrays Require Import code.
 From SkipList.arrays.inv Require Import list_equiv lazy_inv.
 
 
+Local Open Scope Z.
+
 Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := LazyListInv Params.
@@ -18,7 +20,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Fixpoint skip_list_equiv (lvl: nat) (head: node_rep) (S: gset Z) (q: frac) 
+    Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (S: gset Z) (q: frac) 
       (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
       | nil => False
@@ -67,7 +69,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_sep (lvl: nat) (head: node_rep) (S: gset Z) (q1 q2: frac) 
+    Lemma skip_list_equiv_sep (lvl: Z) (head: node_rep) (S: gset Z) (q1 q2: frac) 
       (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head S (q1 + q2) bot subs ⊢ 
         skip_list_equiv lvl head S q1 bot subs ∗ skip_list_equiv lvl head S q2 bot subs.
@@ -86,7 +88,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         iSplitL "Hlist1"; by iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_join (lvl: nat) (head: node_rep) (S1 S2: gset Z) (q1 q2: frac) 
+    Lemma skip_list_equiv_join (lvl: Z) (head: node_rep) (S1 S2: gset Z) (q1 q2: frac) 
       (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head S1 q1 bot subs ∗ skip_list_equiv lvl head S2 q2 bot subs ⊢ 
         skip_list_equiv lvl head (S1 ∪ S2) (q1 + q2) bot subs.
