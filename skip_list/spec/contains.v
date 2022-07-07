@@ -69,7 +69,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           
           destruct Hpred_range as [|Hin]; first by congruence.
           rewrite list_equiv_invert_L; last done.
-          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ?) "(_ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
         - iModIntro. iApply "HΦ". 
           by iFrame "# ∗".
@@ -107,7 +107,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (succ' ? ? γ) "(>%Hsucc'_range & _ & Hpt' & Hlock & HP & Himp)".
+            iDestruct "Hlist" as (γ succ') "(>%Hsucc'_range & Hpt' & Hlock & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -140,7 +140,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
           }
 
           rewrite list_equiv_invert_L; last done.
-          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ?) "(_ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
     Qed.
     

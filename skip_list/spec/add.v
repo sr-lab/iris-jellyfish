@@ -101,7 +101,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L L top_head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (succ' ? ? ?) "(_ & _ & Hpt' & _ & HP & Himp)".
+            iDestruct "Hlist" as (? succ') "(_ & Hpt' & _ & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -135,7 +135,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ?) "(_ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
     Qed.
 
@@ -196,7 +196,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ?) "(_ & _ & _ & >HP & _)".
           rewrite Hpred_down; by iExFalso.
         - wp_apply (tryInsert_spec with "[Hown_frag]").
           { done. }
@@ -254,7 +254,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L L top_head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (succ' ? ? ?) "(_ & _ & Hpt' & _ & HP & Himp)".
+            iDestruct "Hlist" as (? succ') "(_ & Hpt' & _ & HP & Himp)".
             rewrite Hpred_down.
             iDestruct "HP" as (down') "(Hpt_down & >Hauth_down' & >Htoks_down' & >%Hdown'_key)".
 
@@ -301,7 +301,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L L top_head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & >HP & _)".
+          iDestruct "Hlist" as (? ?) "(_ & _ & _ & >HP & _)".
           by rewrite Hpred_down.
     Qed.
 

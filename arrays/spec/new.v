@@ -6,8 +6,6 @@ From SkipList.arrays Require Import code.
 From SkipList.arrays.inv Require Import list_equiv lazy_inv skip_inv.
 
 
-Local Open Scope Z.
-
 Module NewSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Invariant := SkipListInv Params.
@@ -16,26 +14,26 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem array_inv (lvl: Z) (head: node_rep) (t: loc)
+    Theorem array_inv (lvl: nat) (head: node_rep) (t: loc)
       (bot: bot_gname) (subs: list sub_gname) (γ: gname):
       skip_list_equiv lvl head ∅ 1 bot subs
       ∗
-      is_lock γ (node_lock head) (in_lock (node_next head))
+      is_lock γ (node_lock head) (in_lock (node_next head) (S MAX_HEIGHT))
       ∗
       inv (nodeN t) (node_inv t tail)
       ∗
       t ↦{#lfrac lvl} rep_to_node tail
       ∗
-      (node_next head +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat (MAX_HEIGHT - lvl)) #t 
+      (node_next head +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (MAX_HEIGHT - lvl) #t 
       ∗
-      ⌜ 0 ≤ lvl ≤ MAX_HEIGHT ⌝ 
+      ⌜ lvl ≤ MAX_HEIGHT ⌝ 
       ∗
       ⌜ node_key head = INT_MIN ⌝ 
       ={⊤}=∗
         ∃ (subs: list sub_gname), 
           skip_list_equiv MAX_HEIGHT head ∅ 1 bot subs.
     Proof.
-      remember (Z.to_nat (MAX_HEIGHT - lvl)) as diff eqn:Hdiff.
+      remember (MAX_HEIGHT - lvl) as diff eqn:Hdiff.
       iRevert (lvl subs Hdiff).
       iInduction diff as [|d] "IHdiff";
         iIntros (lvl subs Hdiff) "(Hlist & #Hlock & #Hinvt & Ht & Hnext & %Hmax & %Hmin)".
@@ -67,11 +65,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_lt /node_key Hmin /=; apply HMIN_MAX.
           }
           iSplit; first rewrite /key_equiv //.
-          iExists γ, t.
+          iExists γ, t, (S MAX_HEIGHT).
           rewrite loc_add_assoc /lfrac.
-          assert (Z.to_nat (lvl + 1 + 2) = S (Z.to_nat (lvl + 2))) as -> by lia.
+          assert (lvl + 1 + 2 = S (lvl + 2)) as -> by lia.
+          assert (lvl + 1 = (lvl + 1)%nat)%Z as <- by lia.
           rewrite /= Qp_div_div comm_L.
           iFrame "# ∗".
+          iPureIntro; lia.
         }
 
         iApply ("IHdiff" $! (lvl + 1) (sub :: top_sub :: bot_subs) with "[%]").
@@ -85,7 +85,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         }
 
         rewrite /lfrac /= Qp_div_div comm_L.
-        assert (Z.to_nat (lvl + 1 + 2) = S (Z.to_nat (lvl + 2))) as -> by lia.
+        assert (lvl + 1 = (lvl + 1)%nat)%Z as <- by lia.
+        assert (lvl + 1 + 2 = S (lvl + 2)) as -> by lia.
         rewrite -loc_add_assoc.
         iFrame "# ∗". iPureIntro.
         by split; first lia.
@@ -102,15 +103,15 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Ht" as "(Ht & Ht')".
       iMod (inv_alloc (nodeN t) ⊤ (node_inv t tail) with "Ht'") as "#Hinvt".
 
-      wp_alloc next as "Hnext".
-      { pose proof HMAX_HEIGHT; lia. } 
-      wp_let.
-      assert (Z.to_nat (MAX_HEIGHT + 1) = S (Z.to_nat MAX_HEIGHT)) as ->.
-      { pose proof HMAX_HEIGHT; lia. } 
+      wp_alloc next as "Hnext"; first lia.
+      wp_let. assert (Z.to_nat (S MAX_HEIGHT) = S MAX_HEIGHT) as -> by lia.
       iDestruct "Hnext" as "(Hnext' & Hnext)".
 
-      wp_apply (newlock_spec (in_lock next) with "[Hnext']").
-      { iExists (replicate (S (Z.to_nat MAX_HEIGHT)) #t); iFrame. }
+      wp_apply (newlock_spec (in_lock next (S MAX_HEIGHT)) with "[Hnext']").
+      { 
+        iExists (replicate (S MAX_HEIGHT) #t); iFrame.
+        rewrite replicate_length //.
+      }
       iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
 
       rewrite replicate_S array_cons.
@@ -144,9 +145,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
         iSplit; first rewrite /key_equiv //.
-        iExists γ, t.
+        iExists γ, t, (S MAX_HEIGHT).
         rewrite loc_add_0 /lfrac /= Qp_mul_1_r Qp_div_div.
-        iFrame "# ∗".
+        iFrame "# ∗". 
+        iPureIntro; lia.
       }
 
       iAssert (skip_list_equiv 0 head ∅ 1 bot [sub]) 
@@ -158,8 +160,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         rewrite loc_add_0 /lfrac /= Qp_mul_1_r Qp_div_div.
         assert (MAX_HEIGHT - 0 = MAX_HEIGHT) as -> by lia.
         iFrame "# ∗". iPureIntro.
-        split; last done.
-        pose proof HMAX_HEIGHT; lia.
+        by split; first lia.
       }
       iMod "Hskip" as (subs) "Hskip".
 

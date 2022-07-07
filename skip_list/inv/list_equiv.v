@@ -59,12 +59,9 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       (P: Z → option loc → iProp Σ) :
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
       list_equiv L P ⊢ 
-        ∃ (γ: gname),
-          node_next pred ↦{#1 / 2} (rep_to_node succ)
-          ∗
-          is_lock γ (node_lock pred) (in_lock (node_next pred))
-          ∗
-          (node_next pred ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L P).
+        node_next pred ↦{#1 / 2} (rep_to_node succ)
+        ∗
+        (node_next pred ↦{#1 / 2} (rep_to_node succ) -∗ list_equiv L P).
     Proof.
       revert L. induction L1 => L HL.
       + destruct L as [|curr L].
@@ -74,14 +71,12 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         - inversion HL'; subst.
           iIntros "Hlist". 
           iDestruct "Hlist" as (γ) "(Hpt & #Hlock)".
-          iExists γ. iFrame "# ∗".
-          iIntros "Hpt". 
+          iFrame "# ∗". iIntros "Hpt". 
           iExists γ. iFrame "# ∗".
         - inversion HL'; subst.
           iIntros "Hlist". 
           iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Hmatch)".
-          iExists γ. iFrame "# ∗".
-          iIntros "Hpt". 
+          iFrame "# ∗". iIntros "Hpt". 
           iExists γ. iFrame "# ∗".
       + destruct L as [|curr L].
         { 
@@ -100,8 +95,8 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iIntros "Hlist".
         iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
         iPoseProof (IHL1 with "Hlist") as "Hlist"; auto.
-        iDestruct "Hlist" as (γ) "(Hpt & Hlock & Himp')".
-        iExists γ. iFrame. iIntros "Hpt".
+        iDestruct "Hlist" as "(Hpt & Himp')".
+        iFrame. iIntros "Hpt".
         iApply "Himp". iApply "Himp'". iFrame.
     Qed.
 
@@ -109,10 +104,8 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       (P: Z → option loc → iProp Σ) :
       In pred L →
       list_equiv ([head] ++ L) P ⊢ 
-        ∃ (succ: node_rep) (L1 L2: list node_rep) (γ: gname), 
+        ∃ (γ: gname) (succ: node_rep), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
-          ∗
-          ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
           ∗
           node_next pred ↦{#1/2} (rep_to_node succ)
           ∗ 
@@ -132,29 +125,27 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       + iDestruct "Hlist" as (γ) "(Hpt & #Hlock & HP & Hlist)".
         destruct L as [|succ' L]; subst.
         - iDestruct "Hlist" as (γ') "(Hpt' & #Hlock')".
-          iExists tail, [head], nil, γ'. iFrame "# ∗".
-          iSplit; first by iRight. iSplit; first done.
+          iExists γ', tail. iFrame "# ∗".
+          iSplit; first by iRight. 
           iIntros "(Hpt' & HP)". 
           iExists γ. iFrame "# ∗".
           iExists γ'. iFrame "#".
         - iDestruct "Hlist" as (γ') "(Hpt' & #Hlock' & Hmatch)".
-          iExists succ', [head], (L ++ [tail]), γ'. iFrame "# ∗".
-          iSplit; first by iLeft; iRight; iLeft. iSplit; first done.
+          iExists γ', succ'. iFrame "# ∗".
+          iSplit; first by iLeft; iRight; iLeft.
           iIntros "(Hpt' & HP)". 
           iExists γ. iFrame "# ∗".
           iExists γ'. iFrame "#".
       + iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
         iPoseProof ("IHL" with "Hin") as "Himp'".
         iPoseProof ("Himp'" with "Hlist") as "Hlist".
-        iDestruct "Hlist" as (succ' L1 L2 γ) "(Hsucc & %Hsplit & Hpt & Hlock & HP & Himp')".
-        iExists succ', ([head] ++ L1), L2, γ. iFrame "# ∗".
+        iDestruct "Hlist" as (γ succ') "(Hsucc & Hpt & Hlock & HP & Himp')".
+        iExists γ, succ'. iFrame "# ∗".
         iSplit.
         {
           iDestruct "Hsucc" as "[Hin|Heq]".
           by iLeft; iRight. by iRight.
         }
-        iSplit.
-        { iPureIntro; simpl in *; by rewrite Hsplit. }
         iIntros "(Hpt' & HP)". 
         iApply "Himp". iApply "Himp'". iFrame.
     Qed.
@@ -163,10 +154,8 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       (P: Z → option loc → iProp Σ) :
       pred = head ∨ In pred L →
       list_equiv ([head] ++ L) P ⊢ 
-        ∃ (succ: node_rep) (L1 L2: list node_rep) (γ: gname), 
+        ∃ (γ: gname) (succ: node_rep), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
-          ∗
-          ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
           ∗
           node_next pred ↦{#1/2} (rep_to_node succ)
           ∗ 
@@ -177,19 +166,19 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       intros Hin; destruct Hin as [Heq|Hin]; first subst.
       + iIntros "Hlist". destruct L as [|succ' L].
         - iDestruct "Hlist" as (γ) "(Hpt & #Hlock)".
-          iExists tail, nil, nil, γ. iFrame "# ∗".
-          iSplit; first by iRight. iSplit; first done.
-          iIntros "Hpt". iExists γ.
-          iFrame "# ∗".
+          iExists γ, tail. iFrame "# ∗".
+          iSplit; first by iRight.
+          iIntros "Hpt". 
+          iExists γ. iFrame "# ∗".
         - iDestruct "Hlist" as (γ) "(Hpt & #Hlock & ?)".
-          iExists succ', nil, (L ++ [tail]), γ. iFrame "# ∗".
-          iSplit; first by repeat iLeft. iSplit; first done.
-          iIntros "Hpt". iExists γ.
-          iFrame "# ∗".
+          iExists γ, succ'. iFrame "# ∗".
+          iSplit; first by repeat iLeft.
+          iIntros "Hpt". 
+          iExists γ. iFrame "# ∗".
       + iIntros "Hlist".
         iPoseProof (list_equiv_invert_L with "Hlist") as "Hlist"; first done.
-        iDestruct "Hlist" as (succ L1 L2 γ) "(? & ? & ? & ? & ? & Himp)".
-        iExists succ, L1, L2, γ. iFrame.
+        iDestruct "Hlist" as (γ succ) "(? & ? & ? & ? & Himp)".
+        iExists γ, succ. iFrame.
         iIntros "?". iApply "Himp". iFrame.
     Qed.
 

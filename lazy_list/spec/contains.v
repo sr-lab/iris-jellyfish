@@ -75,7 +75,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       destruct Lm as [|next Lm].
       - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Himp)".
+        iDestruct "Hlist" as "(Hpt & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -159,7 +159,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       
         rewrite (list_equiv_split curr next ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Himp)".
+        iDestruct "Hlist" as "(Hpt & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".

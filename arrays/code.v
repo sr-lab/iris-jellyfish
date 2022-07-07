@@ -1,14 +1,12 @@
 From SkipList.lib Require Import lock node_rep.
 
 
-Local Open Scope Z.
-
 Module Type SKIP_LIST_PARAMS.
+  Local Open Scope Z.
   Parameter INT_MIN : Z.
   Parameter INT_MAX : Z.
-  Parameter MAX_HEIGHT : Z.
+  Parameter MAX_HEIGHT : nat.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
-  Parameter (HMAX_HEIGHT: 0 ≤ MAX_HEIGHT).
 End SKIP_LIST_PARAMS.
 
 Module SkipList (Params: SKIP_LIST_PARAMS).
@@ -20,7 +18,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition new : val := 
     λ: "_", 
       let: "np" := ref (rep_to_node tail) in
-      let: "next" := AllocN #(MAX_HEIGHT + 1) "np" in
+      let: "next" := AllocN #(S MAX_HEIGHT) "np" in
         ref (#INT_MIN, "next", NONEV, newlock #()).
 
   (* Find function *)
@@ -53,7 +51,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition findPred : val := 
     rec: "find" "pred" "k" "lvl" := 
       let: "pair" := find "pred" "k" "lvl" in
-        if: "lvl" = #0
+        if: "lvl" = #0%nat
         then "pair"
         else 
           let: "pred" := Fst "pair" in
@@ -123,7 +121,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     rec: "add" "head" "k" "h" "lvl" := 
       let: "pair" := find "head" "k" "lvl" in
       let: "pred" := Fst "pair" in
-        if: "lvl" = #0
+        if: "lvl" = #0%nat
         then tryInsert "pred" "k" "h"
         else
           let: "onode" := "add" "pred" "k" "h" ("lvl" - #1) in

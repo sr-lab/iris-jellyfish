@@ -46,6 +46,29 @@ Proof.
     - apply in_or_app. right. by left.
 Qed.
 
+Lemma list_split {A: Type} (l: list A) (n i: nat) :
+  length l = S n → i ≤ n →
+    ∃ (a: A) (l1 l2: list A), l = l1 ++ a :: l2 
+               ∧ 
+               length l1 = i ∧ length l2 = (n - i)%nat.
+Proof.
+  intros Hlength Hi.
+  destruct l as [|a l]; first inversion Hlength.
+  induction i as [|i].
+  + exists a, nil, l.
+    split; first auto.
+    simpl in *; lia.
+  + destruct IHi as [b IH]; first lia.
+    destruct IH as [l1 IH]; destruct IH as [l2 IH].
+    destruct IH as [Heq IH]; destruct IH as [Hlength1 Hlength2].
+    destruct l2 as [|c l2]; first (inversion Hlength2; lia).
+
+    exists c, (l1 ++ [b]), l2.
+    rewrite app_ass app_length /=.
+    split; first auto.
+    simpl in *;lia.
+Qed.
+
 Lemma in_set_list_union (key: Z) (S: gset Z) (L: list Z) :
   key ∈ (set_list_union S L) ↔ key ∈ S ∨ key ∈ L.
 Proof.

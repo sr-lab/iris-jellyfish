@@ -82,7 +82,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       destruct Lm as [|next Lm].
       - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Himp)".
+        iDestruct "Hlist" as "(Hpt & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -167,7 +167,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         rewrite (list_equiv_split curr next ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Himp)".
+        iDestruct "Hlist" as "(Hpt & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
@@ -259,7 +259,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert); last done.
-      iDestruct "Hlist" as (succ ? ? γ) "(>%Hsucc_range & _ & Hpt & #Hlock & Himp)".
+      iDestruct "Hlist" as (γ succ) "(>%Hsucc_range & Hpt & #Hlock & Himp)".
       rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
 
       wp_load.
@@ -361,7 +361,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert L head pred); last done.
-      iDestruct "Hlist" as (succ' ? ? γ') "(>%Hsucc'_in_L & _ & >Hpt & _ & Himp)".
+      iDestruct "Hlist" as (γ' succ') "(>%Hsucc'_in_L & >Hpt & _ & Himp)".
       iDestruct (mapsto_agree with "Hnode Hpt") as %Hsucc%rep_to_node_inj; subst.
 
       wp_load.

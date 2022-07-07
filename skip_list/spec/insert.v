@@ -153,7 +153,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { rewrite -elem_of_list_In Hperm elem_of_elements. set_solver. }
 
         rewrite list_equiv_invert_L; last done.
-        iDestruct "Hlist" as (? ? ? ? ) "(_ & _ & _ & _ & HP & _)".
+        iDestruct "Hlist" as (? ?) "(_ & _ & _ & HP & _)".
         destruct (node_down succ) as [d|]; last by iExFalso.
         iDestruct "HP" as (?) "(_ & _ & Hown_tok' & %Hsucc)".
 

@@ -55,12 +55,9 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
     Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) :
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
       list_equiv L ⊢ 
-        ∃ (γ: gname),
-          node_next pred ↦{#1 / 2} rep_to_node succ
-          ∗
-          is_lock γ (node_lock pred) (in_lock (node_next pred))
-          ∗
-          (node_next pred ↦{#1 / 2} rep_to_node succ -∗ list_equiv L).
+        node_next pred ↦{#1 / 2} rep_to_node succ
+        ∗
+        (node_next pred ↦{#1 / 2} rep_to_node succ -∗ list_equiv L).
     Proof.
       revert L. induction L1 => L HL.
       + destruct L as [|curr L].
@@ -70,15 +67,13 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
         - inversion HL'; subst.
           iIntros "Hlist". 
           iDestruct "Hlist" as (γ) "(Hpt & #Hlock)".
-          iExists γ. iFrame "#"; iFrame.
-          iIntros "Hpt". 
-          iExists γ. iFrame "#"; iFrame.
+          iFrame. iIntros "Hpt". 
+          iExists γ. iFrame "# ∗".
         - inversion HL'; subst.
           iIntros "Hlist". 
           iDestruct "Hlist" as (γ) "(Hpt & #Hlock & Hmatch)".
-          iExists γ. iFrame "#"; iFrame.
-          iIntros "Hpt". 
-          iExists γ. iFrame "#"; iFrame.
+          iFrame. iIntros "Hpt". 
+          iExists γ. iFrame "# ∗".
       + destruct L as [|curr L].
         { 
           exfalso. inversion HL  as [[H0 HL']]; subst. 
@@ -96,8 +91,8 @@ Module ListEquiv (Params: LAZY_LIST_PARAMS).
         iIntros "Hlist".
         iPoseProof (list_equiv_cons with "Hlist") as "(Hlist & Himp)".
         iPoseProof (IHL1 with "Hlist") as "Hlist"; auto.
-        iDestruct "Hlist" as (γ) "(Hpt & Hlock & Himp')".
-        iExists γ. iFrame. iIntros "Hpt".
+        iDestruct "Hlist" as "(Hpt & Himp')".
+        iFrame. iIntros "Hpt".
         iApply "Himp". iApply "Himp'". iFrame.
     Qed.
 
