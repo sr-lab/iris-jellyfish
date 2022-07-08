@@ -34,3 +34,4 @@ arrays/inv/skip_inv.v
 arrays/spec/new.v
 arrays/spec/find.v
 arrays/spec/contains.v
+arrays/spec/link.v

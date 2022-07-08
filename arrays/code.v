@@ -70,8 +70,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     λ: "pred" "k" "h",
       let: "np" := nodeNext "pred" in
       let: "succ" := !"np" in
-      let: "next" := AllocN "h" #() in
+      let: "next" := AllocN ("h" + #1) #() in
       let: "node" := ref ("k", "next", NONEV, newlock #()) in
+        acquire (nodeLock !"node");;
         "next" <- "succ";;
         "np" <- "node";;
         "node".
@@ -139,7 +140,9 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "onode" := addAll "pred" "k" "h" "h" in
         match: "onode" with
           NONE => #false
-        | SOME "node" => #true
+        | SOME "node" => 
+          release (nodeLock "node");;
+          #true
         end.
 
 End SkipList.

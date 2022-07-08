@@ -237,7 +237,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       Sorted node_lt ([head] ++ L ++ [tail]) →
       pred = head ∨ In pred L →
       list_equiv ([head] ++ L) P ⊢ 
-        s ↦{#lfrac} rep_to_node succ
+        s ↦{#1 / 2} rep_to_node succ
         ∗ 
         (node_next pred +ₗ lvl) ↦{#1/2} #s
         ∗ 
@@ -254,6 +254,8 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         P new
         -∗ 
           ∃ (L' L1 L2: list node_rep), 
+            s ↦{#1 / 2} rep_to_node succ
+            ∗ 
             (node_next pred +ₗ lvl) ↦ #s
             ∗
             ⌜ [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2 ⌝
@@ -320,7 +322,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iPoseProof ("IHL'" $! next L with "[%] [%] [%] [$] [$] [$] [$] [$] [$] [$] [$] [$]") 
           as "Hclose"; auto.
         
-        iDestruct "Hclose" as (L' L1 L2) "(Hpt' & %Hsplit & %Hsort' & %Hperm' & Himp')".
+        iDestruct "Hclose" as (L' L1 L2) "(Hs & Hpt' & %Hsplit & %Hsort' & %Hperm' & Himp')".
         iExists (next :: L'), (head :: L1), L2. iFrame.
         iSplit.
         {
