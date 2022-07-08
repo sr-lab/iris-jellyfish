@@ -14,18 +14,20 @@ Local Open Scope Z.
 Module Params <: SKIP_LIST_PARAMS.
   Definition INT_MIN := -1000.
   Definition INT_MAX := 1000.
-  Definition MAX_HEIGHT := 20%nat.  
+  Definition MAX_HEIGHT := 20.  
   Lemma HMIN_MAX : INT_MIN < INT_MAX.
   Proof. unfold INT_MIN, INT_MAX; lia. Qed.
+  Lemma HMAX_HEIGHT : 0 ≤ MAX_HEIGHT.
+  Proof. unfold MAX_HEIGHT; lia. Qed.
 End Params.
 
 Module Import New := NewSpec Params.
 Module Import Contains := ContainsSpec Params.
 Module Import Add := AddSpec Params.
 
-Notation node := (prod Z nat).
+Notation node := (prod Z Z).
 Definition keys (L: list node) : list Z := map fst L.
-Definition heights (L: list node) : list nat := map snd L.
+Definition heights (L: list node) : list Z := map snd L.
 
 (* Convert a list of Coq ints into a HeapLang tuple *)
 Fixpoint L2tuple (L: list node) : val :=
@@ -57,7 +59,7 @@ Section Proofs.
   Lemma addList_spec (v: val) (S: gset Z) (q: frac) 
     (bot: bot_gname) (subs: list sub_gname) (L: list node) :
     (∀ (k: Z), k ∈ keys L → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: nat), h ∈ heights L → h ≤ Params.MAX_HEIGHT) →
+    (∀ (h: Z), h ∈ heights L → 0 ≤ h ≤ Params.MAX_HEIGHT) →
     {{{ is_skip_list v S q bot subs }}}
       addList v (L2tuple L)
     {{{ RET #(); is_skip_list v (set_list_union S (keys L)) q bot subs }}}.
@@ -88,7 +90,7 @@ Section Proofs.
   Lemma skip_list_client_spec (L1 L2: list node) (key: Z) :
     (Params.INT_MIN < key < Params.INT_MAX) →
     (∀ (k: Z), k ∈ keys L1 ∨ k ∈ keys L2 → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: nat), h ∈ heights L1 ∨ h ∈ heights L2 → h ≤ Params.MAX_HEIGHT) →
+    (∀ (h: Z), h ∈ heights L1 ∨ h ∈ heights L2 → 0 ≤ h ≤ Params.MAX_HEIGHT) →
     {{{ True }}}
       skip_list_client L1 L2 key
     {{{ (b: bool), RET #b;

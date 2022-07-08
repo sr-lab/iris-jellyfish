@@ -19,7 +19,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
-    Theorem findPred_spec (lvl: nat) (key: Z) (top_head curr: node_rep) (Skeys: gset Z) 
+    Theorem findPred_spec (lvl: Z) (key: Z) (top_head curr: node_rep) (Skeys: gset Z) 
       (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{ 
         skip_list_equiv lvl top_head Skeys 1 bot (top_sub :: bot_subs)
@@ -69,7 +69,6 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             { iNext; iExists S, Skeys', L; by iFrame. }
 
             iModIntro; wp_pures.
-            assert (lvl - 1 = (lvl - 1)%nat) as -> by lia.
             iApply ("IH" with "[$] [] [%]").
             { by iLeft. }
             { lia. }
@@ -84,11 +83,12 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (γ s' h succ') "(>%Hsucc'_range & Hpt' & #Hinvs' & Hs' & Hlock & #Hlvl & HP & Himp)".
+            iDestruct "Hlist" as (γ h s' succ') "(>%Hsucc'_range & Hpt' & #Hinvs' & Hs' & Hlock & #Hlvl & HP & Himp)".
             iDestruct "HP" as"(>Hauth_pred & >Htoks_pred)".
 
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.
             iDestruct "Hauth_pred" as "(Hauth_pred & ?)".
+            assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as <- by set_solver.
 
             wp_proj.
             iPoseProof ("Himp" with "[$]") as "Hlist".
@@ -96,7 +96,6 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             { iNext; iExists S, Skeys', L; by iFrame. }
 
             iModIntro; wp_pures.
-            assert (lvl - 1 = (lvl - 1)%nat) as -> by lia.
             iApply ("IH" with "[$] [Hauth_pred] [%]").
             { by iRight. }
             { lia. }

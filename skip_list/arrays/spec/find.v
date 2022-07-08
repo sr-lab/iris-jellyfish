@@ -16,7 +16,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: nat).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
     
     Theorem find_bot_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) 
       (bot: bot_gname) (sub: sub_gname) :
@@ -243,7 +243,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
-        ∃ (γ: gname) (h: nat), 
+        ∃ (γ: gname) (h: Z), 
           ⌜ lvl < h ⌝
           ∗
           is_lock γ (node_lock pred) (in_lock (node_next pred) h)
@@ -274,7 +274,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert); last done.
-      iDestruct "Hlist" as (γ s h succ) "(>%Hsucc_range & Hpt & #Hinvs & Hs & #Hlock & #Hlvl & Himp)".
+      iDestruct "Hlist" as (γ h s succ) "(>%Hsucc_range & Hpt & #Hinvs & Hs & #Hlock & #Hlvl & Himp)".
       rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
 
       wp_load.
@@ -324,6 +324,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
+        ∗
+        ⌜ 0 ≤ lvl ⌝ 
       }}}
         findLock (rep_to_node curr) #key #lvl
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
@@ -333,7 +335,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
-        ∃ (γ: gname) (s: loc) (h: nat), 
+        ∃ (γ: gname) (h: Z) (s: loc), 
           ⌜ lvl < h ⌝
           ∗
           is_lock γ (node_lock pred) (in_lock (node_next pred) h)
@@ -349,16 +351,16 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           locked γ
       }}}.
     Proof.
-      iIntros (Φ) "(#Hinv & Hown_curr & Hrange) HΦ".
-      iRevert (curr) "Hown_curr Hrange".
+      iIntros (Φ) "(#Hinv & Hown_curr & Hrange & Hlvl) HΦ".
+      iRevert (curr) "Hown_curr Hrange Hlvl".
       iLöb as "IH". 
-      iIntros (curr) "#Hown_curr %Hrange".
+      iIntros (curr) "#Hown_curr %Hrange %Hlvl".
       
       wp_lam. wp_let. wp_let.
       wp_apply (find_sub_spec with "[Hown_curr]").
       { by iFrame "#". }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ h) "(%Hlvl & #Hlock)".
+      iDestruct "Hlock" as (γ h) "(%Hh & #Hlock)".
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (acquire _).
@@ -366,12 +368,13 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iNext; iIntros (v) "(Hin_lock & Hlocked)".
       iDestruct "Hin_lock" as (vs) "(Hnext & %Hlength)".
 
-      pose proof (list_split vs (h - 1) lvl) as Hsplit.
+      pose proof (list_split vs (Z.to_nat (h - 1)) (Z.to_nat lvl)) as Hsplit.
       destruct Hsplit as [next Hsplit]; try lia.
       destruct Hsplit as [vs1 Hsplit]; destruct Hsplit as [vs2 Hsplit].
       destruct Hsplit as [Hvs Hsplit]; destruct Hsplit as [Hlength1 Hlength2].
 
       rewrite Hvs array_app array_cons Hlength1.
+      assert (lvl = Z.to_nat lvl) as <- by lia.
       iDestruct "Hnext" as "(Hnext1 & Hnext & Hnext2)".
 
       wp_pures. wp_lam. wp_pures.
@@ -398,7 +401,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert lvl L head pred); last done.
-      iDestruct "Hlist" as (γ' s' h' succ') "(>%Hsucc'_in_L & >Hpt & #Hinvs' & >Hs' & _ & #Hlvl' & Himp)".
+      iDestruct "Hlist" as (γ' h' s' succ') "(>%Hsucc'_in_L & >Hpt & #Hinvs' & >Hs' & _ & #Hlvl' & Himp)".
       iDestruct (mapsto_agree with "Hnext Hpt") as %->.
 
       wp_load.
@@ -415,14 +418,14 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       case_bool_decide as Heq; wp_if.
       + iModIntro; iApply "HΦ".
         iFrame "# ∗".
-        iSplit; first done. iExists γ, s', h.
+        iSplit; first done. iExists γ, h, s'.
 
         iAssert (in_lock (node_next pred) lvl) 
           with "[Hnext1]" as "Hin_lock1".
         { iExists vs1; by iFrame. }
         iAssert (in_lock (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)) 
           with "[Hnext2]" as "Hin_lock2".
-        { iExists vs2; by iFrame. }
+        { iExists vs2; iFrame; iPureIntro; lia. }
 
         assert (succ = succ') as <-; last by iFrame "# ∗".
         apply (sorted_node_key_unique (L ++ [tail])).
@@ -433,6 +436,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       + wp_lam. wp_pures.
 
         iCombine "Hnext1 Hnext Hnext2" as "Hnext".
+        assert (lvl = Z.to_nat lvl) as -> by lia.
         rewrite -Hlength1 -array_cons -array_app -Hvs.
         iAssert (in_lock (node_next pred) h) 
           with "[Hnext]" as "Hin_lock".
@@ -441,8 +445,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         wp_apply (release_spec with "[Hin_lock Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
-        iApply ("IH" with "HΦ").
-        iFrame "#". iPureIntro; lia.
+        iApply ("IH" with "HΦ"). iFrame "#". 
+        all: iPureIntro; lia.
     Qed.
 
   End Proofs.

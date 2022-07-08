@@ -17,10 +17,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Export Link.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: nat).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
 
-    Theorem tryInsert_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) (h: nat) :
+    Theorem tryInsert_spec (key h: Z) (head curr: node_rep) (Skeys: gset Z) (q: frac)
+      (sub: sub_gname) (bot: bot_gname) :
       INT_MIN < key < INT_MAX →
       {{{
         is_bot_list 0 head Skeys q sub bot
@@ -28,6 +28,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key ⌝
+        ∗
+        ⌜ 0 ≤ h ⌝ 
       }}}
         tryInsert (rep_to_node curr) #key #h
       {{{ (v: val) (n: loc) (new: node_rep), RET v;
@@ -48,28 +50,28 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             n ↦{#1 / 2 / 2} rep_to_node new
             ∗
-            (node_next new +ₗ 1) ↦∗{#1 / 2} replicate h #()
+            (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
             ∗
             ∃ (γ: gname), 
-              is_lock γ (node_lock new) (in_lock (node_next new) (S h))
+              is_lock γ (node_lock new) (in_lock (node_next new) (h + 1))
               ∗
-              in_lock (node_next new) (S h)
+              in_lock (node_next new) (h + 1)
               ∗
               locked γ
           )
         )
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(Hlazy & #Hown_curr & %Hrange) HΦ".
+      iIntros (Hkey_range Φ) "(Hlazy & #Hown_curr & %Hrange & %Hh) HΦ".
       iDestruct "Hlazy" as "(Hown_frag & #Hinv)".
       wp_lam. wp_let. wp_let.
 
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ' s h') "(%Hlvl & #Hlock & _ & Hpt & #Hinvs & Hin_lock & Hlocked)".
+      iDestruct "Hlock" as (γ' h' s) "(%Hlvl & #Hlock & _ & Hpt & #Hinvs & Hin_lock & Hlocked)".
       rewrite loc_add_0.
-      assert (h' - 1 - 0 = h' - 1)%nat as -> by lia.
+      assert (h' - 1 - 0 = h' - 1) as -> by lia.
 
       wp_pures. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
@@ -78,7 +80,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { subst; exfalso. rewrite /node_key/tail/= in Hkey_range; lia. }
 
         wp_lam. wp_bind (Snd _).
-        iInv (levelN 0) as (S Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
         iDestruct "Hinv_bot" as ">Hown_frac"; unfold bot_list_inv.
 
@@ -94,7 +96,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
         wp_proj.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-        { iNext; iExists S, Skeys', L; by iFrame. }
+        { iNext; iExists S', Skeys', L; by iFrame. }
         iModIntro.
 
         wp_apply (release_spec with "[Hlock Hpt Hin_lock Hlocked]"); first done.
@@ -132,8 +134,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iFrame. iRight; by iFrame.
     Qed.
 
-    Theorem insert_spec (key: Z) (head curr new: node_rep) 
-      (top bot: sub_gname) (γ: gname) (n: loc) (h: nat) :
+    Theorem insert_spec (key h: Z) (head curr new: node_rep) 
+      (top bot: sub_gname) (γ: gname) (n: loc) :
       INT_MIN < key < INT_MAX →
       {{{
         inv (levelN lvl) (lazy_list_inv lvl head top None (from_top_list bot))
@@ -156,7 +158,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         ∗
         is_lock γ (node_lock new) (in_lock (node_next new) h)
         ∗
-        ⌜ lvl < h ⌝
+        ⌜ 0 < lvl < h ⌝
       }}}
         insert (rep_to_node curr) #lvl #n
       {{{ s, RET #();
@@ -174,11 +176,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock')".
-      iDestruct "Hlock'" as (γ' s h') "(%Hlvl' & #Hlock' & Hin_lock'1 & Hpt & #Hinvs & Hin_lock'2 & Hlocked')".
+      iDestruct "Hlock'" as (γ' h' s) "(%Hlvl' & #Hlock' & Hin_lock'1 & Hpt & #Hinvs & Hin_lock'2 & Hlocked')".
 
       wp_let.
       wp_bind (Fst _).
-      iInv (levelN lvl) as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
+      iInv (levelN lvl) as (S' Skeys' L) "(Hinv_sub & _)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
       wp_proj.
 
@@ -204,11 +206,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       }
 
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
-      { iNext; iExists S, Skeys', L; by iFrame "# ∗". }
+      { iNext; iExists S', Skeys', L; by iFrame "# ∗". }
 
       iModIntro; wp_pures.
 
-      wp_apply (link_spec lvl key head pred new succ with "[Hpt Hn Hnext Hown_frag Hown_tok]").
+      wp_apply (link_spec lvl key h head pred new succ with "[Hpt Hn Hnext Hown_frag Hown_tok]").
       { done. }
       { iFrame "# ∗"; iPureIntro; lia. }
 
@@ -220,6 +222,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hin_lock'1" as (vs1) "(Hnext1 & %Hlength1)".
         iDestruct "Hin_lock'2" as (vs2) "(Hnext2 & %Hlength2)".
         iCombine "Hnext1 Hpt Hnext2" as "Hnext".
+        assert (lvl = Z.to_nat lvl) as -> by lia.
         rewrite -array_cons -Hlength1 -array_app.
         iExists (vs1 ++ #n :: vs2); iFrame.
         iPureIntro. rewrite app_length cons_length; lia.
