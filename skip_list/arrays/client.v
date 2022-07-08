@@ -4,9 +4,9 @@ From iris.heap_lang Require Import notation par proofmode.
 From iris.algebra Require Import frac.
 
 From SkipList.lib Require Import lock misc.
-From SkipList.arrays Require Import code.
-From SkipList.arrays.inv Require Import list_equiv lazy_inv skip_inv.
-From SkipList.arrays.spec Require Import new contains add.
+From SkipList.skip_list.arrays Require Import code.
+From SkipList.skip_list.arrays.inv Require Import list_equiv lazy_inv skip_inv.
+From SkipList.skip_list.arrays.spec Require Import new contains add.
 
 
 Local Open Scope Z.
