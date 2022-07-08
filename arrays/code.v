@@ -88,7 +88,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   (* Lazy list insertion *)
   Definition tryInsert : val := 
     λ: "head" "k" "h",
-      let: "pair" := findLock "head" "k" #0 in
+      let: "pair" := findLock "head" "k" #0%nat in
       let: "pred" := Fst "pair" in
       let: "curr" := Snd "pair" in
       let: "ck" := nodeKey "curr" in
@@ -141,7 +141,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         match: "onode" with
           NONE => #false
         | SOME "node" => 
-          release (nodeLock "node");;
+          release (nodeLock !"node");;
           #true
         end.
 

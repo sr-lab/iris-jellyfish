@@ -35,3 +35,6 @@ arrays/spec/new.v
 arrays/spec/find.v
 arrays/spec/contains.v
 arrays/spec/link.v
+arrays/spec/insert.v
+arrays/spec/add.v
+arrays/client.v
