@@ -19,26 +19,27 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
-    Theorem findPred_spec (lvl: Z) (key: Z) (top_head curr: node_rep) (Skeys: gset Z) 
-      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem findPred_spec (key lvl: Z) (head curr: node_rep) 
+      (Skeys: gset Z) (bot: bot_gname) 
+      (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{ 
-        skip_list_equiv lvl top_head Skeys 1 bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys 1 bot (top_sub :: bot_subs)
         ∗
-        (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
         findPred (rep_to_node curr) #key #lvl
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
-        skip_list_equiv lvl top_head Skeys 1 bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys 1 bot (top_sub :: bot_subs)
         ∗
         ⌜ key ∈ Skeys ↔ node_key succ = key ⌝
       }}}.
     Proof.
       iIntros (Φ) "(Hlist & Hown_curr & Hrange) HΦ".
-      iRevert (curr top_head lvl top_sub bot_subs) "Hlist Hown_curr Hrange HΦ".
+      iRevert (curr head lvl top_sub bot_subs) "Hlist Hown_curr Hrange HΦ".
       iLöb as "IH".
-      iIntros (curr top_head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange HΦ".
+      iIntros (curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange HΦ".
 
       wp_lam. wp_let. wp_let.
       destruct bot_subs as [|bot_sub].
@@ -103,8 +104,8 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             iApply "HΦ". by iFrame "# ∗".
     Qed.
     
-    Theorem contains_spec (key: Z) (v: val) (S: gset Z) 
-      (bot: bot_gname) (subs: list sub_gname)
+    Theorem contains_spec (v: val) (key: Z) 
+      (S: gset Z) (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
       {{{ is_skip_list v S 1 bot subs }}}
         contains v #key

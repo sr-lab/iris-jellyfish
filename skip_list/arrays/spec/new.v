@@ -20,7 +20,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       (bot: bot_gname) (subs: list sub_gname) (γ: gname):
       skip_list_equiv lvl head ∅ 1 bot subs
       ∗
-      is_lock γ (node_lock head) (in_lock (node_next head) (MAX_HEIGHT + 1))
+      is_lock γ (node_lock head) (is_array (node_next head) (MAX_HEIGHT + 1))
       ∗
       inv (nodeN t) (node_inv t tail)
       ∗
@@ -107,7 +107,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       { pose proof HMAX_HEIGHT; lia. } 
       wp_let. iDestruct "Hnext" as "(Hnext' & Hnext)".
 
-      wp_apply (newlock_spec (in_lock next (MAX_HEIGHT + 1)) with "[Hnext']").
+      wp_apply (newlock_spec (is_array next (MAX_HEIGHT + 1)) with "[Hnext']").
       { 
         iExists (replicate (Z.to_nat (MAX_HEIGHT + 1)) #t); iFrame.
         rewrite replicate_length //.

@@ -19,36 +19,37 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem topLevel_spec (key h lvl: Z) (top_head curr: node_rep) (Skeys: gset Z) (q: frac)
-      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem topLevel_spec (key h lvl: Z) (head curr: node_rep) 
+      (Skeys: gset Z) (q: frac) (bot: bot_gname) 
+      (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{
-        skip_list_equiv lvl top_head Skeys q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys q bot (top_sub :: bot_subs)
         ∗
-        (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
         ∗
         ⌜ 0 ≤ h ≤ lvl ⌝
       }}}
         topLevel (rep_to_node curr) #key #h #lvl
-      {{{ curr' top_head' top_sub' bot_subs', RET rep_to_node curr';
-        skip_list_equiv h top_head' Skeys q bot (top_sub' :: bot_subs')
+      {{{ curr' top_sub' bot_subs', RET rep_to_node curr';
+        skip_list_equiv h head Skeys q bot (top_sub' :: bot_subs')
         ∗
         ( 
-          skip_list_equiv h top_head' (Skeys ∪ {[ key ]}) q bot (top_sub' :: bot_subs')
+          skip_list_equiv h head (Skeys ∪ {[ key ]}) q bot (top_sub' :: bot_subs')
           -∗
-          skip_list_equiv lvl top_head (Skeys ∪ {[ key ]}) q bot (top_sub :: bot_subs)
+          skip_list_equiv lvl head (Skeys ∪ {[ key ]}) q bot (top_sub :: bot_subs)
         )
         ∗
-        (⌜ curr' = top_head' ⌝ ∨ own (s_auth top_sub') (◯ {[ curr' ]}))
+        (⌜ curr' = head ⌝ ∨ own (s_auth top_sub') (◯ {[ curr' ]}))
         ∗
         ⌜ node_key curr' < key < INT_MAX ⌝
       }}}.
     Proof.
       iIntros (Φ) "(Hlist & Hown_curr & Hcurr_range & Hh) HΦ".
-      iRevert (curr top_head lvl top_sub bot_subs) "Hlist Hown_curr Hcurr_range Hh HΦ".
+      iRevert (curr head lvl top_sub bot_subs) "Hlist Hown_curr Hcurr_range Hh HΦ".
       iLöb as "IH".
-      iIntros (curr top_head lvl top_sub bot_subs) "Hlist #Hown_curr %Hcurr_range %Hh HΦ".
+      iIntros (curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hcurr_range %Hh HΦ".
 
       wp_lam. wp_let. wp_let. wp_let.
 
@@ -86,13 +87,13 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
 
           iNext. 
-          iIntros (curr' top_head' top_sub' bot_subs').
+          iIntros (curr' top_sub' bot_subs').
           iIntros "(Hlist & Himp & Hown_curr' & Hcurr_range')".
           iApply "HΦ". iFrame "# ∗".
         - iDestruct (own_valid_2 with "Hown_auth Hown_pred") 
             as %[Hvalid%gset_included]%auth_both_valid_discrete.
 
-          rewrite (list_equiv_invert_L lvl L top_head pred); last first.
+          rewrite (list_equiv_invert_L lvl L head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
           iDestruct "Hlist" as (? ? ? ?) "(_ & Hpt & _ & Hs & _ & _ & HP & Himp)".
@@ -110,19 +111,20 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
           { lia. }
 
-          iNext. 
-          iIntros (curr' top_head' top_sub' bot_subs').
+          iNext.
+          iIntros (curr' top_sub' bot_subs').
           iIntros "(Hlist & Himp & Hown_curr' & Hcurr_range')".
           iApply "HΦ". iFrame "# ∗".
     Qed.
 
-    Theorem addAll_spec (key h lvl: Z) (top_head curr: node_rep) (Skeys: gset Z) (q: frac)
-      (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
+    Theorem addAll_spec (key h lvl: Z) (head curr: node_rep) 
+      (Skeys: gset Z) (q: frac) (bot: bot_gname) 
+      (top_sub: sub_gname) (bot_subs: list sub_gname) :
       INT_MIN < key < INT_MAX →
       {{{
-        skip_list_equiv lvl top_head Skeys q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys q bot (top_sub :: bot_subs)
         ∗
-        (⌜ curr = top_head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key ⌝
         ∗
@@ -130,7 +132,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       }}}
         addAll (rep_to_node curr) #key #h #lvl
       {{{ (v: val) (n: loc) (new: node_rep), RET v;
-        skip_list_equiv lvl top_head (Skeys ∪ {[ key ]}) q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head (Skeys ∪ {[ key ]}) q bot (top_sub :: bot_subs)
         ∗
         ( 
           ⌜ v = NONEV ⌝ ∨ 
@@ -150,9 +152,9 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             (node_next new +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat (h - lvl)) #()
             ∗
             ∃ (γ: gname), 
-              is_lock γ (node_lock new) (in_lock (node_next new) (h + 1))
+              is_lock γ (node_lock new) (is_array (node_next new) (h + 1))
               ∗
-              in_lock (node_next new) (h + 1)
+              is_array (node_next new) (h + 1)
               ∗
               locked γ
           )
@@ -160,9 +162,9 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Hkey_range Φ) "(Hlist & Hown_curr & Hrange & Hh) HΦ".
-      iRevert (Φ curr top_head lvl top_sub bot_subs) "Hlist Hown_curr Hrange Hh HΦ".
+      iRevert (Φ curr head lvl top_sub bot_subs) "Hlist Hown_curr Hrange Hh HΦ".
       iLöb as "IH".
-      iIntros (Φ curr top_head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange %Hh HΦ".
+      iIntros (Φ curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange %Hh HΦ".
 
       wp_lam. wp_let. wp_let. wp_let.
       iPoseProof (skip_list_equiv_inv with "Hlist") as (P obot) "(Hinv & Hlist)".
@@ -228,14 +230,14 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                rewrite replicate_S array_cons.
                iDestruct "Hnext" as "(Hnext & Hreplicate)".
 
-               iDestruct "Hlock" as (γ) "(#Hlock & Hin_lock & Hlocked)".
-               iDestruct "Hin_lock" as (vs) "(Hnext' & %Hlength)".
+               iDestruct "Hlock" as (γ) "(#Hlock & Harray & Hlocked)".
+               iDestruct "Harray" as (vs) "(Hnext' & %Hlength)".
                pose proof (list_split vs (Z.to_nat h) (Z.to_nat lvl)) as Hsplit.
                destruct Hsplit as [next Hsplit]; try lia.
                destruct Hsplit as [vs1 Hsplit]; destruct Hsplit as [vs2 Hsplit].
                destruct Hsplit as [Hvs Hsplit]; destruct Hsplit as [Hlength1 Hlength2].
                rewrite Hvs array_app array_cons Hlength1.
-               iDestruct "Hnext'" as "(Hnext'1 & Hnext' & Hnext'2)".
+               iDestruct "Hnext'" as "(Hnext1 & Hnext' & Hnext2)".
                assert (lvl = Z.to_nat lvl) as <- by lia.
                assert (lvl - 1 + 1 = lvl) as -> by lia.
                iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
@@ -257,7 +259,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                iSplit; first done. iSplit; first done.
                iExists γ. iFrame "# ∗".
 
-               iCombine "Hnext'1 Hnext Hnext'2" as "Hnext".
+               iCombine "Hnext1 Hnext Hnext2" as "Hnext".
                assert (lvl = Z.to_nat lvl) as -> by lia.
                rewrite -array_cons -Hlength1 -array_app.
                iExists (vs1 ++ #n' :: vs2); iFrame.
@@ -265,7 +267,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           * iDestruct (own_valid_2 with "Hown_auth Hown_pred") 
               as %[Hvalid%gset_included]%auth_both_valid_discrete.
 
-            rewrite (list_equiv_invert_L lvl L top_head pred); last first.
+            rewrite (list_equiv_invert_L lvl L head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
             iDestruct "Hlist" as (γ ? ? ?) "(_ & Hpt & _ & Hs & _ & _ & HP & Himp)"; clear γ.
@@ -293,7 +295,6 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                iSplitR ""; last by iLeft.
                by iFrame "# ∗".
             ++ rewrite Hopt. wp_pures.
-
                iDestruct "Hn" as "(Hn & Hn')".
                assert (lfrac (lvl - 1) / 2 = lfrac lvl)%Qp as ->.
                {
@@ -308,14 +309,14 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                rewrite replicate_S array_cons.
                iDestruct "Hnext" as "(Hnext & Hreplicate)".
 
-               iDestruct "Hlock" as (γ) "(#Hlock & Hin_lock & Hlocked)".
-               iDestruct "Hin_lock" as (vs) "(Hnext' & %Hlength)".
+               iDestruct "Hlock" as (γ) "(#Hlock & Harray & Hlocked)".
+               iDestruct "Harray" as (vs) "(Hnext' & %Hlength)".
                pose proof (list_split vs (Z.to_nat h) (Z.to_nat lvl)) as Hsplit.
                destruct Hsplit as [next Hsplit]; try lia.
                destruct Hsplit as [vs1 Hsplit]; destruct Hsplit as [vs2 Hsplit].
                destruct Hsplit as [Hvs Hsplit]; destruct Hsplit as [Hlength1 Hlength2].
                rewrite Hvs array_app array_cons Hlength1.
-               iDestruct "Hnext'" as "(Hnext'1 & Hnext' & Hnext'2)".
+               iDestruct "Hnext'" as "(Hnext1 & Hnext' & Hnext2)".
                assert (lvl = Z.to_nat lvl) as <- by lia.
                assert (lvl - 1 + 1 = lvl) as -> by lia.
                iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
@@ -333,15 +334,15 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                iSplit; first done. iSplit; first done.
                iExists γ. iFrame "# ∗".
                
-               iCombine "Hnext'1 Hnext Hnext'2" as "Hnext".
+               iCombine "Hnext1 Hnext Hnext2" as "Hnext".
                assert (lvl = Z.to_nat lvl) as -> by lia.
                rewrite -array_cons -Hlength1 -array_app.
                iExists (vs1 ++ #n' :: vs2); iFrame.
                iPureIntro; rewrite app_length cons_length; lia.
     Qed.
 
-    Theorem add_spec (key height: Z) (v: val) (S: gset Z) (q: frac)
-      (bot: bot_gname) (subs: list sub_gname)
+    Theorem add_spec (v: val) (key height: Z) 
+      (S: gset Z) (q: frac) (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) 
       (Hheight: 0 ≤ height ≤ MAX_HEIGHT) :
       {{{ is_skip_list v S q bot subs }}}
@@ -358,7 +359,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       wp_apply (topLevel_spec  with "[Hlist]").
       { iFrame. iSplit; first by iLeft. iPureIntro; lia. }
 
-      iIntros (curr top_head top_sub bot_subs).
+      iIntros (curr top_sub bot_subs).
       iIntros "(Hlist & Himp & #Hown_curr & %Hcurr_range)".
       wp_let.
 
@@ -375,10 +376,10 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         iModIntro. iApply "HΦ".
         iExists h, head. by iFrame.
       + rewrite Hsome. wp_match.
-        iDestruct "Hlock" as (γ) "(#Hlock & Hin_lock & Hlocked)".
+        iDestruct "Hlock" as (γ) "(#Hlock & Harray & Hlocked)".
 
         wp_load. wp_lam. wp_pures.
-        wp_apply (release_spec with "[Hin_lock Hlocked]"); first done.
+        wp_apply (release_spec with "[Harray Hlocked]"); first done.
         { iFrame "# ∗". }
 
         iIntros "_". wp_pures.

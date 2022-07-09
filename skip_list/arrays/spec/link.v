@@ -19,7 +19,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
 
-    Theorem createAndLink_spec (key h: Z) (head pred succ: node_rep) (Skeys: gset Z) (q: frac)
+    Theorem createAndLink_spec (key h: Z) (head pred succ: node_rep) 
+      (Skeys: gset Z) (q: frac)
       (sub: sub_gname) (bot: bot_gname) (s: loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
@@ -54,9 +55,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
         ∗
         ∃ (γ: gname), 
-          is_lock γ (node_lock new) (in_lock (node_next new) (h + 1))
+          is_lock γ (node_lock new) (is_array (node_next new) (h + 1))
           ∗
-          in_lock (node_next new) (h + 1)
+          is_array (node_next new) (h + 1)
           ∗
           locked γ
       }}}.
@@ -71,7 +72,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_alloc next as "Hnext"; first lia. wp_let.
       iDestruct "Hnext" as "(Hnext' & Hnext)".
       
-      wp_apply (newlock_spec (in_lock next (h + 1)) with "[Hnext']").
+      wp_apply (newlock_spec (is_array next (h + 1)) with "[Hnext']").
       { 
         iExists (replicate (Z.to_nat (h + 1)) #()); iFrame.
         rewrite replicate_length //.
@@ -90,8 +91,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (acquire _).
       iApply (acquire_spec with "[$]"); first done.
-      iNext; iIntros (v) "(Hin_lock & Hlocked)".
-      iDestruct "Hin_lock" as (vs) "(Hnext' & %Hlength)".
+      iNext; iIntros (v) "(Harray & Hlocked)".
+      iDestruct "Harray" as (vs) "(Hnext' & %Hlength)".
       
       pose proof (list_split vs (Z.to_nat h) 0) as Hsplit.
       destruct Hsplit as [a Hsplit]; try lia.
@@ -114,8 +115,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
       iCombine "Hnext' Hnext'2" as "Hnext'".
       rewrite -array_cons.
-      iAssert (in_lock (node_next new) (h + 1)) 
-        with "[Hnext']" as "Hin_lock".
+      iAssert (is_array (node_next new) (h + 1)) 
+        with "[Hnext']" as "Harray".
       { 
         iExists (#s :: vs2); iFrame. 
         iPureIntro. rewrite Hvs // in Hlength.
@@ -235,19 +236,19 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         inv (nodeN s) (node_inv s succ)
         ∗
+        ⌜ 0 < lvl < h ⌝
+        ∗
+        from_top_list bot new
+        ∗ 
+        ⌜ node_key new = key ⌝
+        ∗
         inv (nodeN n) (node_inv n new)
         ∗ 
         n ↦{#lfrac lvl} rep_to_node new
         ∗
         (node_next new +ₗ lvl) ↦ #()
         ∗
-        is_lock γ (node_lock new) (in_lock (node_next new) h)
-        ∗
-        ⌜ 0 < lvl < h ⌝
-        ∗
-        from_top_list bot new
-        ∗ 
-        ⌜ node_key new = key ⌝
+        is_lock γ (node_lock new) (is_array (node_next new) h)
       }}}
         link (rep_to_node pred) #lvl #n
       {{{ RET #();
@@ -260,7 +261,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         (node_next new +ₗ lvl) ↦{#1 / 2} #s
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hinvs & #Hinvn & Hn & Hnext & #Hlock & %Hlvl & HP & %Hkey) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hinvs & %Hlvl & HP & %Hkey & #Hinvn & Hn & Hnext & #Hlock) HΦ".
 
       wp_lam. wp_pures. wp_lam. wp_pures.
       wp_load. wp_let. wp_load. 

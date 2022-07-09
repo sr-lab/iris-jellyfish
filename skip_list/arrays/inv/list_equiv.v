@@ -31,7 +31,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
 
     Definition lfrac : frac := 1 / exp2 (Z.to_nat lvl + 2).
 
-    Definition in_lock (next: loc) (h: Z) : iProp Σ := 
+    Definition is_array (next: loc) (h: Z) : iProp Σ := 
       ∃ (vs: list val), next ↦∗{#1 / 2} vs ∗ ⌜ length vs = Z.to_nat h ⌝.
 
     Fixpoint list_equiv (L: list node_rep) (P: node_rep → iProp Σ) : iProp Σ :=
@@ -46,7 +46,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
                  ∗
                  t ↦{#lfrac} rep_to_node tail
                  ∗
-                 is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+                 is_lock γ (node_lock pred) (is_array (node_next pred) h)
                  ∗
                  ⌜ lvl < h ⌝
 
@@ -57,7 +57,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
                        ∗
                        s ↦{#lfrac} rep_to_node succ
                        ∗
-                       is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+                       is_lock γ (node_lock pred) (is_array (node_next pred) h)
                        ∗
                        ⌜ lvl < h ⌝
                        ∗
@@ -145,7 +145,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           s ↦{#lfrac} rep_to_node succ
           ∗ 
-          is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
           ∗
           ⌜ lvl < h ⌝
           ∗
@@ -201,7 +201,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           s ↦{#lfrac} rep_to_node succ
           ∗ 
-          is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
           ∗
           ⌜ lvl < h ⌝
           ∗
@@ -247,7 +247,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         ∗ 
         n ↦{#lfrac} rep_to_node new
         ∗ 
-        is_lock γ' (node_lock new) (in_lock (node_next new) h')
+        is_lock γ' (node_lock new) (is_array (node_next new) h')
         ∗
         ⌜ lvl < h' ⌝
         ∗

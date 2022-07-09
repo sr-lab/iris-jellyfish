@@ -18,8 +18,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
     
-    Theorem find_bot_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) 
-      (bot: bot_gname) (sub: sub_gname) :
+    Theorem find_bot_spec (key: Z) (head curr: node_rep) 
+      (Skeys: gset Z) (bot: bot_gname) (sub: sub_gname) :
       {{{ 
         inv (levelN lvl) (lazy_list_inv lvl head sub (Some bot) from_bot_list)
         ∗
@@ -227,7 +227,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
     
     Theorem find_sub_spec (key: Z) (head curr: node_rep)
-      (sub: sub_gname) (obot: option bot_gname) (P: node_rep → iProp Σ) :
+      (sub: sub_gname) (obot: option bot_gname) 
+      (P: node_rep → iProp Σ) :
       {{{ 
         inv (levelN lvl) (lazy_list_inv lvl head sub obot P)
         ∗
@@ -246,7 +247,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∃ (γ: gname) (h: Z), 
           ⌜ lvl < h ⌝
           ∗
-          is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
       }}}.
     Proof.
       iIntros (Φ) "(#Hinv & Hown_curr & Hrange) HΦ".
@@ -317,7 +318,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem findLock_spec (key: Z) (head curr: node_rep)
-      (sub: sub_gname) (obot: option bot_gname) (P: node_rep → iProp Σ) :
+      (sub: sub_gname) (obot: option bot_gname) 
+      (P: node_rep → iProp Σ) :
       {{{ 
         inv (levelN lvl) (lazy_list_inv lvl head sub obot P)
         ∗
@@ -338,15 +340,15 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∃ (γ: gname) (h: Z) (s: loc), 
           ⌜ lvl < h ⌝
           ∗
-          is_lock γ (node_lock pred) (in_lock (node_next pred) h)
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
           ∗
-          in_lock (node_next pred) lvl
+          is_array (node_next pred) lvl
           ∗
           (node_next pred +ₗ lvl) ↦{#1 / 2} #s
           ∗
           inv (nodeN s) (node_inv s succ)
           ∗
-          in_lock (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)
+          is_array (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)
           ∗
           locked γ
       }}}.
@@ -365,8 +367,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (acquire _).
       iApply (acquire_spec with "Hlock"); first done.
-      iNext; iIntros (v) "(Hin_lock & Hlocked)".
-      iDestruct "Hin_lock" as (vs) "(Hnext & %Hlength)".
+      iNext; iIntros (v) "(Harray & Hlocked)".
+      iDestruct "Harray" as (vs) "(Hnext & %Hlength)".
 
       pose proof (list_split vs (Z.to_nat (h - 1)) (Z.to_nat lvl)) as Hsplit.
       destruct Hsplit as [next Hsplit]; try lia.
@@ -420,11 +422,11 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         iFrame "# ∗".
         iSplit; first done. iExists γ, h, s'.
 
-        iAssert (in_lock (node_next pred) lvl) 
-          with "[Hnext1]" as "Hin_lock1".
+        iAssert (is_array (node_next pred) lvl) 
+          with "[Hnext1]" as "Harray1".
         { iExists vs1; by iFrame. }
-        iAssert (in_lock (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)) 
-          with "[Hnext2]" as "Hin_lock2".
+        iAssert (is_array (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)) 
+          with "[Hnext2]" as "Harray2".
         { iExists vs2; iFrame; iPureIntro; lia. }
 
         assert (succ = succ') as <-; last by iFrame "# ∗".
@@ -438,11 +440,11 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         iCombine "Hnext1 Hnext Hnext2" as "Hnext".
         assert (lvl = Z.to_nat lvl) as -> by lia.
         rewrite -Hlength1 -array_cons -array_app -Hvs.
-        iAssert (in_lock (node_next pred) h) 
-          with "[Hnext]" as "Hin_lock".
+        iAssert (is_array (node_next pred) h) 
+          with "[Hnext]" as "Harray".
         { iExists vs; by iFrame. }
 
-        wp_apply (release_spec with "[Hin_lock Hlocked]"); first done.
+        wp_apply (release_spec with "[Harray Hlocked]"); first done.
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
         iApply ("IH" with "HΦ"). iFrame "#". 

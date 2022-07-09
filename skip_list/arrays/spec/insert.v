@@ -53,9 +53,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
             ∗
             ∃ (γ: gname), 
-              is_lock γ (node_lock new) (in_lock (node_next new) (h + 1))
+              is_lock γ (node_lock new) (is_array (node_next new) (h + 1))
               ∗
-              in_lock (node_next new) (h + 1)
+              is_array (node_next new) (h + 1)
               ∗
               locked γ
           )
@@ -69,7 +69,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ' h' s) "(%Hlvl & #Hlock & _ & Hpt & #Hinvs & Hin_lock & Hlocked)".
+      iDestruct "Hlock" as (γ' h' s) "(%Hlvl & #Hlock & _ & Hpt & #Hinvs & Harray & Hlocked)".
       rewrite loc_add_0.
       assert (h' - 1 - 0 = h' - 1) as -> by lia.
 
@@ -99,10 +99,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { iNext; iExists S', Skeys', L; by iFrame. }
         iModIntro.
 
-        wp_apply (release_spec with "[Hlock Hpt Hin_lock Hlocked]"); first done.
+        wp_apply (release_spec with "[Hlock Hpt Harray Hlocked]"); first done.
         { 
           iFrame "# ∗". 
-          iDestruct "Hin_lock" as (vs) "(Hnext & %Hlength)".
+          iDestruct "Harray" as (vs) "(Hnext & %Hlength)".
           iCombine "Hpt Hnext" as "Hnext"; rewrite -array_cons.
           iExists (#s :: vs); iFrame.
           iPureIntro; rewrite cons_length; lia.
@@ -120,10 +120,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iIntros (n new) "(Hlazy & Hown_frag & Hown_tok & Hkey & Hpt & Hinvn & Hn & Hnext & Hlock')".
         wp_let. wp_lam. wp_pures.
 
-        wp_apply (release_spec with "[Hlock Hpt Hin_lock Hlocked]"); first done.
+        wp_apply (release_spec with "[Hlock Hpt Harray Hlocked]"); first done.
         { 
           iFrame "# ∗". 
-          iDestruct "Hin_lock" as (vs) "(Hnext & %Hlength)".
+          iDestruct "Harray" as (vs) "(Hnext & %Hlength)".
           iCombine "Hpt Hnext" as "Hnext"; rewrite -array_cons.
           iExists (#n :: vs); iFrame.
           iPureIntro; rewrite cons_length; lia.
@@ -143,6 +143,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         (⌜ curr = head ⌝ ∨ own (s_auth top) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key ⌝
+        ∗
+        ⌜ 0 < lvl < h ⌝
         ∗ 
         own (s_auth bot) (◯ {[ new ]})
         ∗ 
@@ -156,9 +158,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (node_next new +ₗ lvl) ↦ #()
         ∗
-        is_lock γ (node_lock new) (in_lock (node_next new) h)
-        ∗
-        ⌜ 0 < lvl < h ⌝
+        is_lock γ (node_lock new) (is_array (node_next new) h)
       }}}
         insert (rep_to_node curr) #lvl #n
       {{{ s, RET #();
@@ -169,14 +169,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         (node_next new +ₗ lvl) ↦{#1 / 2} #s
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & Hown_frag & Hown_tok & %Hkey & #Hinvn & Hn & Hnext & #Hlock & %Hlvl) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & %Hlvl & Hown_frag & Hown_tok & %Hkey & #Hinvn & Hn & Hnext & #Hlock) HΦ".
       wp_lam. wp_let. wp_let.
       wp_load. wp_lam. wp_pures.
 
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock')".
-      iDestruct "Hlock'" as (γ' h' s) "(%Hlvl' & #Hlock' & Hin_lock'1 & Hpt & #Hinvs & Hin_lock'2 & Hlocked')".
+      iDestruct "Hlock'" as (γ' h' s) "(%Hlvl' & #Hlock' & Harray1 & Hpt & #Hinvs & Harray2 & Hlocked')".
 
       wp_let.
       wp_bind (Fst _).
@@ -216,11 +216,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       iIntros "(Hown_frag & Hown_tok & Hpt & Hnext)".
       wp_pures. wp_lam. wp_pures.
-      wp_apply (release_spec with "[Hin_lock'1 Hpt Hin_lock'2 Hlocked']"); first done.
+      wp_apply (release_spec with "[Harray1 Hpt Harray2 Hlocked']"); first done.
       { 
         iFrame "# ∗". 
-        iDestruct "Hin_lock'1" as (vs1) "(Hnext1 & %Hlength1)".
-        iDestruct "Hin_lock'2" as (vs2) "(Hnext2 & %Hlength2)".
+        iDestruct "Harray1" as (vs1) "(Hnext1 & %Hlength1)".
+        iDestruct "Harray2" as (vs2) "(Hnext2 & %Hlength2)".
         iCombine "Hnext1 Hpt Hnext2" as "Hnext".
         assert (lvl = Z.to_nat lvl) as -> by lia.
         rewrite -array_cons -Hlength1 -array_app.
