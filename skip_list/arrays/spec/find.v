@@ -51,7 +51,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       wp_bind (Load #(node_next curr +ₗ lvl)).
       iInv (levelN lvl) as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-      iDestruct "Hinv_bot" as ">Hown_frac"; unfold bot_list_inv.
+      iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
       iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
         as %->%frac_auth_agree_L.
 
@@ -88,15 +88,11 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
-
-        iModIntro. wp_bind (Load _).
-        iInv (nodeN s) as "Hpt" "Hclose"; unfold node_inv.
-        wp_load.
-        iMod ("Hclose" with "Hpt") as "_".
         
-        iModIntro. wp_let. wp_lam. wp_pures.
+        iModIntro. wp_load. 
+        wp_let. wp_lam. wp_pures.
         case_bool_decide; last lia.
         wp_pures. iApply "HΦ".
         iModIntro; iFrame "# ∗".
@@ -178,15 +174,11 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
 
-        iModIntro. wp_bind (Load _).
-        iInv (nodeN n) as "Hpt" "Hclose"; unfold node_inv.
-        wp_load.
-        iMod ("Hclose" with "Hpt") as "_".
-
-        iModIntro. wp_let. wp_lam. wp_pures.
+        iModIntro. wp_load. 
+        wp_let. wp_lam. wp_pures.
         case_bool_decide as Hcase.
         * exfalso.
           assert (node_key next <= node_key pred); last by lia.
@@ -276,7 +268,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert); last done.
-      iDestruct "Hlist" as (γ h s succ) "(>%Hsucc_range & Hpt & #Hinvs & Hs & #Hlock & #Hlvl & Himp)".
+      iDestruct "Hlist" as (γ h s succ) "(>%Hsucc_range & Hpt & #Hs & #Hlock & #Hlvl & Himp)".
       rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
 
       wp_load.
@@ -284,12 +276,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
 
-      iModIntro. wp_bind (Load _).
-      iInv (nodeN s) as "Hpt" "Hclose"; unfold node_inv.
-      wp_load.
-      iMod ("Hclose" with "Hpt") as "_".
-
-      iModIntro. wp_let. wp_lam. wp_pures.
+      iModIntro. wp_load.
+      wp_let. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
       - wp_pures. iApply "HΦ".
         iModIntro; iFrame "#".
@@ -347,7 +335,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           ∗
           (node_next pred +ₗ lvl) ↦{#1 / 2} #s
           ∗
-          inv (nodeN s) (node_inv s succ)
+          s ↦□ rep_to_node succ
           ∗
           is_array (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)
           ∗
@@ -404,7 +392,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert lvl L head pred); last done.
-      iDestruct "Hlist" as (γ' h' s' succ') "(>%Hsucc'_in_L & >Hpt & #Hinvs' & >Hs' & _ & #Hlvl' & Himp)".
+      iDestruct "Hlist" as (γ' h' s' succ') "(>%Hsucc'_in_L & >Hpt & #Hs' & _ & #Hlvl' & Himp)".
       iDestruct (mapsto_agree with "Hnext Hpt") as %->.
 
       wp_load.
@@ -412,12 +400,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
       { iNext; iExists S, Skeys, L; by iFrame. }
 
-      iModIntro. wp_bind (Load _).
-      iInv (nodeN s') as "Hpt" "Hclose"; unfold node_inv.
-      wp_load.
-      iMod ("Hclose" with "Hpt") as "_".
-
-      iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
+      iModIntro. wp_load.
+      wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
       case_bool_decide as Heq; wp_if.
       + iModIntro; iApply "HΦ".
         iFrame "# ∗".

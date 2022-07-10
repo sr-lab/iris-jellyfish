@@ -31,7 +31,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         node_next pred ↦{#1 / 2} #s
         ∗
-        inv (nodeN s) (node_inv s succ)
+        s ↦□ rep_to_node succ
         ∗
         ⌜ 0 ≤ h ⌝ 
       }}}
@@ -43,13 +43,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗ 
         own (s_toks sub) (GSet {[ node_key new ]})
         ∗ 
+        own (s_keys bot) (GSet {[ node_key new ]})
+        ∗ 
         ⌜ node_key new = key ⌝
         ∗ 
         node_next pred ↦{#1 / 2} #n
         ∗
-        inv (nodeN n) (node_inv n new)
-        ∗ 
-        n ↦{#1 / 2 / 2} rep_to_node new
+        n ↦□ rep_to_node new
         ∗
         (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
         ∗
@@ -61,7 +61,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
           locked γ
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & Hpt & #Hinvs & %Hlvl) HΦ".
+      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & Hpt & #Hs & %Hlvl) HΦ".
       iDestruct "Hbot" as "(Hown_frag & #Hinv)".
 
       wp_lam. wp_pures. 
@@ -83,9 +83,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       set (new := (key, next, None, lk)).
 
       wp_alloc n as "Hn". wp_let.
-      iDestruct "Hn" as "(Hn & Hn')".
-      iMod (inv_alloc (nodeN n) ⊤ (node_inv n new) with "Hn'") as "#Hinvn".
-      iDestruct "Hn" as "(Hn & Hn')".
+      iMod (mapsto_persist with "Hn") as "#Hn".
       wp_load. wp_lam. wp_pures.
 
       wp_bind (acquire _).
@@ -122,10 +120,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }
 
       wp_bind (Store _ _).
-      iInv (nodeN s) as "Hs" "Hclose'"; unfold node_inv.
       iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-      iDestruct "Hinv_bot" as ">Hown_frac"; unfold bot_list_inv.
+      iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -145,13 +142,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { rewrite /node_key/=; lia. }
 
       rewrite ?loc_add_0.
-      iDestruct ("Hlist" with "[Hs Hpt Hnext Hn']") as "Hlist".
-      { 
-        rewrite /lfrac //= Qp_mul_1_r -Qp_div_div.
-        iNext; iFrame "# ∗". 
-        iPureIntro; lia.
-      }
-      iDestruct "Hlist" as (L' L1 L2) "(Hs & Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
+      iDestruct ("Hlist" with "[Hpt Hnext]") as "Hlist".
+      { iNext; iFrame "# ∗". iPureIntro; lia. }
+      iDestruct "Hlist" as (L' L1 L2) "(Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
 
       iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
         as %HsubS%frac_auth_included_total%gset_included.
@@ -180,11 +173,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { rewrite Zlt_range_spec; lia. }
       rewrite -gset_disj_union; last set_solver.
       iDestruct "Hown_toks" as "(Hown_toks & Hown_tok)".
+      iDestruct "Hown_keys" as "(Hown_keys & Hown_key)".
 
       wp_store.
       iDestruct "Hpt" as "(Hpt & Hpt_dup)".
       iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
-      iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+      iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
       {
         iNext; iExists (S' ∪ {[ new ]}), (Skeys' ∪ {[ key ]}), L'. 
         iFrame. iSplit; last first. iSplit; first done.
@@ -213,10 +207,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
           - set_solver.
       }
 
-      iMod ("Hclose'" with "[$]") as "_".
-      iApply fupd_mask_intro_subseteq; first done.
-
-      wp_pures. iModIntro. iApply "HΦ".
+      iModIntro. wp_pures. 
+      iModIntro. iApply "HΦ".
       iFrame "# ∗". iSplit; first done.
       iExists γ. iFrame "# ∗".
     Qed.
@@ -233,7 +225,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (node_next pred +ₗ lvl) ↦{#1 / 2} #s
         ∗
-        inv (nodeN s) (node_inv s succ)
+        s ↦□ rep_to_node succ
         ∗
         ⌜ 0 < lvl < h ⌝
         ∗
@@ -241,9 +233,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗ 
         ⌜ node_key new = key ⌝
         ∗
-        inv (nodeN n) (node_inv n new)
-        ∗ 
-        n ↦{#lfrac lvl} rep_to_node new
+        n ↦□ rep_to_node new
         ∗
         (node_next new +ₗ lvl) ↦ #()
         ∗
@@ -260,14 +250,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         (node_next new +ₗ lvl) ↦{#1 / 2} #s
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hinvs & %Hlvl & HP & %Hkey & #Hinvn & Hn & Hnext & #Hlock) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hs & %Hlvl & HP & %Hkey & #Hn & Hnext & #Hlock) HΦ".
 
       wp_lam. wp_pures. wp_lam. wp_pures.
       wp_load. wp_let. wp_load. 
       wp_lam. wp_pures.
       wp_store. wp_pures.
       
-      iInv (nodeN s) as "Hs" "Hclose'".
       iInv (levelN lvl) as (S' Skeys' L) "(Hinv_sub & _)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
@@ -291,7 +280,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Hnext" as "(Hnext & Hnext')".
       iDestruct ("Hlist" with "[Hs Hpt Hnext' Hn HP]") as "Hlist".
       { iNext; iFrame "# ∗". iPureIntro; lia. }
-      iDestruct "Hlist" as (L' L1 L2) "(Hs & Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
+      iDestruct "Hlist" as (L' L1 L2) "(Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
       
       assert (node_key new ∉ Skeys') as Hnin'.
       {
@@ -347,9 +336,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
           - set_solver.
       }
 
-      iMod ("Hclose'" with "[$]") as "_".
-      iApply fupd_mask_intro_subseteq; first done.
-      iApply "HΦ". iFrame "# ∗". 
+      iModIntro. iApply "HΦ". 
+      iFrame "# ∗". 
     Qed.
 
   End Proofs.

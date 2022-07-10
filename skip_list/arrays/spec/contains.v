@@ -82,7 +82,7 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (γ h s' succ') "(>%Hsucc'_range & Hpt' & #Hinvs' & Hs' & Hlock & #Hlvl & HP & Himp)".
+            iDestruct "Hlist" as (γ h s' succ') "(>%Hsucc'_range & Hpt' & #Hs' & Hlock & #Hlvl & HP & Himp)".
             iDestruct "HP" as"(>Hauth_pred & >Htoks_pred)".
 
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.

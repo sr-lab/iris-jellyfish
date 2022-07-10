@@ -1,4 +1,3 @@
-From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
@@ -95,10 +94,11 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
           rewrite (list_equiv_invert_L lvl L head pred); last first.
           { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-          iDestruct "Hlist" as (? ? ? ?) "(_ & Hpt & _ & Hs & _ & _ & HP & Himp)".
+          iDestruct "Hlist" as (? ? ? ?) "(_ & Hpt & #Hs & _ & _ & HP & Himp)".
           iDestruct "HP" as "(Hown_frag & Hown_tok)".
           assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.
           iDestruct "Hown_frag" as "(Hown_frag & Hown_frag_dup)".
+          assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as <- by set_solver.
 
           wp_op.
           iPoseProof ("Himp" with "[$]") as "Hlist".
@@ -142,11 +142,11 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks top_sub) (GSet {[ node_key new ]})
             ∗ 
+            own (s_keys bot) (GSet {[ node_key new ]})
+            ∗ 
             ⌜ node_key new = key ⌝
             ∗
-            inv (nodeN n) (node_inv n new)
-            ∗ 
-            n ↦{#lfrac lvl} rep_to_node new
+            n ↦□ rep_to_node new
             ∗
             (node_next new +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat (h - lvl)) #()
             ∗
@@ -185,8 +185,6 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
         iApply "HΦ". 
         rewrite loc_add_0.
         assert (h - 0 = h) as -> by lia.
-        assert (1 / 2 / 2 = lfrac 0)%Qp as ->.
-        { rewrite /lfrac /= Qp_mul_1_r -Qp_div_div //. }
         by iFrame "# ∗".
       + iDestruct "Hlist" as "(%Hlvl & #Hinv & Hmatch)"; unfold is_top_list.
         case_bool_decide as Hcase; wp_if.
@@ -209,20 +207,12 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
             iNext. 
             iIntros (v n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hinvn & Hn & Hnext & Hlock)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlock)]".
             ++ rewrite Hopt; wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.
                by iFrame "# ∗".
             ++ rewrite Hopt. wp_pures.
-               iDestruct "Hn" as "(Hn & Hn')".
-               assert (lfrac (lvl - 1) / 2 = lfrac lvl)%Qp as ->.
-               {
-                 rewrite /lfrac.
-                 assert (Z.to_nat (lvl - 1) + 2 = S (Z.to_nat lvl))%nat as -> by lia.
-                 assert (Z.to_nat lvl + 2 = S (S (Z.to_nat lvl)))%nat as -> by lia.
-                 rewrite /= Qp_div_div Qp_mul_comm //.
-               }
 
                rewrite loc_add_assoc.
                assert (Z.to_nat (h - (lvl - 1)) = S (Z.to_nat (h - lvl)))%nat as -> by lia.
@@ -242,7 +232,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
                iCombine "Hnext Hnext'" as "Hnext".
 
-               wp_apply (insert_spec with "[Hown_frag Hown_tok Hn' Hnext]").
+               wp_apply (insert_spec with "[Hown_frag Hown_tok Hnext]").
                { done. }
                { 
                  iFrame "# ∗".
@@ -269,7 +259,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L lvl L head pred); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (γ ? ? ?) "(_ & Hpt & _ & Hs & _ & _ & HP & Himp)"; clear γ.
+            iDestruct "Hlist" as (γ ? ? ?) "(_ & Hpt & #Hs & _ & _ & HP & Himp)"; clear γ.
             iDestruct "HP" as "(Hown_frag & Hown_tok)".
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.
             iDestruct "Hown_frag" as "(Hown_frag & Hown_frag_dup)".
@@ -288,20 +278,12 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
             iNext. 
             iIntros (v n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hinvn & Hn & Hnext & Hlock)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlock)]".
             ++ rewrite Hopt. wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.
                by iFrame "# ∗".
             ++ rewrite Hopt. wp_pures.
-               iDestruct "Hn" as "(Hn & Hn')".
-               assert (lfrac (lvl - 1) / 2 = lfrac lvl)%Qp as ->.
-               {
-                 rewrite /lfrac.
-                 assert (Z.to_nat (lvl - 1) + 2 = S (Z.to_nat lvl))%nat as -> by lia.
-                 assert (Z.to_nat lvl + 2 = S (S (Z.to_nat lvl)))%nat as -> by lia.
-                 rewrite /= Qp_div_div Qp_mul_comm //.
-               }
 
                rewrite loc_add_assoc.
                assert (Z.to_nat (h - (lvl - 1)) = S (Z.to_nat (h - lvl)))%nat as -> by lia.
@@ -321,7 +303,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
                iCombine "Hnext Hnext'" as "Hnext".
 
-               wp_apply (insert_spec with "[Hown_frag Hown_tok Hn' Hnext]").
+               wp_apply (insert_spec with "[Hown_frag Hown_tok Hnext]").
                { done. }
                { iFrame "# ∗". iPureIntro; lia. }
 
@@ -370,7 +352,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hlist") as "Hlist".
       wp_let.
 
-      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_frag & Hown_tok & %Heq_key & #Hinvn & Hn & _ & Hlock)]".
+      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_frag & Hown_tok & Hown_key & %Heq_key & #Hn & _ & Hlock)]".
       + rewrite Hnone. wp_match.
         iModIntro. iApply "HΦ".
         iExists h, head. by iFrame.

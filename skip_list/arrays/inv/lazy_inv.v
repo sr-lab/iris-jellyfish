@@ -21,7 +21,8 @@ Record sub_gname := mk_sub_gname {
 }.
 
 Record bot_gname := mk_bot_gname {
-  s_frac: gname
+  s_frac: gname;
+  s_keys: gname
 }.
 
 Module LazyListInv (Params: SKIP_LIST_PARAMS).
@@ -63,7 +64,9 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       list_equiv lvl ([head] ++ L) P.
 
     Definition bot_list_inv (Γ: bot_gname) (Skeys: gset Z) : iProp Σ := 
-      own (s_frac Γ) (●F Skeys).
+      own (s_frac Γ) (●F Skeys)
+      ∗
+      own (s_keys Γ) (GSet (node_key_range ∖ Skeys)).
     
     Definition lazy_list_inv (head: node_rep) (sub: sub_gname) (obot: option bot_gname)
       (P: node_rep → iProp Σ) : iProp Σ := 

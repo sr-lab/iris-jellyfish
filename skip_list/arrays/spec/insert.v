@@ -43,11 +43,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks sub) (GSet {[ node_key new ]})
             ∗ 
+            own (s_keys bot) (GSet {[ node_key new ]})
+            ∗ 
             ⌜ node_key new = key ⌝
             ∗
-            inv (nodeN n) (node_inv n new)
-            ∗ 
-            n ↦{#1 / 2 / 2} rep_to_node new
+            n ↦□ rep_to_node new
             ∗
             (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
             ∗
@@ -68,7 +68,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ' h' s) "(%Hlvl & #Hlock & _ & Hpt & #Hinvs & Harray & Hlocked)".
+      iDestruct "Hlock" as (γ' h' s) "(%Hlvl & #Hlock & _ & Hpt & #Hs & Harray & Hlocked)".
       rewrite loc_add_0.
       assert (h' - 1 - 0 = h' - 1) as -> by lia.
 
@@ -81,7 +81,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_lam. wp_bind (Snd _).
         iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
-        iDestruct "Hinv_bot" as ">Hown_frac"; unfold bot_list_inv.
+        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
           as %[Hvalid%gset_included]%auth_both_valid_discrete.
@@ -94,7 +94,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         assert (Skeys' ∪ {[ key ]} = Skeys') as -> by set_solver.
 
         wp_proj.
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
         { iNext; iExists S', Skeys', L; by iFrame. }
         iModIntro.
 
@@ -116,7 +116,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { done. }
         { iFrame "# ∗". iPureIntro; lia. }
         
-        iIntros (n new) "(Hlazy & Hown_frag & Hown_tok & Hkey & Hpt & Hinvn & Hn & Hnext & Hlock')".
+        iIntros (n new) "(Hlazy & Hown_frag & Hown_tok & Hown_key & Hkey & Hpt & Hn & Hnext & Hlock')".
         wp_let. wp_lam. wp_pures.
 
         wp_apply (release_spec with "[Hlock Hpt Harray Hlocked]").
@@ -151,9 +151,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         ∗ 
         ⌜ node_key new = key ⌝
         ∗
-        inv (nodeN n) (node_inv n new)
-        ∗ 
-        n ↦{#lfrac lvl} rep_to_node new
+        n ↦□ rep_to_node new
         ∗
         (node_next new +ₗ lvl) ↦ #()
         ∗
@@ -168,14 +166,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         (node_next new +ₗ lvl) ↦{#1 / 2} #s
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & %Hlvl & Hown_frag & Hown_tok & %Hkey & #Hinvn & Hn & Hnext & #Hlock) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & %Hlvl & Hown_frag & Hown_tok & %Hkey & #Hn & Hnext & #Hlock) HΦ".
       wp_lam. wp_let. wp_let.
       wp_load. wp_lam. wp_pures.
 
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock')".
-      iDestruct "Hlock'" as (γ' h' s) "(%Hlvl' & #Hlock' & Harray1 & Hpt & #Hinvs & Harray2 & Hlocked')".
+      iDestruct "Hlock'" as (γ' h' s) "(%Hlvl' & #Hlock' & Harray1 & Hpt & #Hs & Harray2 & Hlocked')".
 
       wp_let.
       wp_bind (Fst _).
@@ -196,7 +194,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { rewrite -elem_of_list_In Hperm elem_of_elements. set_solver. }
 
         rewrite list_equiv_invert_L; last done.
-        iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & _ & _ & HP & _)".
+        iDestruct "Hlist" as (? ? ? ?) "(_ & _ & _ & _ & _ & HP & _)".
         iDestruct "HP" as "(_ & Hown_tok')".
 
         iDestruct (own_valid_2 with "Hown_tok Hown_tok'") as 
@@ -209,7 +207,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       iModIntro; wp_pures.
 
-      wp_apply (link_spec lvl key h head pred new succ with "[Hpt Hn Hnext Hown_frag Hown_tok]").
+      wp_apply (link_spec lvl key h head pred new succ with "[Hpt Hnext Hown_frag Hown_tok]").
       { done. }
       { iFrame "# ∗"; iPureIntro; lia. }
 
