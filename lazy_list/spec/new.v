@@ -1,8 +1,9 @@
+From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.lazy_list Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
@@ -39,7 +40,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
       wp_apply (newlock_spec (in_lock t) with "[Ht1]").
       { iExists tail; iFrame. }
 
-      iIntros (l) "#Hlock". iDestruct "Hlock" as (γ) "Hlock".
+      iIntros (l γ) "#Hlock".
       wp_pures; wp_alloc h as "Hh".
       rewrite (fold_rep_to_node (INT_MIN, t, None, l)).
       set (head := (INT_MIN, t, None, l)).

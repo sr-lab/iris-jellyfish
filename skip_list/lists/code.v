@@ -1,4 +1,6 @@
-From SkipList.lib Require Import lock node_rep.
+From iris.heap_lang Require Export notation spin_lock.
+
+From SkipList.lib Require Import node_rep.
 
 
 Local Open Scope Z.

@@ -1,10 +1,11 @@
 From Coq Require Import Sorting.Sorted.
 
+From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.skip_list.arrays Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.skip_list.arrays.inv Require Import list_equiv lazy_inv skip_inv.
 
 
@@ -366,8 +367,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (acquire _).
-      iApply (acquire_spec with "Hlock"); first done.
-      iNext; iIntros (v) "(Harray & Hlocked)".
+      iApply (acquire_spec with "Hlock").
+      iNext; iIntros "(Hlocked & Harray)".
       iDestruct "Harray" as (vs) "(Hnext & %Hlength)".
 
       pose proof (list_split vs (Z.to_nat (h - 1)) (Z.to_nat lvl)) as Hsplit.
@@ -444,7 +445,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           with "[Hnext]" as "Harray".
         { iExists vs; by iFrame. }
 
-        wp_apply (release_spec with "[Harray Hlocked]"); first done.
+        wp_apply (release_spec with "[Harray Hlocked]").
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
         iApply ("IH" with "HΦ"). iFrame "#". 

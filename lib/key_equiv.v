@@ -1,6 +1,3 @@
-From Coq Require Import Lia.
-From Coq Require Import Sorting.Sorted.
-
 From iris.algebra Require Import gset.
 
 From SkipList.lib Require Import misc node_rep.

@@ -1,10 +1,8 @@
-From Coq Require Import Lia.
-
-From iris.heap_lang Require Import notation par proofmode.
+From iris.heap_lang Require Import par proofmode.
 From iris.algebra Require Import frac.
 
-From SkipList.lib Require Import lock misc.
 From SkipList.skip_list.lists Require Import code.
+From SkipList.lib Require Import misc.
 From SkipList.skip_list.lists.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.skip_list.lists.spec Require Import new contains add.
 

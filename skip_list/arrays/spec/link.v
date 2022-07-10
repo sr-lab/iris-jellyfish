@@ -1,10 +1,9 @@
-From Coq Require Import Sorting.Sorted.
-
+From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.skip_list.arrays Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.skip_list.arrays.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.skip_list.arrays.spec Require Import find.
 
@@ -77,7 +76,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         iExists (replicate (Z.to_nat (h + 1)) #()); iFrame.
         rewrite replicate_length //.
       }
-      iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ) "Hlock'".
+      iIntros (lk γ) "#Hlock'".
 
       wp_pures.
       rewrite (fold_rep_to_node (key, next, None, lk)).
@@ -90,8 +89,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_load. wp_lam. wp_pures.
 
       wp_bind (acquire _).
-      iApply (acquire_spec with "[$]"); first done.
-      iNext; iIntros (v) "(Harray & Hlocked)".
+      iApply (acquire_spec with "[$]").
+      iNext; iIntros "(Hlocked & Harray)".
       iDestruct "Harray" as (vs) "(Hnext' & %Hlength)".
       
       pose proof (list_split vs (Z.to_nat h) 0) as Hsplit.

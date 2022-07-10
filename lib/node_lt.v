@@ -1,4 +1,3 @@
-From Coq Require Import Lia.
 From Coq Require Import Sorting.Sorted.
 
 From iris.heap_lang Require Import notation.

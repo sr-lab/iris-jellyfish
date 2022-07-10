@@ -1,12 +1,10 @@
-From Coq Require Import Sorting.Sorted.
-
 From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 From iris.bi Require Import updates.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.skip_list.lists Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.skip_list.lists.inv Require Import list_equiv lazy_inv.
 
 

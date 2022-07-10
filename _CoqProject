@@ -1,6 +1,5 @@
 -Q . SkipList
 
-lib/lock.v
 lib/misc.v
 lib/node_rep.v
 lib/node_lt.v

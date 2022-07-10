@@ -1,10 +1,9 @@
-From Coq Require Import Sorting.Sorted.
-
+From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.skip_list.lists Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.skip_list.lists.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.skip_list.lists.spec Require Import find.
 
@@ -61,7 +60,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_apply (newlock_spec (in_lock l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
-      iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
+      iIntros (lk γ') "#Hlock'".
 
       wp_pures.
       set (new := (key, l, odown, lk)).
@@ -155,7 +154,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }
 
       iModIntro. wp_pures. wp_lam. wp_pures.
-      wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+      wp_apply (release_spec with "[Hlock Hpt Hlocked]").
       { iFrame "# ∗"; iExists new; iFrame. }
       iIntros "_". wp_pures. 
       iModIntro. iApply "HΦ".
@@ -199,7 +198,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_apply (newlock_spec (in_lock l) with "[Hpt'_dup]").
       { iExists succ; iFrame. }
-      iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
+      iIntros (lk γ') "#Hlock'".
 
       wp_pures.
       set (new := (key, l, odown, lk)).
@@ -285,7 +284,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }
 
       iModIntro. wp_pures. wp_lam. wp_pures.
-      wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+      wp_apply (release_spec with "[Hlock Hpt Hlocked]").
       { iFrame "# ∗"; iExists new; iFrame. }
       iIntros "_". wp_pures. 
       iModIntro. iApply "HΦ". 

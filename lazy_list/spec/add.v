@@ -1,10 +1,9 @@
-From Coq Require Import Sorting.Sorted.
-
+From iris.base_logic.lib Require Import invariants.
 From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.lib Require Import lock misc node_rep node_lt key_equiv.
 From SkipList.lazy_list Require Import code.
+From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.lazy_list.inv Require Import list_equiv inv.
 
 
@@ -133,8 +132,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (acquire _).
-      iApply (acquire_spec with "Hlock"); first done.
-      iNext; iIntros (v) "(Hnode & Hlocked)".
+      iApply (acquire_spec with "Hlock").
+      iNext; iIntros "(Hlocked & Hnode)".
       iDestruct "Hnode" as (rep) "Hnode".
       wp_pures. wp_lam. wp_pures.
 
@@ -180,7 +179,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         - by rewrite in_inv_rev. 
         - congruence.
       + wp_lam. wp_pures.
-        wp_apply (release_spec with "[Hnode Hlocked]"); first done.
+        wp_apply (release_spec with "[Hnode Hlocked]").
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
         iApply ("IH" with "HΦ").
@@ -226,7 +225,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         { iNext; iExists S', Skeys, L; by iFrame. }
         iModIntro.
 
-        wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+        wp_apply (release_spec with "[Hlock Hpt Hlocked]").
         { iFrame "# ∗"; iExists succ; iFrame. }
         iIntros "_". wp_pures. 
         iModIntro. iApply "HΦ".
@@ -239,7 +238,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
 
         wp_apply (newlock_spec (in_lock l) with "[Hpt'_dup]").
         { iExists succ; iFrame. }
-        iIntros (lk) "#Hlock'". iDestruct "Hlock'" as (γ') "Hlock'".
+        iIntros (lk γ') "#Hlock'".
 
         wp_pures.
         rewrite (fold_rep_to_node (key, l, None, lk)).
@@ -327,7 +326,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         }
   
         iModIntro. wp_pures. wp_lam. wp_pures.
-        wp_apply (release_spec with "[Hlock Hpt Hlocked]"); first done.
+        wp_apply (release_spec with "[Hlock Hpt Hlocked]").
         { iFrame "# ∗"; iExists new; iFrame. }
         iIntros "_". wp_pures.
         iModIntro. iApply "HΦ".
