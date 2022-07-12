@@ -61,21 +61,26 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           let: "pred" := Fst "pair" in
             "find" "pred" "k" ("lvl" - #1).
 
-  Definition contains : val := 
+  Definition get : val :=
     λ: "head" "k", 
       let: "np" := !"head" in
       let: "pair" := findPred "np" "k" #MAX_HEIGHT in
       let: "curr" := Snd "pair" in
       let: "ck" := nodeKey "curr" in
-        "k" = "ck".
+        if: "k" = "ck"
+        then NONEV
+        else 
+          let: "val" := nodeVal "curr" in
+            SOME (Fst "val").
 
   (* Link node in lazy list *)
   Definition createAndLink : val := 
-    λ: "pred" "k" "h",
+    λ: "pred" "k" "v" "t" "h",
       let: "np" := nodeNext "pred" in
       let: "succ" := !"np" in
       let: "next" := AllocN ("h" + #1) #() in
-      let: "node" := ref ("k", #dummy_null, "next", NONEV, newlock #()) in
+      let: "val" := ref ("t", "v", #dummy_null) in
+      let: "node" := ref ("k", "val", #dummy_null, "next", NONEV, newlock #()) in
         acquire (nodeLock !"node");;
         "next" <- "succ";;
         "np" <- "node";;
@@ -90,7 +95,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         ("np" +ₗ "lvl") <- "node".
 
   (* Lazy list insertion *)
-  Definition tryInsert : val := 
+  Definition update : val := 
     λ: "head" "k" "h",
       let: "pair" := findLock "head" "k" #0 in
       let: "pred" := Fst "pair" in
@@ -98,10 +103,20 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "ck" := nodeKey "curr" in
         if: "k" = "ck"
         then 
-          release (nodeLock "pred");;
-          NONEV
+          let: "vp" := nodeVal "curr" in
+          let: "val" := !"vp" in
+          let: "ts" := valTs "val" in
+            if: "t" ≤ "ts" 
+            then
+              release (nodeLock "pred");;
+              NONEV
+            else
+              let: "new" := ("t", "v", ref "val") in
+                "vp" <- "new";;
+                release (nodeLock "pred");;
+                NONEV
         else 
-          let: "node" := createAndLink "pred" "k" "h" in
+          let: "node" := createAndLink "pred" "k" "v" "t" "h" in
             release (nodeLock "pred");;
             SOME "node".
 
@@ -122,14 +137,14 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         then "pred"
         else "loop" "pred" "k" "h" ("lvl" - #1).
       
-  Definition addAll : val := 
-    rec: "add" "head" "k" "h" "lvl" := 
+  Definition putAll : val := 
+    rec: "put" "head" "k" "v" "t" "h" "lvl" := 
       let: "pair" := find "head" "k" "lvl" in
       let: "pred" := Fst "pair" in
         if: "lvl" = #0
-        then tryInsert "pred" "k" "h"
+        then update "pred" "k" "v" "t" "h"
         else
-          let: "onode" := "add" "pred" "k" "h" ("lvl" - #1) in
+          let: "onode" := "put" "pred" "k" "v" "t" "h" ("lvl" - #1) in
             match: "onode" with
               NONE => NONEV
             | SOME "node" =>
@@ -137,16 +152,14 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
               SOME "node"
             end.
 
-  Definition add : val := 
-    λ: "head" "k" "h",
+  Definition put : val := 
+    λ: "head" "k" "v" "t" "h",
       let: "np" := !"head" in
       let: "pred" := topLevel "np" "k" "h" #MAX_HEIGHT in
-      let: "onode" := addAll "pred" "k" "h" "h" in
+      let: "onode" := putAll "pred" "k" "v" "t" "h" "h" in
         match: "onode" with
-          NONE => #false
-        | SOME "node" => 
-          release (nodeLock !"node");;
-          #true
+          NONE => #()
+        | SOME "node" => release (nodeLock !"node")
         end.
 
 End SkipList.

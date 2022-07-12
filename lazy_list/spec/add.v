@@ -241,8 +241,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iIntros (lk γ') "#Hlock'".
 
         wp_pures.
-        rewrite (fold_rep_to_node (key, l, None, lk)).
-        set (new := (key, l, None, lk)).
+        rewrite (fold_rep_to_node (key, dummy_null, l, None, lk)).
+        set (new := (key, dummy_null, l, None, lk)).
         
         wp_bind (Store _ _).
         iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".

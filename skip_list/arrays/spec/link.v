@@ -79,8 +79,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iIntros (lk γ) "#Hlock'".
 
       wp_pures.
-      rewrite (fold_rep_to_node (key, next, None, lk)).
-      set (new := (key, next, None, lk)).
+      rewrite (fold_rep_to_node (key, dummy_null, next, None, lk)).
+      set (new := (key, dummy_null, next, None, lk)).
 
       wp_alloc n as "Hn". wp_let.
       iMod (mapsto_persist with "Hn") as "#Hn".
