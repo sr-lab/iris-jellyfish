@@ -116,41 +116,24 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
               by rewrite Heq2 in_app_iff; right; right; left.
       - assert (next ∈ S).
         {
-          rewrite -elem_of_elements -Hperm.
-          destruct Ls; assert (In next (L ++ [tail])) as Hin.
-          + inversion Hsplit_sep. by left.
-          + apply in_app_iff in Hin.
-            destruct Hin as [|[|[]]]; first by eapply elem_of_list_In.
-            inversion Hsplit_sep. inversion Hcurr.
-            subst; exfalso.
-            rewrite -Hsplit_sep in Hsort.
-            do 2 apply node_rep_sorted_app in Hsort as (_ & Hsort).
-            apply Sorted_StronglySorted in Hsort; last first.
-            { unfold Relations_1.Transitive; apply node_lt_transitive. } 
-            inversion Hsort as [|? ? _ Hall]; subst.
-            apply node_rep_forall_app in Hall.
-            destruct Hall as [_ Hall].
-            inversion Hall as [|? ? Hfalse]; subst.
-            rewrite /node_lt in Hfalse.
-            assert (node_key tail = INT_MAX) by auto.
-            lia.
-          + inversion Hsplit_sep. 
-            by apply in_app_iff; right; right; left.
-          + apply in_app_iff in Hin.
-            destruct Hin as [|[|[]]]; first by eapply elem_of_list_In.
-            inversion Hsplit_sep. inversion Hcurr.
-            subst; exfalso.
-            rewrite -Hsplit_sep in Hsort.
-            do 2 apply node_rep_sorted_app in Hsort as (_ & Hsort).
-            apply Sorted_StronglySorted in Hsort; last first.
-            { unfold Relations_1.Transitive; apply node_lt_transitive. } 
-            inversion Hsort as [|? ? _ Hall]; subst.
-            apply node_rep_forall_app in Hall.
-            destruct Hall as [_ Hall].
-            inversion Hall as [|? ? Hfalse]; subst.
-            rewrite /node_lt in Hfalse.
-            assert (node_key tail = INT_MAX) by auto.
-            lia.
+          rewrite -elem_of_elements -Hperm elem_of_list_In.
+          destruct Ls.
+          + inversion Hsplit_sep as [[Heq Hnext]]; subst. 
+            destruct L; inversion Hnext as [[Heq Htail]]; subst.
+            - exfalso. 
+              pose proof (app_cons_not_nil Lm L2 succ).
+              congruence.
+            - by left.
+          + inversion Hsplit_sep as [[Heq Hnext]]; subst.
+            inversion Hcurr as [Heq]; subst.
+            apply in_app_iff; right; right.
+            rewrite app_ass -app_comm_cons in Hnext.
+            apply app_eq in Hnext.
+            destruct Lf; inversion Hnext as [[Heq Htail]]; subst.
+            - exfalso. 
+              pose proof (app_cons_not_nil Lm L2 succ).
+              congruence.
+            - by left.
         }
 
         iMod (own_update with "Hown_auth") as "[Hown_auth Hown_auth_frag]".

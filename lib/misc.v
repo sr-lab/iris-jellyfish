@@ -46,6 +46,14 @@ Proof.
     - apply in_or_app. right. by left.
 Qed.
 
+Lemma app_eq {A: Type} :
+  forall (l l1 l2: list A), l ++ l1 = l ++ l2 → l1 = l2.
+Proof.
+  intros l l1 l2 Heq.
+  induction l; first auto.
+  apply IHl. by inversion Heq.
+Qed.
+
 Lemma list_split {A: Type} (l: list A) (n i: nat) :
   length l = S n → i ≤ n →
     ∃ (a: A) (l1 l2: list A), l = l1 ++ a :: l2 
