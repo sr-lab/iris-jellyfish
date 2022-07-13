@@ -1,6 +1,7 @@
 -Q . SkipList
 
 lib/misc.v
+lib/arg_max.v
 lib/node_rep.v
 lib/node_lt.v
 lib/key_equiv.v

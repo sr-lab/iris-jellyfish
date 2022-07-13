@@ -2,18 +2,18 @@ From iris.heap_lang Require Import notation.
 
 Local Open Scope Z.
 
-Definition val_rep : Type := Z * val * loc.
+Definition val_rep : Type := val * Z * loc.
 
-Definition val_ts (v: val_rep) : Z := v.1.1.
-Definition val_v (v: val_rep) : val := v.1.2.
+Definition val_v (v: val_rep) : val := v.1.1.
+Definition val_ts (v: val_rep) : Z := v.1.2.
 Definition val_next (v: val_rep) : loc := v.2.
 
-Definition valTs : val := λ: "l", Fst (Fst "l").
-Definition valV : val := λ: "l", Snd (Fst "l").
+Definition valV : val := λ: "l", Fst (Fst "l").
+Definition valTs : val := λ: "l", Snd (Fst "l").
 Definition valNext : val := λ: "l", Snd "l".
 
 Definition rep_to_val (v: val_rep) : val := 
-  (#(val_ts v), val_v v, #(val_next v)).
+  (val_v v, #(val_ts v), #(val_next v)).
 
 Definition node_rep : Type := Z * loc * loc * option loc * val.
 
@@ -43,7 +43,7 @@ Definition dummy_lock : val := #().
 
 
 Lemma fold_rep_to_val (v: val_rep) :
-  ((#(val_ts v), val_v v, #(val_next v)))%V =
+  ((val_v v, #(val_ts v), #(val_next v)))%V =
   rep_to_val v.
 Proof. done. Qed.
 
@@ -58,7 +58,7 @@ Lemma rep_to_val_inj rep rep' :
 Proof.
   destruct rep as ((?&?)&?).
   destruct rep' as ((?&?)&?).
-  rewrite /rep_to_val/val_ts/val_v/val_next/=.
+  rewrite /rep_to_val/val_v/val_ts/val_next/=.
   intros; congruence.
 Qed.
 

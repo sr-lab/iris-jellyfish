@@ -106,7 +106,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           let: "vp" := nodeVal "curr" in
           let: "val" := !"vp" in
           let: "ts" := valTs "val" in
-            if: "t" ≤ "ts" 
+            if: "t" < "ts" 
             then
               release (nodeLock "pred");;
               NONEV
