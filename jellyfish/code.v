@@ -68,10 +68,10 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "curr" := Snd "pair" in
       let: "ck" := nodeKey "curr" in
         if: "k" = "ck"
-        then NONEV
-        else 
+        then 
           let: "val" := nodeVal "curr" in
-            SOME (Fst "val").
+            SOME (Fst !"val")
+        else NONEV.
 
   (* Link node in lazy list *)
   Definition createAndLink : val := 

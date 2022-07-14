@@ -1,12 +1,13 @@
 From Coq Require Import Sorting.Sorted.
 
 From iris.base_logic.lib Require Import invariants.
-From iris.algebra Require Import auth frac_auth gset.
+From iris.algebra Require Import auth frac_auth gmap gset.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.skip_list.lists Require Import code.
+From SkipList.lib Require Import arg_max.
+From SkipList.jellyfish Require Import code.
 From SkipList.lib Require Import misc node_rep node_lt key_equiv.
-From SkipList.skip_list.lists.inv Require Import list_equiv lazy_inv skip_inv.
+From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 
 
 Local Open Scope Z.
@@ -17,42 +18,45 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N: namespace).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
     
-    Theorem find_bot_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) 
-      (bot: bot_gname) (sub: sub_gname) (P: Z → option loc → iProp Σ) :
+    Theorem find_bot_spec (key: Z) (head curr: node_rep) 
+      (Smap: gmap Z (prodZ Z)) (bot: bot_gname) (sub: sub_gname) :
       {{{ 
-        inv N (lazy_list_inv head sub (Some bot) P)
+        inv (levelN lvl) (lazy_list_inv lvl head bot sub None)
         ∗
-        own (s_frac bot) (◯F Skeys)
+        own (s_frac bot) (◯F Smap)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
-        find (rep_to_node curr) #key
+        find (rep_to_node curr) #key #lvl
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
-        own (s_frac bot) (◯F Skeys)
+        own (s_frac bot) (◯F Smap)
         ∗
         ⌜ node_key pred < key ⌝
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
+        (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
-        ⌜ key ∈ Skeys ↔ node_key succ = key ⌝
+        ⌜ key ∈ dom Smap ↔ node_key succ = key ⌝
       }}}.
     Proof.
       iIntros (Φ) "(#Hinv & Hown_frag & Hown_curr & Hrange) HΦ".
       iRevert (curr) "Hown_frag Hown_curr Hrange HΦ".
       iLöb as "IH".
       iIntros (curr) "Hown_frac_frag #Hown_curr %Hrange HΦ".
-      wp_lam. wp_let. wp_lam. wp_pures.
+      wp_lam. wp_let. wp_let. 
+      wp_lam. wp_pures.
 
-      wp_bind (Load _).
-      iInv N as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
+      wp_bind (Load #(node_next curr +ₗ lvl)).
+      iInv (levelN lvl) as (S ? L) "(Hinv_sub & >Hown_frac)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-      iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
       iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
         as %->%frac_auth_agree_L.
+
+      iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
+      { by apply auth_update_alloc, (gset_local_update S _ S). }
 
       iAssert ⌜ curr = head ∨ In curr L ⌝%I with "[Hown_auth Hown_curr]" as %Hcurr_range.
       {
@@ -81,22 +85,32 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       destruct Htemp as [Lm Hsplit_sep].
 
       destruct Lm as [|next Lm].
-      - rewrite (list_equiv_split curr succ ([head] ++ L)); last first.
+      - rewrite (list_equiv_split lvl curr succ ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as "(Hpt & Himp)".
+        iDestruct "Hlist" as (s) "(Hpt & #Hs & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
-        { iNext; iExists S, Skeys, L; by iFrame. }
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        { iNext; iExists S, Smap, L; by iFrame. }
 
-        iModIntro. wp_let. wp_lam. wp_pures.
+        iModIntro. wp_load. 
+        wp_let. wp_lam. wp_pures.
         case_bool_decide; last lia.
         wp_pures. iApply "HΦ".
         iModIntro; iFrame "# ∗".
 
+        iSplit; first by (iPureIntro; lia).
+        iSplit.
+        { 
+          destruct Hsucc_range as [Hin|Heq]; last by iRight.
+          rewrite -elem_of_list_In in Hin.
+          rewrite Hperm in Hsub.
+          assert (S = S ⋅ {[ succ ]}) as -> by set_solver.
+          iDestruct "Hown_frag" as "(? & ?)"; iLeft; iFrame.
+        }
+
         iPureIntro.
-        split; first lia.
         rewrite -elem_of_elements Hequiv -Hperm. 
         split; intros.
         * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
@@ -146,16 +160,17 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         assert (ε ∪ {[ next ]} = {[ next ]}) as -> by set_solver.
         assert (S ∪ {[ next ]} = S) as -> by set_solver.
 
-        rewrite (list_equiv_split curr next ([head] ++ L)); last first.
+        rewrite (list_equiv_split lvl curr next ([head] ++ L)); last first.
         { rewrite app_ass -Hsplit_sep //. }
-        iDestruct "Hlist" as "(Hpt & Himp)".
+        iDestruct "Hlist" as (n) "(Hpt & #Hn & Himp)".
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
-        { iNext; iExists S, Skeys, L; by iFrame. }
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        { iNext; iExists S, Smap, L; by iFrame. }
 
-        iModIntro. wp_let. wp_lam. wp_pures.
+        iModIntro. wp_load. 
+        wp_let. wp_lam. wp_pures.
         case_bool_decide as Hcase.
         * exfalso.
           assert (node_key next <= node_key pred); last by lia.
@@ -197,15 +212,15 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
     
     Theorem find_sub_spec (key: Z) (head curr: node_rep)
-      (sub: sub_gname) (obot: option bot_gname) (P: Z → option loc → iProp Σ) :
+      (bot: bot_gname) (sub: sub_gname) (obot: option sub_gname) :
       {{{ 
-        inv N (lazy_list_inv head sub obot P)
+        inv (levelN lvl) (lazy_list_inv lvl head bot sub obot)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
       }}}
-        find (rep_to_node curr) #key
+        find (rep_to_node curr) #key #lvl
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
         ⌜ node_key pred < key ≤ node_key succ ⌝
         ∗
@@ -213,18 +228,24 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
-        ∃ (γ: gname), is_lock γ (node_lock pred) (in_lock (node_next pred))
+        ∃ (γ: gname) (h: Z), 
+          ⌜ lvl < h ⌝
+          ∗
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
       }}}.
     Proof.
       iIntros (Φ) "(#Hinv & Hown_curr & Hrange) HΦ".
       iRevert (curr) "Hown_curr Hrange HΦ".
       iLöb as "IH".
       iIntros (curr) "#Hown_curr %Hrange HΦ".
-      wp_lam. wp_let. wp_lam. wp_pures.
+      wp_lam. wp_let. wp_let. 
+      wp_lam. wp_pures.
 
-      wp_bind (Load _).
-      iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      wp_bind (Load #(node_next curr +ₗ lvl)).
+      iInv (levelN lvl) as "Hlazy" "Hclose".
+      iPoseProof (lazy_match_inv lvl head bot sub obot with "Hlazy") as "Hlazy".
+      iDestruct "Hlazy" as (P S Skeys L) "(Hsub & Himp)".
+      iDestruct "Hsub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
       iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
       { by apply auth_update_alloc, (gset_local_update S _ S). }
@@ -240,15 +261,17 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       }
 
       rewrite (list_equiv_invert); last done.
-      iDestruct "Hlist" as (γ succ) "(>%Hsucc_range & Hpt & #Hlock & Himp)".
+      iDestruct "Hlist" as (γ h s succ) "(>%Hsucc_range & Hpt & #Hs & #Hlock & #Hlvl & Himp')".
       rewrite -elem_of_list_In Hperm elem_of_elements in Hsucc_range.
 
       wp_load.
-      iPoseProof ("Himp" with "Hpt") as "Hlist".
-      iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
-      { iNext; iExists S, Skeys, L; by iFrame. }
+      iPoseProof ("Himp'" with "[$]") as "Hlist".
+      iPoseProof ("Himp" with "[Hown_auth Hown_toks Hlist]") as "Hsub".
+      { by iFrame. }
+      iMod ("Hclose" with "[$]") as "_".
 
-      iModIntro. wp_let. wp_lam. wp_pures.
+      iModIntro. wp_load.
+      wp_let. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
       - wp_pures. iApply "HΦ".
         iModIntro; iFrame "#".
@@ -261,7 +284,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           iDestruct "Hown_frag" as "(? & ?)"; iLeft; iFrame.
         }
 
-        iExists γ. by iFrame "#".
+        iExists γ, h. iFrame "#".
       - iApply ("IH" $! succ with "[Hown_frag] [%]").
         {
           iRight.
@@ -278,15 +301,17 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem findLock_spec (key: Z) (head curr: node_rep)
-      (sub: sub_gname) (obot: option bot_gname) (P: Z → option loc → iProp Σ) :
+      (bot: bot_gname) (sub: sub_gname) (obot: option sub_gname) :
       {{{ 
-        inv N (lazy_list_inv head sub obot P)
+        inv (levelN lvl) (lazy_list_inv lvl head bot sub obot)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < key < INT_MAX ⌝
+        ∗
+        ⌜ 0 ≤ lvl ⌝ 
       }}}
-        findLock (rep_to_node curr) #key
+        findLock (rep_to_node curr) #key #lvl
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
         ⌜ node_key pred < key ≤ node_key succ ⌝
         ∗
@@ -294,34 +319,54 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (own (s_auth sub) (◯ {[ succ ]}) ∨ ⌜ succ = tail ⌝)
         ∗
-        ∃ (γ: gname), is_lock γ (node_lock pred) (in_lock (node_next pred))
-                      ∗
-                      node_next pred ↦{#1 / 2} (rep_to_node succ)
-                      ∗
-                      locked γ
+        ∃ (γ: gname) (h: Z) (s: loc), 
+          ⌜ lvl < h ⌝
+          ∗
+          is_lock γ (node_lock pred) (is_array (node_next pred) h)
+          ∗
+          is_array (node_next pred) lvl
+          ∗
+          (node_next pred +ₗ lvl) ↦{#1 / 2} #s
+          ∗
+          s ↦□ rep_to_node succ
+          ∗
+          is_array (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)
+          ∗
+          locked γ
       }}}.
     Proof.
-      iIntros (Φ) "(#Hinv & Hown_curr & Hrange) HΦ".
-      iRevert (curr) "Hown_curr Hrange".
+      iIntros (Φ) "(#Hinv & Hown_curr & Hrange & Hlvl) HΦ".
+      iRevert (curr) "Hown_curr Hrange Hlvl".
       iLöb as "IH". 
-      iIntros (curr) "#Hown_curr %Hrange".
+      iIntros (curr) "#Hown_curr %Hrange %Hlvl".
       
-      wp_lam. wp_let.
+      wp_lam. wp_let. wp_let.
       wp_apply (find_sub_spec with "[Hown_curr]").
       { by iFrame "#". }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ) "#Hlock".
+      iDestruct "Hlock" as (γ h) "(%Hh & #Hlock)".
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (acquire _).
       iApply (acquire_spec with "Hlock").
-      iNext; iIntros "(Hlocked & Hnode)".
-      iDestruct "Hnode" as (rep) "Hnode".
-      wp_pures. wp_lam. wp_pures.
+      iNext; iIntros "(Hlocked & Harray)".
+      iDestruct "Harray" as (vs) "(Hnext & %Hlength)".
 
-      wp_bind (Load _).
-      iInv N as (S Skeys L) "(Hinv_sub & Hmatch)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      pose proof (list_split vs (Z.to_nat (h - 1)) (Z.to_nat lvl)) as Hsplit.
+      destruct Hsplit as [next Hsplit]; try lia.
+      destruct Hsplit as [vs1 Hsplit]; destruct Hsplit as [vs2 Hsplit].
+      destruct Hsplit as [Hvs Hsplit]; destruct Hsplit as [Hlength1 Hlength2].
+
+      rewrite Hvs array_app array_cons Hlength1.
+      assert (lvl = Z.to_nat lvl) as <- by lia.
+      iDestruct "Hnext" as "(Hnext1 & Hnext & Hnext2)".
+
+      wp_pures. wp_lam. wp_pures.
+      wp_bind (Load #(node_next pred +ₗ lvl)).
+      iInv (levelN lvl) as "Hlazy" "Hclose".
+      iPoseProof (lazy_match_inv lvl head bot sub obot with "Hlazy") as "Hlazy".
+      iDestruct "Hlazy" as (P S Skeys L) "(Hsub & Himp)".
+      iDestruct "Hsub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert (⌜ pred = head ∨ In pred L ⌝ ∗ ⌜ In succ L ∨ succ = tail ⌝)%I
         with "[Hown_auth Hown_pred Hown_succ]" as "(%Hpred_range & %Hsucc_range)".
@@ -341,20 +386,30 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           set_solver.
       }
 
-      rewrite (list_equiv_invert L head pred); last done.
-      iDestruct "Hlist" as (γ' succ') "(>%Hsucc'_in_L & >Hpt & _ & Himp)".
-      iDestruct (mapsto_agree with "Hnode Hpt") as %Hsucc%rep_to_node_inj; subst.
+      rewrite (list_equiv_invert lvl L head pred); last done.
+      iDestruct "Hlist" as (γ' h' s' succ') "(>%Hsucc'_in_L & >Hpt & #Hs' & _ & #Hlvl' & Himp')".
+      iDestruct (mapsto_agree with "Hnext Hpt") as %->.
 
       wp_load.
-      iPoseProof ("Himp" with "Hpt") as "Hlist".
-      iMod ("Hclose" with "[Hmatch Hlist Hown_auth Hown_toks]") as "_".
-      { iNext; iExists S, Skeys, L; by iFrame. }
+      iPoseProof ("Himp'" with "[$]") as "Hlist".
+      iPoseProof ("Himp" with "[Hown_auth Hown_toks Hlist]") as "Hsub".
+      { by iFrame. }
+      iMod ("Hclose" with "[$]") as "_".
 
-      iModIntro. wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
+      iModIntro. wp_load.
+      wp_let. wp_lam. wp_pures. wp_lam. wp_pures.
       case_bool_decide as Heq; wp_if.
       + iModIntro; iApply "HΦ".
         iFrame "# ∗".
-        iSplit; first done. iExists γ.
+        iSplit; first done. iExists γ, h, s'.
+
+        iAssert (is_array (node_next pred) lvl) 
+          with "[Hnext1]" as "Harray1".
+        { iExists vs1; by iFrame. }
+        iAssert (is_array (node_next pred +ₗ lvl +ₗ 1) (h - 1 - lvl)) 
+          with "[Hnext2]" as "Harray2".
+        { iExists vs2; iFrame; iPureIntro; lia. }
+
         assert (succ = succ') as <-; last by iFrame "# ∗".
         apply (sorted_node_key_unique (L ++ [tail])).
         - apply node_rep_sorted_app in Hsort; by destruct Hsort.
@@ -362,11 +417,19 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         - by rewrite in_inv_rev. 
         - congruence.
       + wp_lam. wp_pures.
-        wp_apply (release_spec with "[Hnode Hlocked]").
+
+        iCombine "Hnext1 Hnext Hnext2" as "Hnext".
+        assert (lvl = Z.to_nat lvl) as -> by lia.
+        rewrite -Hlength1 -array_cons -array_app -Hvs.
+        iAssert (is_array (node_next pred) h) 
+          with "[Hnext]" as "Harray".
+        { iExists vs; by iFrame. }
+
+        wp_apply (release_spec with "[Harray Hlocked]").
         { iFrame "# ∗"; iExists succ'; iFrame. }
         iIntros. wp_pures.
-        iApply ("IH" with "HΦ").
-        iFrame "#". iPureIntro; lia.
+        iApply ("IH" with "HΦ"). iFrame "#". 
+        all: iPureIntro; lia.
     Qed.
 
   End Proofs.

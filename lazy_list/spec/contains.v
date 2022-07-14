@@ -47,7 +47,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
       iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
         as %->%frac_auth_agree_L.
 
-      iAssert ((⌜ curr = head ∨ In curr L ⌝)%I) with "[Hown_auth Hown_curr]" as %Hcurr_range.
+      iAssert ⌜ curr = head ∨ In curr L ⌝%I with "[Hown_auth Hown_curr]" as %Hcurr_range.
       {
         iDestruct "Hown_curr" as "[Heq|Hown]"; first by iLeft.
         iDestruct (own_valid_2 with "Hown_auth Hown") 
@@ -57,14 +57,14 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
         set_solver.
       }
 
-      edestruct (in_split curr ([head] ++ L)) 
-        as (Ls&Lf&Hcurr).
+      edestruct (in_cons_split curr head L) 
+        as (Ls&Lf&(Hcurr&Hsub)).
       { rewrite in_inv //. }
 
       edestruct (node_rep_split_join Lf curr tail key) 
-        as (pred&succ&L1&L2&?&?&Hsplit_join); auto.
+        as (pred&succ&L1&L2&?&?&Hpred_range&Hsucc_range&Hsplit_join); auto.
       {
-        rewrite -app_ass Hcurr app_ass in Hsort.
+        rewrite /= app_comm_cons Hcurr app_ass in Hsort.
         apply node_rep_sorted_app in Hsort.
         simpl in *. by destruct Hsort as [_ ?].
       }
@@ -92,28 +92,25 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
         rewrite -elem_of_elements Hequiv -Hperm.
         split; intros.
         * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
-          ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr app_ass.
-          ++ assert (In key (map node_key ([head] ++ L ++ [tail]))) as Hin.
-              { rewrite -app_ass map_app in_app_iff; left; right. 
-                by apply elem_of_list_In. }
-              rewrite -app_ass Hcurr app_ass in Hin.
-              by rewrite app_ass -Hsplit_join.
+          ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr -app_comm_cons.
+          ++ assert (In key (map node_key (head :: L ++ [tail]))) as Hin.
+             { 
+               right. 
+               rewrite map_app in_app_iff -elem_of_list_In. 
+               by left.
+             }        
+             rewrite app_comm_cons Hcurr app_ass in Hin.
+             by rewrite app_ass -Hsplit_join.
         * rewrite elem_of_list_In in_map_iff. exists succ; split; auto.
-          cut (In succ Lf).
-          { destruct Ls; inversion Hcurr; subst; auto.
-            intros; by rewrite in_app_iff; right; right. }
+          assert (In succ Lf).
+          { 
+            rewrite -in_inv_rev /tail ?in_app_iff in Hsucc_range.
+            destruct Hsucc_range as [|[|[]]]; auto; subst. 
+            rewrite /node_key /= in Hrange; lia. 
+          }
 
-          cut (In succ (Lf ++ [tail])).
-          { rewrite /tail ?in_app_iff.
-            intros [|[|[]]]; auto; subst. 
-            rewrite /node_key /= in Hrange; lia. }
-
-          destruct L1.
-          ++ rewrite //= in Hsplit_join. 
-              inversion Hsplit_join as [[Heq1 Heq2]]; subst.
-              by rewrite Heq2; left.
-          ++ inversion Hsplit_join as [[Heq1 Heq2]]; subst.
-              by rewrite Heq2 in_app_iff; right; right; left.
+          destruct Ls; inversion Hcurr; subst; auto.
+          intros; by rewrite in_app_iff; right; right.
       - assert (next ∈ S).
         {
           rewrite -elem_of_elements -Hperm elem_of_list_In.
@@ -160,7 +157,7 @@ Module ContainsSpec (Params: LAZY_LIST_PARAMS).
             symmetry in Hsplit_sep.
             rewrite Hsplit_sep //= in Hsort.
             rewrite //= app_comm_cons in Hsplit_join.
-            rewrite -app_ass Hcurr app_ass Hsplit_join //= in Hsplit_sep.
+            rewrite //= app_comm_cons Hcurr app_ass Hsplit_join in Hsplit_sep.
             apply sorted_node_lt_no_dup in Hsort.
 
             destruct Lm as [|next' Lm] using rev_ind.

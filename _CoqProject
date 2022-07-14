@@ -39,3 +39,9 @@ skip_list/arrays/spec/add.v
 skip_list/arrays/client.v
 
 jellyfish/code.v
+jellyfish/inv/list_equiv.v
+jellyfish/inv/lazy_inv.v
+jellyfish/inv/skip_inv.v
+jellyfish/spec/new.v
+jellyfish/spec/find.v
+jellyfish/spec/get.v

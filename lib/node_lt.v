@@ -65,12 +65,31 @@ Proof.
   induction 1; econstructor; eauto.
 Qed.
 
+Lemma in_cons_split : forall (x y: node_rep) (l:list node_rep), 
+  In x (y::l) -> exists l1 l2, y::l = l1++x::l2 ∧ l2 ⊆ l.
+Proof.
+  intros x y l. revert y.
+  induction l; simpl. 
+  + intros y [Heq|Hfalse]; last inversion Hfalse.
+    exists nil, nil; rewrite Heq; auto.
+  + intros y [Heq|[Heq|Hin]]; subst.
+    - exists nil, (a::l). auto. 
+    - exists [y], l. split; first auto.
+      by apply list_subseteq_cons.
+    - destruct (IHl a) as [l1 [l2 [Heq Hsub]]]; first by right.
+      exists (y::l1), l2; split.
+      * rewrite Heq //.
+      * by apply list_subseteq_cons. 
+Qed.
+
 Lemma node_rep_split_join (L: list node_rep) (head tail: node_rep) (k: Z):
   node_key head < k < node_key tail →
   Sorted node_lt ([head] ++ L ++ [tail]) →
   ∃ (pred succ: node_rep) (L1 L2: list node_rep),
     node_key pred < k ≤ node_key succ ∧
     node_key succ ≤ node_key tail ∧
+    (pred = head ∨ In pred L) ∧
+    (In succ L ∨ succ = tail) ∧
     [head] ++ L ++ [tail] = L1 ++ [pred; succ] ++ L2.
 Proof.
   revert head.
@@ -81,10 +100,13 @@ Proof.
     apply node_rep_sorted_app in Hsort as [_ Hsort].
     rewrite -app_comm_cons in Hsort.
     destruct (Z_lt_dec (node_key curr) k).
-    - edestruct IHL as (pred&succ&L1&L2&Hrange&Hmax&Heq); eauto.
+    - edestruct IHL as (pred&succ&L1&L2&Hrange&Hmax&Hpred&Hsucc&Heq); eauto.
       destruct Hrange.
       exists pred, succ, (head :: L1), L2.
-      split_and!; eauto. simpl in *. rewrite Heq. auto.
+      split_and!; eauto. 
+      * destruct Hpred; first (by right; left); last (by right; right).
+      * destruct Hsucc; first (by left; right); last (by right).
+      * simpl in *; rewrite Heq; auto.
     - exists head, curr, nil, (L ++ [tail]).
       split_and!; eauto; first lia.
       apply Sorted_StronglySorted in Hsort; last first.
@@ -94,6 +116,7 @@ Proof.
       destruct Hall as [_ Hall].
       inversion Hall as [|? ? Hfalse]; subst.
       rewrite /node_lt in Hfalse; lia.
+      by left; left.
 Qed.
 
 Lemma node_rep_split_sep (L Li Lf L1 Le: list node_rep) 
