@@ -7,81 +7,104 @@ Local Open Scope Z.
 Section arg_max.
   Context `{Countable V}.
 
-  Definition prodZ (V: Type) `{Countable V} : Type := gset V * Z.
-  Canonical Structure prodZ0 := leibnizO (prodZ V).
+  Inductive argmax :=
+  | prodZ : gset V → Z → argmax
+  | botZ : argmax.
 
-  Definition arg_max (n m: prodZ V) : prodZ V :=
-    if (decide (n.2 = m.2)) then (n.1 ∪ m.1, n.2)
-    else if (decide (n.2 < m.2)) then m else n.
+  Canonical Structure argmax0 := leibnizO argmax.
+
+  Definition arg_max (m n: argmax) : argmax :=
+    match m, n with
+    | prodZ a i, prodZ b j => if (decide (i = j)) then prodZ (a ∪ b) i
+                              else if (decide (i < j)) then n else m
+    | botZ, _ => n
+    | _, botZ => m
+    end.
 
   Lemma arg_max_id :
-    ∀ n : prodZ V, arg_max n n = n.
+    ∀ m : argmax, arg_max m m = m.
   Proof.
-    intros (n1&n2).
-    unfold arg_max; simpl.
-    destruct (decide (n2 = n2));
-    destruct (decide (n2 < n2));
-    try done;
-    by assert (n1 ∪ n1 = n1) as -> by set_solver.
+    intros m.
+    destruct m as [a i|].
+    + rewrite /arg_max.
+      destruct (decide (i = i)); last done.
+      by assert (a ∪ a = a) as -> by set_solver.
+    + rewrite /arg_max //.
   Qed.
 
   Lemma arg_max_comm :
-    ∀ m n : prodZ V, arg_max m n = arg_max n m.
+    ∀ m n : argmax, arg_max m n = arg_max n m.
   Proof.
-    intros (m1&m2) (n1&n2).
-    unfold arg_max; simpl.
-    destruct (decide (m2 = n2)); simpl;
-    destruct (decide (n2 = m2)); simpl;
-    try congruence;
-    destruct (decide (m2 < n2));
-    destruct (decide (n2 < m2)); 
-    try lia; try congruence; subst.
-    by assert (m1 ∪ n1 = n1 ∪ m1) as -> by set_solver.
+    intros m n.
+    destruct m as [a i|]; destruct n as [b j|]; rewrite /arg_max //.
+
+    destruct (decide (i = j)); simpl;
+    destruct (decide (j = i)); simpl;
+    try congruence; subst.
+    { rewrite comm_L //. }
+
+    destruct (decide (i < j));
+    destruct (decide (j < i));
+    try lia; done.
   Qed.
 
   Lemma arg_max_assoc :
-    ∀ m n p : prodZ V, arg_max m (arg_max n p) = arg_max (arg_max m n) p.
+    ∀ m n p : argmax, arg_max m (arg_max n p) = arg_max (arg_max m n) p.
   Proof.
-    intros (m1&m2) (n1&n2) (p1&p2). 
-    unfold arg_max; simpl.
-    destruct (decide (n2 = p2));
-    destruct (decide (n2 < p2)); simpl;
-    destruct (decide (m2 = n2));
-    destruct (decide (m2 < n2)); simpl;
-    destruct (decide (m2 = p2));
-    destruct (decide (m2 < p2)); simpl;
-    destruct (decide (n2 = p2));
-    destruct (decide (n2 < p2)); simpl;
-    try done; try lia.
-    by assert (m1 ∪ (n1 ∪ p1) = m1 ∪ n1 ∪ p1) as -> by set_solver.
+    intros m n p.
+    destruct m as [a i|]; 
+    destruct n as [b j|]; 
+    destruct p as [c k|]; 
+    rewrite /arg_max //.
+
+    + destruct (decide (j = k)) eqn: Hjk;
+      destruct (decide (i = j)) eqn:Hij; 
+      destruct (decide (i = k)) eqn:Hik;
+      try congruence;
+      destruct (decide (j < k)) eqn: Hjk';
+      destruct (decide (i < j)); 
+      destruct (decide (i < k));
+      try lia; 
+      rewrite ?Hjk ?Hij ?Hik ?Hjk' //.
+      rewrite assoc_L //.
+    + destruct (decide (i = j));
+      destruct (decide (i < j));
+      done.
   Qed.
 End arg_max.
+Global Arguments argmax _ {_ _}.
 
 Section cmra.
   Context `{Countable V}.
 
-  Local Instance arg_max_valid_instance : Valid (prodZ V) := λ _, True.
-  Local Instance arg_max_pcore_instance : PCore (prodZ V) := Some.
-  Local Instance arg_max_op_instance : Op (prodZ V) := λ n m, arg_max n m.
+  Local Instance gmap_unit_instance : Unit (argmax V) := botZ.
+  Local Instance arg_max_valid_instance : Valid (argmax V) := λ _, True.
+  Local Instance arg_max_validN_instance : ValidN (argmax V) := λ _ _, True.
+  Local Instance arg_max_pcore_instance : PCore (argmax V) := Some.
+  Local Instance arg_max_op_instance : Op (argmax V) := λ n m, arg_max n m.
   Definition arg_max_op x y : x ⋅ y = arg_max x y := eq_refl.
 
-  Lemma arg_max_ra_mixin : RAMixin (prodZ V).
+  Lemma arg_max_ra_mixin : RAMixin (argmax V).
   Proof.
     apply ra_total_mixin; apply _ || eauto.
-    - intros x y z. repeat rewrite arg_max_op.
+    + intros x y z. repeat rewrite arg_max_op.
       rewrite arg_max_assoc //.
-    - intros x y. by rewrite arg_max_op arg_max_comm.
-    - intros x. by rewrite arg_max_op arg_max_id.
+    + intros x y. by rewrite arg_max_op arg_max_comm.
+    + intros x. by rewrite arg_max_op arg_max_id.
   Qed.
-  Canonical Structure arg_maxR : cmra := discreteR (prodZ V) arg_max_ra_mixin.
+  Canonical Structure arg_maxR : cmra := discreteR (argmax V) arg_max_ra_mixin.
 
   Global Instance arg_max_cmra_discrete : CmraDiscrete arg_maxR.
   Proof. apply discrete_cmra_discrete. Qed.
 
-  Global Instance arg_max_core_id (x : prodZ V) : CoreId x.
+  Lemma arg_max_ucmra_mixin : UcmraMixin (argmax V).
+  Proof. split; try apply _ || done. Qed.
+  Canonical Structure arg_maxUR : ucmra := Ucmra (argmax V) arg_max_ucmra_mixin.
+
+  Global Instance arg_max_core_id (x : argmax V) : CoreId x.
   Proof. by constructor. Qed.
 
-  Lemma arg_max_included (x y: prodZ V) : x ≼ y ↔ arg_max x y = y.
+  Lemma arg_max_included (x y: argmax V) : x ≼ y ↔ arg_max x y = y.
   Proof.
     split.
     - intros [z ->].
@@ -89,51 +112,39 @@ Section cmra.
     - by exists y.
   Qed.
 
-  Lemma arg_max_eq (x y: prodZ V) :
-    x.2 < y.2 → x ⋅ y = y.
+  Lemma arg_max_lt (a b : gset V) (i j : Z)  :
+    i < j → prodZ a i ⋅ prodZ b j = prodZ b j.
   Proof.
-    intros. rewrite arg_max_op.
-    destruct x as [x1 x2]; destruct y as [y1 y2].
-    unfold arg_max; simpl in *.
-    destruct (decide (x2 = y2)); first lia.
-    destruct (decide (x2 < y2)); last lia.
+    intros. rewrite arg_max_op /arg_max.
+    destruct (decide (i = j)); first lia.
+    destruct (decide (i < j)); last lia.
     done.
   Qed.
 
-  Lemma arg_max_frame (x y z: prodZ V) :
-     x ≼ z → y ≼ z → (z,z) = (z ⋅ x,z ⋅ y).
+  Lemma arg_max_eq (a b : gset V) (i : Z) :
+    prodZ a i ⋅ prodZ b i = prodZ (a ∪ b) i.
   Proof.
-    repeat rewrite arg_max_included arg_max_op.
-    intros Hxz Hyz.
-    rewrite arg_max_comm in Hxz.
-    rewrite arg_max_comm in Hyz.
-    rewrite Hxz Hyz //.
+    rewrite arg_max_op /arg_max.
+    by destruct (decide (i = i)).
   Qed.
 
-  Lemma arg_max_local_update (x y z : prodZ V) :
-    x ⋅ z = z → (x,y) ~l~> (z,z).
+  Lemma arg_max_bot (m : argmax V) :
+    m ⋅ botZ = m.
   Proof.
-    intros Hxz.
-    apply local_update_valid.
-    intros _ _ [Heq | Hyx].
-    + rewrite -Heq -Hxz comm.
-      by apply op_local_update_discrete.
-    + rewrite -arg_max_included in Hxz.
-      rewrite (arg_max_frame x y z).
-      - apply op_local_update_discrete. done.
-      - done.
-      - rewrite arg_max_included.
-        rewrite arg_max_included in Hyx.
-        rewrite arg_max_included in Hxz.
-        rewrite -Hxz arg_max_assoc Hyx //.
+    rewrite arg_max_op /arg_max.
+    by destruct m.
   Qed.
 
-  Global Instance : IdemP (=@{prodZ V}) (⋅).
+  Lemma arg_max_local_update (x y z : argmax V) :
+    (x,y) ~l~> (z ⋅ x,z ⋅ y).
+  Proof. by apply op_local_update. Qed.
+
+  Global Instance : IdemP (=@{argmax V}) (⋅).
   Proof. intros x. rewrite arg_max_op arg_max_id //. Qed.
 
-  Global Instance arg_max_is_op (x y : prodZ V) :
+  Global Instance arg_max_is_op (x y : argmax V) :
     IsOp (x ⋅ y) x y.
   Proof. done. Qed.
 End cmra.
-
 Global Arguments arg_maxR _ {_ _}.
+Global Arguments arg_maxUR _ {_ _}.

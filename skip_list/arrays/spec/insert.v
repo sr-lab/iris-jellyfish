@@ -78,7 +78,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hkey_range; lia. }
 
-        wp_lam. wp_bind (Snd _).
+        wp_lam. wp_bind (Fst _).
         iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
         iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
@@ -96,7 +96,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_proj.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
         { iNext; iExists S', Skeys', L; by iFrame. }
-        iModIntro.
+        iModIntro. wp_proj.
 
         wp_apply (release_spec with "[Hlock Hpt Harray Hlocked]").
         { 

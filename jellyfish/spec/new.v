@@ -18,34 +18,50 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem array_inv (lvl: Z) (head: node_rep) (t: loc)
-      (bot: bot_gname) (subs: list sub_gname) (γ: gname):
-      skip_list_equiv lvl head ∅ 1 bot subs
-      ∗
-      is_lock γ (node_lock head) (is_array (node_next head) (MAX_HEIGHT + 1))
-      ∗
-      t ↦□ rep_to_node tail
-      ∗
-      (node_next head +ₗ lvl +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat (MAX_HEIGHT - lvl)) #t 
-      ∗
-      ⌜ 0 ≤ lvl ≤ MAX_HEIGHT ⌝ 
-      ∗
-      ⌜ node_key head = INT_MIN ⌝ 
-      ={⊤}=∗
-        ∃ (subs: list sub_gname), 
-          skip_list_equiv MAX_HEIGHT head ∅ 1 bot subs.
+    Theorem initLocks_spec (lvl: Z) (head: node_rep) (t: loc)
+      (bot: bot_gname) (subs: list sub_gname) :
+      {{{
+        skip_list_equiv (lvl - 1) head ∅ 1 bot subs
+        ∗
+        t ↦□ rep_to_node tail
+        ∗
+        (node_next head +ₗ lvl) ↦∗ replicate (Z.to_nat (MAX_HEIGHT + 1 - lvl)) #t
+        ∗
+        (node_locks head +ₗ lvl) ↦∗ replicate (Z.to_nat (MAX_HEIGHT + 1 - lvl)) #()
+        ∗
+        ⌜ 1 ≤ lvl ≤ MAX_HEIGHT + 1 ⌝ 
+        ∗
+        ⌜ node_key head = INT_MIN ⌝ 
+      }}}
+        initLocks #(node_locks head) #lvl
+      {{{ subs, RET #();
+        skip_list_equiv MAX_HEIGHT head ∅ 1 bot subs
+      }}}.
     Proof.
-      remember (Z.to_nat (MAX_HEIGHT - lvl)) as diff eqn:Hdiff.
-      iRevert (lvl subs Hdiff).
-      iInduction diff as [|d] "IHdiff";
-        iIntros (lvl subs Hdiff) "(Hlist & #Hlock & #Ht & Hnext & %Hmax & %Hmin)".
+      iIntros (Φ) "(Hskip & #Ht & Hnext & Hlocks & Hlvl & %Hmin) HΦ".
+      iRevert (lvl subs) "Hskip Hnext Hlocks Hlvl HΦ".
+      iLöb as "IH".
+      iIntros (lvl subs) "Hskip Hnext Hlocks %Hlvl HΦ".
 
-      + assert (lvl = MAX_HEIGHT) as -> by lia.
-        iModIntro. iExists subs. iFrame.
-      + destruct subs as [| top_sub bot_subs]; first by iExFalso.
+      wp_lam. wp_let. wp_pures.
+      case_bool_decide as Hcase; wp_if.
+      + iModIntro; iApply ("HΦ" $! subs).
+        inversion Hcase; subst.
+        by assert (MAX_HEIGHT + 1 - 1 = MAX_HEIGHT) as -> by lia.
+      + assert (lvl ≠ MAX_HEIGHT + 1) as Hneq by congruence.
+        destruct subs as [| top_sub bot_subs]; first by iExFalso.
 
-        rewrite replicate_S array_cons.
-        iDestruct "Hnext" as "(Hnext' & Hnext)".
+        assert (Z.to_nat (MAX_HEIGHT + 1 - lvl) = S (Z.to_nat (MAX_HEIGHT - lvl))) as -> by lia.
+        repeat rewrite replicate_S array_cons.
+        iDestruct "Hlocks" as "(Hl & Hlocks)".
+        iDestruct "Hnext" as "((Hnext' & Hnext'') & Hnext)".
+
+        wp_apply (newlock_spec (in_lock lvl (Some top_sub) head) with "[Hnext'']").
+        { iExists t, tail; iFrame "# ∗". }
+        iIntros (l γ) "#Hlock".
+
+        wp_store. wp_pures.
+        iMod (mapsto_persist with "Hl") as "#Hl".
 
         iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
           as (γauth) "[Hown_auth _]"; 
@@ -55,7 +71,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         assert (node_key_range = node_key_range ∖ ∅) as -> by set_solver.
 
         set (sub := mk_sub_gname γauth γtoks).
-        iMod (inv_alloc (levelN (lvl + 1)) ⊤ (lazy_list_inv (lvl + 1) head bot sub (Some top_sub)) 
+        iMod (inv_alloc (levelN lvl) ⊤ (lazy_list_inv lvl head bot sub (Some top_sub)) 
           with "[Hnext' Hown_auth Hown_toks]") as "Hinv".
         {
           iNext; iExists ∅, ∅, nil. 
@@ -68,24 +84,25 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_lt /node_key Hmin /=; apply HMIN_MAX.
           }
           iSplit; first rewrite /key_equiv //.
-          iExists γ, (MAX_HEIGHT + 1), t.
-          rewrite -loc_add_assoc.
-          iFrame "# ∗".
-          iPureIntro; lia.
+          iExists γ, l, t; iFrame "# ∗".
         }
 
-        iApply ("IHdiff" $! (lvl + 1) (sub :: top_sub :: bot_subs) with "[%]").
+        iApply ("IH" $! _ (sub :: top_sub :: bot_subs) with "[Hskip Hinv] [Hnext] [Hlocks] [%]").
+        {
+          assert (lvl + 1 - 1 = lvl) as -> by lia.
+          iFrame. iPureIntro; lia.
+        }
+        {
+          assert (MAX_HEIGHT + 1 - (lvl + 1) = MAX_HEIGHT - lvl) as -> by lia.
+          rewrite -loc_add_assoc //.
+        }
+        {
+          assert (MAX_HEIGHT + 1 - (lvl + 1) = MAX_HEIGHT - lvl) as -> by lia.
+          rewrite -loc_add_assoc //.
+        }
         { lia. }
 
-        iSplitL "Hinv Hlist".
-        {
-          rewrite /skip_list_equiv.
-          assert (lvl + 1 - 1 = lvl) as -> by lia.
-          iFrame "# ∗". iPureIntro; lia.
-        }
-
-        rewrite -loc_add_assoc. iFrame "# ∗". 
-        iPureIntro; lia.
+        iNext; done.
     Qed.
 
     Theorem new_spec : 
@@ -94,45 +111,53 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       {{{ v bot subs, RET v; is_skip_list v ∅ 1 bot subs }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
+      pose proof HMAX_HEIGHT as Hmax.
 
       wp_lam. wp_alloc t as "Ht". wp_let.
       iMod (mapsto_persist with "Ht") as "#Ht".
 
-      wp_alloc next as "Hnext".
-      { pose proof HMAX_HEIGHT; lia. } 
-      wp_let. iDestruct "Hnext" as "(Hnext' & Hnext)".
+      wp_alloc next as "Hnext"; first lia. wp_let.
+      wp_alloc locks as "Hlocks"; first lia. wp_let.
 
-      wp_apply (newlock_spec (is_array next (MAX_HEIGHT + 1)) with "[Hnext']").
+      assert (Z.to_nat (MAX_HEIGHT + 1) = S (Z.to_nat MAX_HEIGHT)) as -> by lia.
+      rewrite replicate_S ?array_cons.
+      iDestruct "Hnext" as "((Hn & Hn') & Hnext)".
+      iDestruct "Hlocks" as "(Hlocks' & Hlocks)".
+
+      wp_lam. wp_let. wp_pures.
+      case_bool_decide as Hcase; first (inversion Hcase; lia).
+      wp_if.
+
+      set (head := (INT_MIN, dummy_null, next, @None loc, dummy_lock, locks)).
+      wp_apply (newlock_spec (in_lock 0 None head) with "[Hn']").
       { 
-        iExists (replicate (Z.to_nat (MAX_HEIGHT + 1)) #t); iFrame.
-        rewrite replicate_length //.
+        iExists t, tail; rewrite loc_add_0. 
+        iFrame "# ∗"; by iLeft.
       }
       iIntros (l γ) "#Hlock".
 
-      assert (Z.to_nat (MAX_HEIGHT + 1) = S (Z.to_nat MAX_HEIGHT)) as ->.
-      { pose proof HMAX_HEIGHT; lia. } 
-      rewrite replicate_S array_cons.
-      iDestruct "Hnext" as "(Hnext' & Hnext)".
-
-      wp_pures.
-      rewrite (fold_rep_to_node (INT_MIN, dummy_null, next, None, l)).
-      set (head := (INT_MIN, dummy_null, next, None, l)).
+      wp_pures; rewrite loc_add_0.
+      wp_store; iMod (mapsto_persist with "Hlocks'") as "#Hl".
+      wp_pures; assert (0 + 1 = 1) as -> by lia.
 
       iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
-        as (γauth) "[Hown_auth Hown_auth_frag]"; 
+        as (γauth) "[Hown_auth _]"; 
         first by apply auth_both_valid.
       iMod (own_alloc (GSet node_key_range))
         as (γtoks) "Hown_toks"; 
         first done.
-      iMod (own_alloc (●F (∅ : gmap Z (prodZ Z)) ⋅ ◯F (∅: gmap Z (prodZ Z))))
+      iMod (own_alloc (●F (∅ : gmap Z (argmax Z)) ⋅ ◯F (∅: gmap Z (argmax Z))))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
-      assert (node_key_range = node_key_range ∖ dom (∅: gmap Z (prodZ Z))) as -> by set_solver.
+      iMod (own_alloc (GSet node_key_range))
+        as (γkeys) "Hown_keys"; 
+        first done.
+      assert (node_key_range = node_key_range ∖ dom (∅: gmap Z (argmax Z))) as -> by set_solver.
 
       set (sub := mk_sub_gname γauth γtoks).
-      set (bot := mk_bot_gname γfrac).
+      set (bot := mk_bot_gname γfrac γkeys).
       iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv 0 head bot sub None) 
-        with "[Hnext' Hown_auth Hown_toks Hown_frac]") as "Hinv".
+        with "[Hn Hown_auth Hown_toks Hown_frac Hown_keys]") as "Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit.
@@ -141,25 +166,26 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
         iSplit; first rewrite /key_equiv //.
-        iExists γ, (MAX_HEIGHT + 1), t.
-        rewrite loc_add_0.
-        iFrame "# ∗". iPureIntro.
-        pose proof HMAX_HEIGHT; lia.
+
+        iExists γ, l, t.
+        repeat rewrite loc_add_0.
+        iFrame "# ∗".
       }
 
       iAssert (skip_list_equiv 0 head ∅ 1 bot [sub]) 
         with "[Hinv Hown_frac_frag]" as "Hskip".
       { by iFrame. }
 
-      iPoseProof (array_inv 0 head t bot [sub] γ with "[Hskip Hlock Hnext]") as "Hskip".
+      assert (locks = node_locks head) as Hlocks by auto; rewrite Hlocks.
+      wp_apply (initLocks_spec 1 head t with "[Hskip Hlocks Hnext]").
       {
-        rewrite loc_add_0.
-        assert (MAX_HEIGHT - 0 = MAX_HEIGHT) as -> by lia.
+        assert (MAX_HEIGHT + 1 - 1 = MAX_HEIGHT) as -> by lia.
+        assert (1 - 1 = 0) as -> by lia.
         iFrame "# ∗". iPureIntro.
-        split; last done.
-        pose proof HMAX_HEIGHT; lia.
+        by split; first lia.
       }
-      iMod "Hskip" as (subs) "Hskip".
+      iIntros (subs) "Hskip". wp_pures.
+      rewrite (fold_rep_to_node head).
 
       wp_alloc h as "Hh".
       iModIntro; iApply ("HΦ" $! _ bot subs).

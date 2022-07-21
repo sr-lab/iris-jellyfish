@@ -1,11 +1,12 @@
 From iris.base_logic.lib Require Import invariants.
-From iris.algebra Require Import auth frac_auth gset.
+From iris.algebra Require Import auth frac_auth gset gmap.
 From iris.heap_lang Require Import proofmode.
 
-From SkipList.skip_list.arrays Require Import code.
+From SkipList.lib Require Import arg_max.
+From SkipList.jellyfish Require Import code.
 From SkipList.lib Require Import misc node_rep node_lt key_equiv.
-From SkipList.skip_list.arrays.inv Require Import list_equiv lazy_inv skip_inv.
-From SkipList.skip_list.arrays.spec Require Import find.
+From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
+From SkipList.jellyfish.spec Require Import find.
 
 
 Local Open Scope Z.
@@ -16,14 +17,14 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Export Find.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
+    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Theorem createAndLink_spec (key h: Z) (head pred succ: node_rep) 
-      (Skeys: gset Z) (q: frac)
+    Theorem createAndLink_spec (key v ts h: Z) (head pred succ: node_rep) 
+      (Smap: gmap Z (argmax Z)) (q: frac)
       (sub: sub_gname) (bot: bot_gname) (s: loc) :
       INT_MIN < key < INT_MAX →
       {{{ 
-        is_bot_list 0 head Skeys q sub bot
+        is_bot_list 0 head Smap q bot sub
         ∗
         (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
         ∗
@@ -33,11 +34,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         s ↦□ rep_to_node succ
         ∗
+        locked_val None succ
+        ∗
         ⌜ 0 ≤ h ⌝ 
       }}}
-        createAndLink (rep_to_node pred) #key #h
+        createAndLink (rep_to_node pred) #key #v #ts #h
       {{{ (n: loc) (new: node_rep), RET #n;
-        is_bot_list 0 head (Skeys ∪ {[ key ]}) q sub bot
+        is_bot_list 0 head (Smap ⋅ {[ key := prodZ {[ v ]} ts ]}) q bot sub
         ∗
         own (s_auth sub) (◯ {[ new ]})
         ∗ 
@@ -51,17 +54,14 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         n ↦□ rep_to_node new
         ∗
-        (node_next new +ₗ 1) ↦∗{#1 / 2} replicate (Z.to_nat h) #()
+        locked_val None new
         ∗
-        ∃ (γ: gname), 
-          is_lock γ (node_lock new) (is_array (node_next new) (h + 1))
-          ∗
-          is_array (node_next new) (h + 1)
-          ∗
-          locked γ
+        (node_next new +ₗ 1) ↦∗ replicate (Z.to_nat h) #()
+        ∗
+        (node_locks new +ₗ 1) ↦∗ replicate (Z.to_nat h) #()
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & Hpt & #Hs & %Hlvl) HΦ".
+      iIntros (Hkey_range Φ) "(Hbot & #Hown_pred & %Hrange & Hpt & #Hs & Hval & %Hlvl) HΦ".
       iDestruct "Hbot" as "(Hown_frag & #Hinv)".
 
       wp_lam. wp_pures. 
@@ -69,58 +69,31 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_load. wp_let. 
 
       wp_alloc next as "Hnext"; first lia. wp_let.
-      iDestruct "Hnext" as "(Hnext' & Hnext)".
-      
-      wp_apply (newlock_spec (is_array next (h + 1)) with "[Hnext']").
-      { 
-        iExists (replicate (Z.to_nat (h + 1)) #()); iFrame.
-        rewrite replicate_length //.
-      }
-      iIntros (lk γ) "#Hlock'".
-
-      wp_pures.
-      rewrite (fold_rep_to_node (key, dummy_null, next, None, lk, dummy_null)).
-      set (new := (key, dummy_null, next, None, lk, dummy_null)).
-
-      wp_alloc n as "Hn". wp_let.
-      iMod (mapsto_persist with "Hn") as "#Hn".
-      wp_load. wp_lam. wp_pures.
-
-      wp_bind (acquire _).
-      iApply (acquire_spec with "[$]").
-      iNext; iIntros "(Hlocked & Harray)".
-      iDestruct "Harray" as (vs) "(Hnext' & %Hlength)".
-      
-      pose proof (list_split vs (Z.to_nat h) 0) as Hsplit.
-      destruct Hsplit as [a Hsplit]; try lia.
-      destruct Hsplit as [vs1 Hsplit]; destruct Hsplit as [vs2 Hsplit].
-      destruct Hsplit as [Hvs Hsplit]; destruct Hsplit as [Hlength1 Hlength2].
-      destruct vs1; last inversion Hlength1.
-      simpl in Hvs; clear Hlength1.
-
-      rewrite Hvs array_cons.
-      iDestruct "Hnext'" as "(Hnext' & Hnext'2)".
+      wp_alloc locks as "Hlocks"; first lia. wp_let.
       assert (Z.to_nat (h + 1) = S (Z.to_nat h)) as -> by lia.
-      rewrite replicate_S array_cons.
-      iDestruct "Hnext" as "(Hnext & Hreplicate)".
+      rewrite replicate_S ?array_cons.
+      iDestruct "Hnext" as "(Hn & Hnext)".
+      iDestruct "Hlocks" as "(Hlocks' & Hlocks)".
 
-      iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
-      iCombine "Hnext Hnext'" as "Hnext".
+      set (val := (v, ts, dummy_null)).
+      wp_alloc vpt as "Hvpt". wp_let.
+      iDestruct "Hvpt" as "(Hvpt & Hvpt')".
+      rewrite (fold_rep_to_val val).
 
-      wp_pures. wp_store.
-      iDestruct "Hnext" as "(Hnext & Hnext')".
+      set (new := (key, vpt, next, @None loc, #(), locks)).
+      wp_alloc node as "Hnode". wp_let.
+      iMod (mapsto_persist with "Hnode") as "#Hnode".
+      rewrite (fold_rep_to_node new).
 
-      iCombine "Hnext' Hnext'2" as "Hnext'".
-      rewrite -array_cons.
-      iAssert (is_array (node_next new) (h + 1)) 
-        with "[Hnext']" as "Harray".
-      { 
-        iExists (#s :: vs2); iFrame. 
-        iPureIntro. rewrite Hvs // in Hlength.
-      }
+      wp_store; iDestruct "Hn" as "(Hn & Hn')".
+
+      wp_apply (newlock_spec (in_lock 0 None new) with "[Hn' Hval]").
+      { iExists s, succ; rewrite loc_add_0; iFrame "# ∗". }
+      iIntros (l γ) "#Hlock".
+      wp_store; iMod (mapsto_persist with "Hlocks'") as "#Hl".
 
       wp_bind (Store _ _).
-      iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
+      iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & Hinv_bot)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
       iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
@@ -135,21 +108,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         set_solver.
       }
 
-      rewrite (list_equiv_insert 0 s n head pred new succ L γ (h + 1)); first last.
-      { done. }
-      { done. }
-      { assert (node_key new = key) as -> by auto; lia. }
-      { rewrite /node_key/=; lia. }
+      rewrite (list_equiv_join 0 None s head pred succ); auto.
+      rewrite loc_add_0. 
+      iDestruct ("Hlist" with "[Hpt]") as "Hlist".
+      { iNext; iFrame "# ∗". }
+      iDestruct "Hlist" as (L1 L2) "(>%Hsplit & Hpt & Hlist)".
 
-      rewrite ?loc_add_0.
-      iDestruct ("Hlist" with "[Hpt Hnext]") as "Hlist".
-      { iNext; iFrame "# ∗". iPureIntro; lia. }
-      iDestruct "Hlist" as (L' L1 L2) "(Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
-
-      iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
-        as %HsubS%frac_auth_included_total%gset_included.
-      
-      assert (key ∉ Skeys') as Hnin'.
+      assert (key ∉ dom Smap') as Hnin'.
       {
         intros Hfalse.
         rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
@@ -161,12 +126,30 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
       }
 
+      assert (Smap' !! key = None) as Hnone.
+      { rewrite -not_elem_of_dom //. }
+
+      rewrite (list_equiv_insert 0 None s node head pred new succ L val γ l); first last.
+      { done. }
+      { done. }
+      { done. }
+      { assert (node_key new = key) as -> by auto; lia. }
+      { rewrite /node_key/=; lia. }
+
+      rewrite ?loc_add_0.
+      iDestruct ("Hlist" with "[Hpt Hn Hvpt']") as "Hlist".
+      { iNext; iFrame "# ∗". }
+      iDestruct "Hlist" as (L') "(Hpt & >%Hsort' & >%Hperm' & Himp)".
+
+      iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
+        as %HsubSmap%frac_auth_included_total.
+
       iMod (own_update with "Hown_auth") as "[Hown_auth Hown_auth_frag]".
       { apply auth_update_alloc, (gset_local_update_union _ _ {[ new ]}). }
       assert (ε ∪ {[ new ]} = {[ new ]}) as -> by set_solver.
 
       iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frac_frag]".
-      { apply frac_auth_update, (gset_local_update_union _ _ {[ key ]}). }
+      { apply frac_auth_update, (alloc_local_update _ _ key (prodZ {[ v ]} ts)); done. }
 
       rewrite (gset_union_diff key); first last.
       { done. }
@@ -180,11 +163,15 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
       {
-        iNext; iExists (S' ∪ {[ new ]}), (Skeys' ∪ {[ key ]}), L'. 
-        iFrame. iSplit; last first. iSplit; first done.
-        by (iPureIntro; apply key_equiv_insert_nin).
+        iNext; iExists (S' ∪ {[ new ]}), (<[ key := prodZ {[ v ]} ts ]>Smap'), L'.
+        pose proof (dom_insert Smap' key (prodZ {[v]} ts)) as Hdom.
+        rewrite leibniz_equiv_iff comm_L in Hdom.
+        rewrite /bot_list_inv Hdom.
+        iFrame. iPureIntro.
+
+        split; first last. 
+        { split; first done. by apply key_equiv_insert_nin. }
         
-        iPureIntro.
         apply NoDup_Permutation.
         { 
           apply node_rep_sorted_app in Hsort'; destruct Hsort' as [_ Hsort']. 
@@ -207,57 +194,70 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
           - set_solver.
       }
 
-      iModIntro. wp_pures. 
-      iModIntro. iApply "HΦ".
-      iFrame "# ∗". iSplit; first done.
-      iExists γ. iFrame "# ∗".
+      iModIntro; wp_pures. 
+      iModIntro; iApply "HΦ".
+
+      rewrite insert_singleton_op; last first.
+      {
+        rewrite lookup_included in HsubSmap.
+        destruct (HsubSmap key) as [z Heq%leibniz_equiv_iff].
+        rewrite Hnone comm op_None in Heq.
+        by destruct Heq.
+      }
+      rewrite comm_L. iFrame "# ∗". 
+
+      iSplit; first done.
+      iRight; iExists val; iFrame.
     Qed.
 
-    Theorem link_spec (key h: Z) (head pred new succ: node_rep) 
-      (top bot: sub_gname) (γ: gname) (s n: loc) :
-      INT_MIN < key < INT_MAX →
+    Theorem link_spec (lvl: Z) (head pred new succ: node_rep) 
+      (bot: bot_gname) (top_sub bot_sub: sub_gname) 
+      (v: val_rep) (s n: loc) :
+      INT_MIN < node_key new < INT_MAX →
       {{{ 
-        inv (levelN lvl) (lazy_list_inv lvl head top None (from_top_list bot))
+        inv (levelN lvl) (lazy_list_inv lvl head bot top_sub (Some bot_sub))
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth top) (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth top_sub) (◯ {[ pred ]}))
         ∗
-        ⌜ node_key pred < key < node_key succ ⌝
+        ⌜ node_key pred < node_key new < node_key succ ⌝
         ∗
         (node_next pred +ₗ lvl) ↦{#1 / 2} #s
         ∗
         s ↦□ rep_to_node succ
         ∗
-        ⌜ 0 < lvl < h ⌝
-        ∗
-        from_top_list bot new
-        ∗ 
-        ⌜ node_key new = key ⌝
+        is_node (Some bot_sub) new v
         ∗
         n ↦□ rep_to_node new
         ∗
         (node_next new +ₗ lvl) ↦ #()
         ∗
-        is_lock γ (node_lock new) (is_array (node_next new) h)
+        (node_locks new +ₗ lvl) ↦ #()
       }}}
         link (rep_to_node pred) #lvl #n
       {{{ RET #();
-        own (s_auth top) (◯ {[ new ]})
+        own (s_auth top_sub) (◯ {[ new ]})
         ∗ 
-        own (s_toks top) (GSet {[ node_key new ]})
+        own (s_toks top_sub) (GSet {[ node_key new ]})
         ∗
         (node_next pred +ₗ lvl) ↦{#1 / 2} #n
-        ∗
-        (node_next new +ₗ lvl) ↦{#1 / 2} #s
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hs & %Hlvl & HP & %Hkey & #Hn & Hnext & #Hlock) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & #Hown_pred & %Hrange & Hpt & #Hs & Hnode & #Hn & Hnext & Hl) HΦ".
 
       wp_lam. wp_pures. wp_lam. wp_pures.
-      wp_load. wp_let. wp_load. 
-      wp_lam. wp_pures.
-      wp_store. wp_pures.
+      wp_load. wp_let. 
+      wp_load. wp_lam. wp_pures. 
+      wp_load. wp_lam. wp_pures.
       
-      iInv (levelN lvl) as (S' Skeys' L) "(Hinv_sub & _)" "Hclose".
+      wp_store; iDestruct "Hnext" as "(Hnext & Hnext')".
+
+      wp_apply (newlock_spec (in_lock lvl (Some bot_sub) new) with "[Hnext']").
+      { iExists s, succ; iFrame "# ∗". }
+      iIntros (l γ) "#Hlock".
+      wp_store; iMod (mapsto_persist with "Hl") as "#Hl".
+      
+      wp_pures.
+      iInv (levelN lvl) as (S' Smap' L) "(Hinv_sub & _)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
@@ -271,28 +271,36 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         set_solver.
       }
 
-      rewrite (list_equiv_insert lvl s n head pred new succ L γ h); first last.
-      { done. }
-      { auto. }
-      { assert (node_key new = key) as -> by auto; lia. }
-      { rewrite Hkey /node_key/=; lia. }
+      rewrite (list_equiv_join lvl (Some bot_sub) s head pred succ); auto.
+      iDestruct ("Hlist" with "[Hpt]") as "Hlist".
+      { iNext; iFrame "# ∗". }
+      iDestruct "Hlist" as (L1 L2) "(>%Hsplit & Hpt & Hlist)".
 
-      iDestruct "Hnext" as "(Hnext & Hnext')".
-      iDestruct ("Hlist" with "[Hs Hpt Hnext' Hn HP]") as "Hlist".
-      { iNext; iFrame "# ∗". iPureIntro; lia. }
-      iDestruct "Hlist" as (L' L1 L2) "(Hpt & >%Hsplit & >%Hsort' & >%Hperm' & Himp)".
-      
-      assert (node_key new ∉ Skeys') as Hnin'.
+      assert (node_key new ∉ dom Smap') as Hnin'.
       {
         intros Hfalse.
         rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
-        destruct Hfalse as [x [Hkey' Hin]].
+        destruct Hfalse as [x [Hkey Hin]].
         
         apply (sorted_node_lt_nin L1 L2 pred succ x).
         { rewrite -Hsplit //. }
-        { rewrite Hkey'; lia. }
+        { rewrite Hkey; lia. }
         rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
       }
+
+      assert (Smap' !! node_key new = None) as Hnone.
+      { rewrite -not_elem_of_dom //. }
+
+      rewrite (list_equiv_insert lvl (Some bot_sub) s n head pred new succ L v γ l); first last.
+      { done. }
+      { done. }
+      { done. }
+      { done. }
+      { rewrite /tail/node_key/=; rewrite /node_key in Hkey_range; lia. }
+
+      iDestruct ("Hlist" with "[Hs Hpt Hnext Hnode]") as "Hlist".
+      { iNext; iFrame "# ∗". }
+      iDestruct "Hlist" as (L') "(Hpt & >%Hsort' & >%Hperm' & Himp)".
 
       iMod (own_update with "Hown_auth") as "[Hown_auth Hown_auth_frag]".
       { apply auth_update_alloc, (gset_local_update_union _ _ {[ new ]}). }
@@ -309,10 +317,14 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hpt_dup") as "Hlist".
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
       {
-        iNext; iExists (S' ∪ {[ new ]}), (Skeys' ∪ {[ node_key new ]}), L'. 
+        iNext; iExists (S' ∪ {[ new ]}), (<[ node_key new := prodZ {[ val_v v ]} (val_ts v) ]>Smap'), L'.
+        pose proof (dom_insert Smap' (node_key new) (prodZ {[ val_v v ]} (val_ts v))) as Hdom.
+        rewrite leibniz_equiv_iff comm_L in Hdom.
+        rewrite /bot_list_inv Hdom.
         iFrame. iPureIntro.
-        split; first last. split; first done.
-        by apply key_equiv_insert_nin.
+
+        split; first last. 
+        { split; first done. by apply key_equiv_insert_nin. }
         
         apply NoDup_Permutation.
         { 

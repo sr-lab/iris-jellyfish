@@ -113,8 +113,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Hnext" as "(Hnext' & Hnext)".
 
       wp_pures.
-      rewrite (fold_rep_to_node (INT_MIN, dummy_null, next, None, l)).
-      set (head := (INT_MIN, dummy_null, next, None, l)).
+      rewrite (fold_rep_to_node (INT_MIN, dummy_null, next, None, l, dummy_null)).
+      set (head := (INT_MIN, dummy_null, next, None, l, dummy_null)).
 
       iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
         as (γauth) "[Hown_auth Hown_auth_frag]"; 

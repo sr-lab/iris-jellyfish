@@ -63,7 +63,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iIntros (lk γ') "#Hlock'".
 
       wp_pures.
-      set (new := (key, dummy_null, l, odown, lk)).
+      set (new := (key, dummy_null, l, odown, lk, dummy_null)).
       rewrite (fold_rep_to_node new).
       
       wp_bind (Store _ _).
@@ -201,7 +201,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iIntros (lk γ') "#Hlock'".
 
       wp_pures.
-      set (new := (key, dummy_null, l, odown, lk)).
+      set (new := (key, dummy_null, l, odown, lk, dummy_null)).
       rewrite (fold_rep_to_node new).
       
       wp_bind (Store _ _).

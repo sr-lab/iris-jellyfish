@@ -19,7 +19,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
     
     Theorem findPred_spec (key lvl: Z) (head curr: node_rep) 
-      (Smap: gmap Z (prodZ Z)) (bot: bot_gname) 
+      (Smap: gmap Z (argmax Z)) (bot: bot_gname) 
       (top_sub: sub_gname) (bot_subs: list sub_gname) :
       {{{ 
         skip_list_equiv lvl head Smap 1 bot (top_sub :: bot_subs)
@@ -46,17 +46,15 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
 
       wp_lam. wp_let. wp_let.
       destruct bot_subs as [|bot_sub].
-      + iDestruct "Hlist" as "(%Hlvl & (Hown_frag & #Hinv))".
+      + iDestruct "Hlist" as "(%Hlvl & (Hown_frag & #Hinv))"; rewrite Hlvl.
         wp_apply (find_bot_spec with "[Hown_frag]").
         { by iFrame "# ∗". }
         iIntros (pred succ) "(Hown_frag & %Hpred_key & #Hown_succ & %Hkey_in_S)".
 
-        wp_pures. case_bool_decide; wp_if.
-        - iModIntro. iApply "HΦ". 
-          by iFrame "# ∗".
-        - exfalso; congruence.
+        wp_pures.
+        iModIntro; iApply "HΦ". 
+        by iFrame "# ∗".
       + iDestruct "Hlist" as "(%Hlvl & #Hinv & Hmatch)".
-        unfold is_sub_list.
         wp_apply find_sub_spec.
         { by iFrame "# ∗". }
         iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & _)".
@@ -64,8 +62,8 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         wp_pures. case_bool_decide as Hcase; wp_if.
         - exfalso; inversion Hcase; lia.
         - wp_bind (Fst _).
-          iInv (levelN lvl) as (S Smap' L) "Hsub" "Hclose".
-          iDestruct "Hsub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+          iInv (levelN lvl) as (S Smap' L) "(Hinv_sub & _)" "Hclose".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
           * wp_proj.            
@@ -87,15 +85,16 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (γ h s' succ') "(>%Hsucc'_range & Hpt' & #Hs' & Hlock & #Hlvl & HP & Himp)".
-            iDestruct "HP" as"(>Hauth_pred & >Htoks_pred)".
+            iDestruct "Hlist" as (v γ l s' succ') "(>%Hsucc'_range & Hpt' & #Hs' & #Hl & #Hlock & Hnode & _ & Himp)".
+            iDestruct "Hnode" as"(>Hauth_pred & >Htoks_pred)".
 
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.
-            iDestruct "Hauth_pred" as "(Hauth_pred & ?)".
+            iDestruct "Hauth_pred" as "(Hauth_pred & Hauth_pred_dup)".
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as <- by set_solver.
 
             wp_proj.
-            iPoseProof ("Himp" with "[$]") as "Hlist".
+            iPoseProof ("Himp" $! {[ val_v dummy_val ]} dummy_val with "[Hpt' Hauth_pred_dup Htoks_pred]") as "Hlist".
+            { iFrame; rewrite elem_of_singleton //. }
             iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
             { iNext; iExists S, Smap', L; by iFrame. }
 
@@ -107,20 +106,21 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
             iApply "HΦ". by iFrame "# ∗".
     Qed.
     
-    Theorem get_spec (v: val) (key: Z) (Smap: gmap Z (prodZ Z)) 
+    Theorem get_spec (v: val) (key: Z) (Smap: gmap Z (argmax Z)) 
       (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < key < INT_MAX) :
       {{{ is_skip_list v Smap 1 bot subs }}}
         get v #key
-      {{{ (opt: val), RET opt;
+      {{{ opt, RET opt;
         is_skip_list v Smap 1 bot subs
         ∗
-        (( ⌜ opt = NONEV ⌝ ∗ ⌜ Smap !! key = None ⌝ )
-        ∨
-        (∃ (res ts: Z) (pair: prodZ Z), 
-            ⌜ opt = SOMEV (#res, #ts) ⌝ ∗ ⌜ Smap !! key = Some pair ⌝
-            ∗
-            ⌜ res ∈ fst pair ⌝ ∗ ⌜ ts = snd pair ⌝ ))
+        (
+          (⌜ opt = NONEV ⌝ ∗ ⌜ Smap !! key = None ⌝)
+          ∨
+          ∃ (z ts: Z) (S: gset Z), 
+              ⌜ opt = SOMEV (#z, #ts) ⌝ ∗ ⌜ z ∈ S ⌝ ∗ 
+              ⌜ Smap !! key = Some (prodZ S ts) ⌝
+        )
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
@@ -141,8 +141,9 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         assert (bot_sub = bot_sub') as <- by congruence.
 
         wp_bind (Load _).
-        iInv (levelN 0) as (S ? L) "(Hinv_sub & >Hown_frac)" "Hclose".
+        iInv (levelN 0) as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -160,24 +161,25 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
           iPureIntro; set_solver.
         }
 
-        rewrite (list_equiv_invert_L 0 L head succ); last done.
-        iDestruct "Hlist" as (γ' h' s' succ') "(_ & Hpt' & _ & _ & _ & HP & Himp')".
-        iDestruct "HP" as (val vs) "(Hval & >%Hsome & >%Hin)".
-
+        rewrite list_equiv_invert_L; last done.
+        iDestruct "Hlist" as (v' γ' l' s' succ') "(_ & Hpt' & _ & _ & _ & Hnode & >%Hval & Himp')".
+        destruct Hval as [vs [Hsome Hin]].
+        
         wp_load.
-        iPoseProof ("Himp'" with "[Hpt' Hval]") as "Hlist".
-        { iFrame; iExists val, vs; by iFrame. }
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        iPoseProof ("Himp'" $! vs v' with "[Hpt' Hnode]") as "Hlist".
+        { by iFrame. }
+        rewrite /opt_map /opt_insert insert_id //.
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
         { iNext; iExists S, Smap, L; by iFrame. }
         iPoseProof ("Himp" with "[$]") as "Hlist".
 
-        iModIntro. wp_pures.
+        iModIntro; wp_pures.
         iModIntro; iApply "HΦ". 
         iSplit.
         { iExists h, head; by iFrame. }
 
         iPureIntro; right.
-        exists (val_v val), (val_ts val), (vs, val_ts val).
+        exists (val_v v'), (val_ts v'), vs.
         inversion Hcase; subst.
         rewrite //.
       + iModIntro; iApply "HΦ". 

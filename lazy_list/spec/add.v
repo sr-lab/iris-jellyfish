@@ -207,7 +207,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hrange; lia. }
 
-        wp_lam. wp_bind (Snd _).
+        wp_lam. wp_bind (Fst _).
         iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".
         
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
@@ -223,7 +223,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         wp_proj.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_frac Hown_keys]") as "_".
         { iNext; iExists S', Skeys, L; by iFrame. }
-        iModIntro.
+        iModIntro; wp_proj.
 
         wp_apply (release_spec with "[Hlock Hpt Hlocked]").
         { iFrame "# ∗"; iExists succ; iFrame. }
@@ -241,8 +241,8 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
         iIntros (lk γ') "#Hlock'".
 
         wp_pures.
-        rewrite (fold_rep_to_node (key, dummy_null, l, None, lk)).
-        set (new := (key, dummy_null, l, None, lk)).
+        rewrite (fold_rep_to_node (key, dummy_null, l, None, lk, dummy_null)).
+        set (new := (key, dummy_null, l, None, lk, dummy_null)).
         
         wp_bind (Store _ _).
         iInv lazyN as (S' Skeys L) "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_frac & >Hown_keys & Hlist)" "Hclose".

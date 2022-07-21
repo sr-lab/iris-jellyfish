@@ -17,7 +17,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
 
-    Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (Smap: gmap Z (prodZ Z)) 
+    Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (Smap: gmap Z (argmax Z)) 
       (q: frac) (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
       | nil => False
@@ -37,7 +37,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         end
       end.
 
-    Definition is_skip_list (v: val) (Smap: gmap Z (prodZ Z)) (q: frac) 
+    Definition is_skip_list (v: val) (Smap: gmap Z (argmax Z)) (q: frac) 
       (bot: bot_gname) (subs: list sub_gname) : iProp Σ := 
       ∃ (l:loc) (head: node_rep),
       ⌜ #l = v ⌝
@@ -49,7 +49,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       skip_list_equiv MAX_HEIGHT head Smap q bot subs.
 
     
-    Lemma skip_list_equiv_cons (head: node_rep) (lvl: Z) (Smap: gmap Z (prodZ Z)) 
+    Lemma skip_list_equiv_cons (head: node_rep) (lvl: Z) (Smap: gmap Z (argmax Z)) 
       (q: frac) (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
       skip_list_equiv lvl head Smap q bot (top_sub :: bot_subs) ⊢ 
         ∃ (obot: option sub_gname),
@@ -66,15 +66,15 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_inv (lvl: Z) (head: node_rep) (Smap: gmap Z (prodZ Z)) 
+    Lemma skip_list_equiv_inv (lvl: Z) (head: node_rep) (Smap: gmap Z (argmax Z)) 
       (q: frac) (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head Smap q bot subs ⊢
         ∃ (sub: sub_gname),
-        ⌜ last subs = Some sub ⌝
-        ∗
-        is_bot_list 0 head Smap q bot sub
-        ∗
-        (is_bot_list 0 head Smap q bot sub -∗ skip_list_equiv lvl head Smap q bot subs).
+          ⌜ last subs = Some sub ⌝
+          ∗
+          is_bot_list 0 head Smap q bot sub
+          ∗
+          (is_bot_list 0 head Smap q bot sub -∗ skip_list_equiv lvl head Smap q bot subs).
     Proof.
       iRevert (lvl).
       iInduction subs as [|top_sub subs] "IHsubs";
@@ -96,7 +96,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         iFrame.
     Qed.
 
-    Lemma skip_list_equiv_sep (lvl: Z) (head: node_rep) (Smap: gmap Z (prodZ Z)) 
+    Lemma skip_list_equiv_sep (lvl: Z) (head: node_rep) (Smap: gmap Z (argmax Z)) 
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head Smap (q1 + q2) bot subs ⊢ 
         skip_list_equiv lvl head Smap q1 bot subs ∗ skip_list_equiv lvl head Smap q2 bot subs.
@@ -115,7 +115,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         iSplitL "Hlist1"; by iFrame "# ∗".
     Qed.
 
-    Lemma skip_list_equiv_join (lvl: Z) (head: node_rep) (Smap1 Smap2: gmap Z (prodZ Z)) 
+    Lemma skip_list_equiv_join (lvl: Z) (head: node_rep) (Smap1 Smap2: gmap Z (argmax Z)) 
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head Smap1 q1 bot subs ∗ skip_list_equiv lvl head Smap2 q2 bot subs ⊢ 
         skip_list_equiv lvl head (merge op Smap1 Smap2) (q1 + q2) bot subs.
@@ -137,7 +137,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         by iFrame "# ∗".
     Qed.
       
-    Lemma is_skip_list_sep (v: val) (Smap: gmap Z (prodZ Z)) 
+    Lemma is_skip_list_sep (v: val) (Smap: gmap Z (argmax Z)) 
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       is_skip_list v Smap (q1 + q2) bot subs ⊢ 
         is_skip_list v Smap q1 bot subs ∗ is_skip_list v Smap q2 bot subs.
@@ -151,7 +151,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       iSplitL "Hpt1 Hlist1"; iExists h, head; by iFrame.
     Qed.      
     
-    Lemma is_skip_list_join (v: val) (Smap1 Smap2: gmap Z (prodZ Z))
+    Lemma is_skip_list_join (v: val) (Smap1 Smap2: gmap Z (argmax Z))
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       is_skip_list v Smap1 q1 bot subs ∗ is_skip_list v Smap2 q2 bot subs ⊢ 
         is_skip_list v (merge op Smap1 Smap2) (q1 + q2) bot subs.

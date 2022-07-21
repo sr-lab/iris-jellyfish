@@ -16,14 +16,14 @@ End SKIP_LIST_PARAMS.
 Module SkipList (Params: SKIP_LIST_PARAMS).
   Import Params.
   
-  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock).
+  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock, dummy_null).
 
   (* Skip list constructor *)  
   Definition new : val := 
     λ: "_", 
       let: "np" := ref (rep_to_node tail) in
       let: "next" := AllocN #(MAX_HEIGHT + 1) "np" in
-        ref (#INT_MIN, #dummy_null, "next", NONEV, newlock #()).
+        ref (#INT_MIN, #dummy_null, "next", NONEV, newlock #(), #dummy_null).
 
   (* Find function *)
   Definition find : val := 
@@ -75,7 +75,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "np" := nodeNext "pred" in
       let: "succ" := !"np" in
       let: "next" := AllocN ("h" + #1) #() in
-      let: "node" := ref ("k", #dummy_null, "next", NONEV, newlock #()) in
+      let: "node" := ref ("k", #dummy_null, "next", NONEV, newlock #(), #dummy_null) in
         acquire (nodeLock !"node");;
         "next" <- "succ";;
         "np" <- "node";;

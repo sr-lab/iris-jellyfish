@@ -15,7 +15,7 @@ End SKIP_LIST_PARAMS.
 Module SkipList (Params: SKIP_LIST_PARAMS).
   Import Params.
 
-  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock).
+  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock, dummy_null).
 
   (* Skip list constructor *)
   Definition newLoop : val := 
@@ -25,13 +25,13 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
         then "h"
         else
           let: "t" := ref (rep_to_node tail) in
-          let: "head" := (#INT_MIN, #dummy_null, "t", SOME "h", newlock #()) in
+          let: "head" := (#INT_MIN, #dummy_null, "t", SOME "h", newlock #(), #dummy_null) in
             "loop" "head" ("l" + #1).
   
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      let: "head" := (#INT_MIN, #dummy_null, "t", NONEV, newlock #()) in
+      let: "head" := (#INT_MIN, #dummy_null, "t", NONEV, newlock #(), #dummy_null) in
         newLoop "head" #0.
 
   (* Find function *)
@@ -85,7 +85,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "np" := nodeNext "pred" in
       let: "succ" := !"np" in
       let: "next" := ref "succ" in
-      let: "node" := ("k", #dummy_null, "next", "odown", newlock #()) in
+      let: "node" := ("k", #dummy_null, "next", "odown", newlock #(), #dummy_null) in
         "np" <- "node";;
         release (nodeLock "pred");;
         "node".

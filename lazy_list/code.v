@@ -14,13 +14,13 @@ End LAZY_LIST_PARAMS.
 Module LazyList (Params: LAZY_LIST_PARAMS).
   Import Params.
   
-  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock).  
+  Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock, dummy_null).  
 
   (* Lazy list constructor *)
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      ref (#INT_MIN, #dummy_null, "t", NONEV, newlock #()).
+      ref (#INT_MIN, #dummy_null, "t", NONEV, newlock #(), #dummy_null).
 
   (* Find function *)
   Definition find : val := 
@@ -71,7 +71,7 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
           let: "np" := nodeNext "pred" in
           let: "succ" := !"np" in
           let: "next" := ref "succ" in
-          let: "node" := ("k", #dummy_null, "next", NONEV, newlock #()) in
+          let: "node" := ("k", #dummy_null, "next", NONEV, newlock #(), #dummy_null) in
             "np" <- "node";;
             release (nodeLock "pred");;
             #true.

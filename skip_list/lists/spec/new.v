@@ -59,7 +59,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         
         iIntros (l γ) "#Hlock".
         wp_pures.
-        set (top_head := (INT_MIN, dummy_null, t, Some h, l)).
+        set (top_head := (INT_MIN, dummy_null, t, Some h, l, dummy_null)).
         rewrite (fold_rep_to_node top_head).
 
         set (top := mk_sub_gname γauth γtoks).
@@ -117,8 +117,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
       iIntros (l γ) "#Hlock".
       wp_pures.
-      rewrite (fold_rep_to_node (INT_MIN, dummy_null, t, None, l)).
-      set (bot_head := (INT_MIN, dummy_null, t, None, l)).
+      rewrite (fold_rep_to_node (INT_MIN, dummy_null, t, None, l, dummy_null)).
+      set (bot_head := (INT_MIN, dummy_null, t, None, l, dummy_null)).
 
       set (sub := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac γkeys).
