@@ -18,7 +18,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
     
     Theorem find_bot_spec (key: Z) (head curr: node_rep) 
       (Smap: gmap Z (argmax Z)) (bot: bot_gname) (sub: sub_gname) :

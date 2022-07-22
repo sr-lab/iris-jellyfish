@@ -48,3 +48,4 @@ jellyfish/spec/get.v
 jellyfish/spec/link.v
 jellyfish/spec/insert.v
 jellyfish/spec/put.v
+jellyfish/client.v

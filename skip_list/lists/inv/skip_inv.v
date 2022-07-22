@@ -16,7 +16,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 

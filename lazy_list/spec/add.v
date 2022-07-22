@@ -15,7 +15,7 @@ Module AddSpec (Params: LAZY_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !lazyGS Σ, !lockG Σ}.
     
     Theorem find_spec (key: Z) (head curr: node_rep) (Γ: lazy_gname) :
       {{{ 

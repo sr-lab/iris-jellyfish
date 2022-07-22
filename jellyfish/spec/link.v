@@ -1,5 +1,5 @@
 From iris.base_logic.lib Require Import invariants.
-From iris.algebra Require Import auth frac_auth gset gmap.
+From iris.algebra Require Import auth frac_auth gmap gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
@@ -17,7 +17,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Export Find.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem createAndLink_spec (key v ts h: Z) (head pred succ: node_rep) 
       (Smap: gmap Z (argmax Z)) (q: frac)
@@ -54,7 +54,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         n ↦□ rep_to_node new
         ∗
-        locked_val None new
+        node_val new ↦{#1 / 2} rep_to_val (v, ts, dummy_null)%core
         ∗
         (node_next new +ₗ 1) ↦∗ replicate (Z.to_nat h) #()
         ∗
@@ -204,10 +204,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         rewrite Hnone comm op_None in Heq.
         by destruct Heq.
       }
-      rewrite comm_L. iFrame "# ∗". 
-
-      iSplit; first done.
-      iRight; iExists val; iFrame.
+      rewrite comm_L. by iFrame "# ∗". 
     Qed.
 
     Theorem link_spec (lvl: Z) (head pred new succ: node_rep) 

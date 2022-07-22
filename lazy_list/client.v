@@ -45,7 +45,7 @@ Definition lazy_list_client (L1 L2: list Z) (key: Z) : expr :=
     contains "lazy" #key.
 
 Section Proofs.
-  Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ, !spawnG Σ}.
+  Context `{!heapGS Σ, !lazyGS Σ, !lockG Σ, !spawnG Σ}.
 
   Lemma addList_spec (v: val) (S: gset Z) (q: frac) (Γ: lazy_gname) (L: list Z) :
     (∀ (k: Z), k ∈ L → Params.INT_MIN < k < Params.INT_MAX) →

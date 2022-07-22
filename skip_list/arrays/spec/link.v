@@ -16,7 +16,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
   Export Find.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z).
 
     Theorem createAndLink_spec (key h: Z) (head pred succ: node_rep) 
       (Skeys: gset Z) (q: frac)

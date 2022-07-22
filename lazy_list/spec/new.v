@@ -15,7 +15,7 @@ Module NewSpec (Params: LAZY_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !lazyGS Σ, !lockG Σ}.
 
     Theorem new_spec :
       {{{ True }}}

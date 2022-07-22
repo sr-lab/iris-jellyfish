@@ -15,7 +15,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Fixpoint skip_list_equiv (lvl: Z) (head: node_rep) (S: gset Z) (q: frac) 
       (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=

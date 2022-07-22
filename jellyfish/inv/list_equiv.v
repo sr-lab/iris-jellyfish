@@ -11,10 +11,10 @@ From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 
 Local Open Scope Z.
 
-Class gset_list_unionGS Σ := GsetGS { 
-  gset_nr_A_inGS :> inG Σ (frac_authR (gmapUR Z (arg_maxUR Z)));
-  gset_nr_F_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_Z_disj_inGS :> inG Σ (gset_disjR Z)
+Class skipGS Σ := SkipGS {
+  frac_gmapR :> inG Σ (frac_authR (gmapUR Z (arg_maxUR Z)));
+  auth_gsetR :> inG Σ (authR (gsetUR node_rep));
+  gset_tokR :> inG Σ (gset_disjR Z)
 }.
 
 Record sub_gname := mk_sub_gname {
@@ -33,7 +33,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
   Export SkipList.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z) (osub: option sub_gname).
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z) (osub: option sub_gname).
 
     Definition is_node (rep: node_rep) (v: val_rep) : iProp Σ :=
       match osub with

@@ -1,4 +1,4 @@
-From iris.algebra Require Import auth frac_auth gset gmap.
+From iris.algebra Require Import auth frac_auth gmap gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
@@ -10,13 +10,13 @@ From SkipList.jellyfish.spec Require Import insert.
 
 Local Open Scope Z.
 
-Module AddSpec (Params: SKIP_LIST_PARAMS).
+Module PutSpec (Params: SKIP_LIST_PARAMS).
   Import Params.
   Module Insert := InsertSpec Params.
   Export Insert.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem topLevel_spec (key h lvl: Z) (head curr: node_rep) 
       (Smap: gmap Z (argmax Z)) (q: frac) (bot: bot_gname) 
@@ -314,4 +314,4 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
   End Proofs.
-End AddSpec.
+End PutSpec.

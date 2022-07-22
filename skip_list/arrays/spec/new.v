@@ -15,7 +15,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
   Export Invariant.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem array_inv (lvl: Z) (head: node_rep) (t: loc)
       (bot: bot_gname) (subs: list sub_gname) (γ: gname):

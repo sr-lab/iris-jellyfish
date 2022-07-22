@@ -9,10 +9,10 @@ From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.lazy_list.inv Require Import list_equiv.
 
 
-Class gset_list_unionGS Σ := GsetGS { 
-  gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR Z));
-  gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
+Class lazyGS Σ := LazyGS { 
+  frac_gsetR :> inG Σ (frac_authR (gsetUR Z));
+  auth_gsetR :> inG Σ (authR (gsetUR node_rep));
+  gset_tokR :> inG Σ (gset_disjUR Z)
 }.
 
 Record lazy_gname := mk_lazy_gname {
@@ -29,7 +29,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Export ListEquiv.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !lazyGS Σ, !lockG Σ}.
 
     Definition lazyN := nroot .@ "lazy".
 

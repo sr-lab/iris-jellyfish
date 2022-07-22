@@ -15,7 +15,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Export ListEquiv.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z).
 
     Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
 

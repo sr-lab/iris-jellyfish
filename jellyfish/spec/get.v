@@ -16,7 +16,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
   Export Find.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
     
     Theorem findPred_spec (key lvl: Z) (head curr: node_rep) 
       (Smap: gmap Z (argmax Z)) (bot: bot_gname) 

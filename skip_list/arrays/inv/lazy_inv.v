@@ -9,10 +9,10 @@ From SkipList.lib Require Import misc node_rep node_lt key_equiv.
 From SkipList.skip_list.arrays.inv Require Import list_equiv.
 
 
-Class gset_list_unionGS Σ := GsetGS { 
-  gset_nr_A_inGS :> inG Σ (authR (gsetUR node_rep));
-  gset_nr_F_inGS :> inG Σ (frac_authR (gsetUR Z));
-  gset_Z_disj_inGS :> inG Σ (gset_disjUR Z)
+Class skipGS Σ := SkipGS { 
+  frac_gsetR :> inG Σ (frac_authR (gsetUR Z));
+  auth_gsetR :> inG Σ (authR (gsetUR node_rep));
+  gset_tokR :> inG Σ (gset_disjUR Z)
 }.
 
 Record sub_gname := mk_sub_gname {
@@ -31,7 +31,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Export ListEquiv.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (lvl: Z).
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z).
 
     Definition from_sub_list (obot: option sub_gname) (rep: node_rep) : iProp Σ := 
       match obot with

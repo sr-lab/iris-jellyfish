@@ -50,7 +50,7 @@ Definition skip_list_client (L1 L2: list node) (key: Z) : expr :=
     contains "skip" #key.
 
 Section Proofs.
-  Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ, !spawnG Σ}.
+  Context `{!heapGS Σ, !skipGS Σ, !lockG Σ, !spawnG Σ}.
 
   Lemma addList_spec (v: val) (S: gset Z) (q: frac) 
     (bot: bot_gname) (subs: list sub_gname) (L: list node) :

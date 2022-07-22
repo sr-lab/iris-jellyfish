@@ -1,5 +1,5 @@
 From iris.base_logic.lib Require Import invariants.
-From iris.algebra Require Import auth frac_auth gset gmap.
+From iris.algebra Require Import auth frac_auth gmap gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
@@ -17,7 +17,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Export Link.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem update_spec (v ts: Z) (head curr: node_rep) 
       (Smap: gmap Z (argmax Z)) (q: frac)
@@ -253,7 +253,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_let.
 
         wp_apply (release_spec with "[Hnext Hval Hlocked]").
-        { iFrame "# ∗"; iExists n, new; rewrite loc_add_0; iFrame "# ∗". }
+        { 
+          iFrame "# ∗"; iExists n, new; rewrite loc_add_0; iFrame "# ∗".
+          iRight; by iExists (v, ts, dummy_null).
+        }
         iIntros "_"; wp_pures.
         iModIntro; iApply ("HΦ" $! _ n new).
         iFrame "# ∗". iRight; by iFrame.

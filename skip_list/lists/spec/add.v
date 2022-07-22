@@ -15,7 +15,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
   Export Insert.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ}.
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem topLevel_spec (key h lvl: Z) (top_head curr: node_rep) (S: gset Z) (q: frac)
       (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :

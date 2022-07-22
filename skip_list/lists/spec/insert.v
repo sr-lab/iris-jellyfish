@@ -16,7 +16,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Export Link.
 
   Section Proofs.
-    Context `{!heapGS Σ, !gset_list_unionGS Σ, !lockG Σ} (N : namespace).
+    Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (N : namespace).
 
     Theorem tryInsert_spec (key: Z) (head curr: node_rep) (Skeys: gset Z) (q: frac)
       (sub: sub_gname) (bot: bot_gname) :
