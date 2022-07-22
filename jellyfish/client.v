@@ -25,22 +25,17 @@ Module Import New := NewSpec Params.
 Module Import Get := GetSpec Params.
 Module Import Put := PutSpec Params.
 
+(* Convert a list of Coq values into a HeapLang tuple *)
 Definition node : Type := Z * Z * Z.
-
-Definition node_key (n: node) : Z := n.1.1.
-Definition node_val (n: node) : Z := n.1.2.
-Definition node_height (n: node) : Z := n.2.
-
-Definition nodeKey : val := λ: "l", Fst (Fst "l").
-Definition nodeVal : val := λ: "l", Snd (Fst "l").
-Definition nodeHeight : val := λ: "l", Snd "l".
-
-(* Convert a list of Coq ints into a HeapLang tuple *)
 Fixpoint L2tuple (L: list node) : val :=
   match L with
   | nil => NONEV
   | (z, v, h) :: L => SOMEV (#z, #v, #h, L2tuple L)
   end.
+
+Definition nodeKey : val := λ: "l", Fst (Fst "l").
+Definition nodeVal : val := λ: "l", Snd (Fst "l").
+Definition nodeHeight : val := λ: "l", Snd "l".
 
 Definition putList : val :=
   rec: "put" "skip" "L" "t" :=
