@@ -49,9 +49,8 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
         wp_pures. wp_lam. wp_pures.
         destruct (node_down pred) as [d|] eqn:Hpred_down; wp_pures.
         - wp_bind (Load _).
-          iInv (levelN lvl) as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
+          iInv (levelN lvl) as (S ? L) "(Hinv_sub & >Hown_frac)" "Hclose".
           iDestruct "Hinv_sub" as "(>%Hperm & _ & _ & >Hown_auth & _ & Hlist)".
-          iDestruct "Hinv_bot" as "(>Hown_frac & _)".
           iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
             as %->%frac_auth_agree_L.
           

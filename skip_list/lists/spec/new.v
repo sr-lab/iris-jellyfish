@@ -105,9 +105,6 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (∅ : gset Z) ⋅ ◯F (∅: gset Z)))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
-      iMod (own_alloc (GSet node_key_range))
-        as (γkeys) "Hown_keys"; 
-        first done.
       assert (node_key_range = node_key_range ∖ ∅) as -> by set_solver.
 
       wp_lam. wp_alloc t as "Ht". wp_let.
@@ -121,9 +118,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       set (bot_head := (INT_MIN, dummy_null, t, None, l, dummy_null)).
 
       set (sub := mk_sub_gname γauth γtoks).
-      set (bot := mk_bot_gname γfrac γkeys).
+      set (bot := mk_bot_gname γfrac).
       iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv bot_head sub (Some bot) from_bot_list) 
-        with "[Ht2 Hlock Hown_auth Hown_toks Hown_frac Hown_keys]") as "#Hinv".
+        with "[Ht2 Hlock Hown_auth Hown_toks Hown_frac]") as "#Hinv".
       {
         iNext; iExists ∅, ∅, nil. iFrame.
         iSplit; first done. iSplit.

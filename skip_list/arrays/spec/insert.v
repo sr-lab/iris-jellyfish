@@ -43,8 +43,6 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks sub) (GSet {[ node_key new ]})
             ∗ 
-            own (s_keys bot) (GSet {[ node_key new ]})
-            ∗ 
             ⌜ node_key new = key ⌝
             ∗
             n ↦□ rep_to_node new
@@ -79,9 +77,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { subst; exfalso. rewrite /node_key/tail/= in Hkey_range; lia. }
 
         wp_lam. wp_bind (Fst _).
-        iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iInv (levelN 0) as (S' Skeys' L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
-        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
         iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
           as %[Hvalid%gset_included]%auth_both_valid_discrete.
@@ -94,7 +91,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         assert (Skeys' ∪ {[ key ]} = Skeys') as -> by set_solver.
 
         wp_proj.
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists S', Skeys', L; by iFrame. }
         iModIntro. wp_proj.
 
@@ -116,7 +113,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { done. }
         { iFrame "# ∗". iPureIntro; lia. }
         
-        iIntros (n new) "(Hlazy & Hown_frag & Hown_tok & Hown_key & Hkey & Hpt & Hn & Hnext & Hlock')".
+        iIntros (n new) "(Hlazy & Hown_frag & Hown_tok & Hkey & Hpt & Hn & Hnext & Hlock')".
         wp_let. wp_lam. wp_pures.
 
         wp_apply (release_spec with "[Hlock Hpt Harray Hlocked]").

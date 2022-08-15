@@ -48,9 +48,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       wp_lam. wp_let. wp_lam. wp_pures.
 
       wp_bind (Load _).
-      iInv N as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
+      iInv N as (S ? L) "(Hinv_sub & >Hown_frac)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-      iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
       iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
         as %->%frac_auth_agree_L.
 
@@ -87,7 +86,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_let. wp_lam. wp_pures.
@@ -152,7 +151,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
         wp_load.
         iPoseProof ("Himp" with "Hpt") as "Hlist".
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists S, Skeys, L; by iFrame. }
 
         iModIntro. wp_let. wp_lam. wp_pures.

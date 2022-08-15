@@ -143,8 +143,6 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks top_sub) (GSet {[ node_key new ]})
             ∗ 
-            own (s_keys bot) (GSet {[ node_key new ]})
-            ∗ 
             ⌜ node_key new = key ⌝
             ∗
             n ↦□ rep_to_node new
@@ -202,7 +200,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             { lia. }
 
             iNext; iIntros (opt n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlocks)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hn & Hnext & Hlocks)]".
             ++ rewrite Hopt; wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.
@@ -255,7 +253,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
             iNext. 
             iIntros (opt n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlocks)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hn & Hnext & Hlocks)]".
             ++ rewrite Hopt; wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.

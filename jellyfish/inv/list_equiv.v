@@ -23,8 +23,7 @@ Record sub_gname := mk_sub_gname {
 }.
 
 Record bot_gname := mk_bot_gname {
-  s_frac: gname;
-  s_keys: gname
+  s_frac: gname
 }.
 
 Module ListEquiv (Params: SKIP_LIST_PARAMS).

@@ -142,8 +142,6 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks top_sub) (GSet {[ node_key new ]})
             ∗ 
-            own (s_keys bot) (GSet {[ node_key new ]})
-            ∗ 
             ⌜ node_key new = key ⌝
             ∗
             n ↦□ rep_to_node new
@@ -207,7 +205,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
             iNext. 
             iIntros (v n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlock)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hn & Hnext & Hlock)]".
             ++ rewrite Hopt; wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.
@@ -278,7 +276,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
 
             iNext. 
             iIntros (v n new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & Hown_key & %Hkey & #Hn & Hnext & Hlock)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_frag & Hown_tok & %Hkey & #Hn & Hnext & Hlock)]".
             ++ rewrite Hopt. wp_pures.
                iModIntro; iApply ("HΦ" $! _ n new).
                iSplitR ""; last by iLeft.
@@ -352,7 +350,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hlist") as "Hlist".
       wp_let.
 
-      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_frag & Hown_tok & Hown_key & %Heq_key & #Hn & _ & Hlock)]".
+      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_frag & Hown_tok & %Heq_key & #Hn & _ & Hlock)]".
       + rewrite Hnone. wp_match.
         iModIntro. iApply "HΦ".
         iExists h, head. by iFrame.

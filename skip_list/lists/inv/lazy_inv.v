@@ -21,8 +21,7 @@ Record sub_gname := mk_sub_gname {
 }.
 
 Record bot_gname := mk_bot_gname {
-  s_frac: gname;
-  s_keys: gname
+  s_frac: gname
 }.
 
 Local Open Scope Z.
@@ -70,11 +69,6 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       own (s_toks Γ) (GSet (node_key_range ∖ Skeys))
       ∗
       list_equiv ([head] ++ L) P.
-
-    Definition bot_list_inv (Γ: bot_gname) (Skeys: gset Z) : iProp Σ := 
-      own (s_frac Γ) (●F Skeys)
-      ∗
-      own (s_keys Γ) (GSet (node_key_range ∖ Skeys)).
     
     Definition lazy_list_inv (head: node_rep) (sub: sub_gname) (obot: option bot_gname)
       (P: Z → option loc → iProp Σ) : iProp Σ := 
@@ -83,7 +77,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       match obot with
       | None => True
-      | Some bot => bot_list_inv bot Skeys
+      | Some bot => own (s_frac bot) (●F Skeys)
       end.
 
     Definition is_top_list (head: node_rep) (top bot: sub_gname) : iProp Σ := 

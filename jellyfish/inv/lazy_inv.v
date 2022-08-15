@@ -34,11 +34,6 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       list_equiv lvl osub ([head] ++ L) omap.
 
-    Definition bot_list_inv (Γ: bot_gname) (Smap: gmap Z (argmax Z)) : iProp Σ := 
-      own (s_frac Γ) (●F Smap)
-      ∗
-      own (s_keys Γ) (GSet (node_key_range ∖ (dom Smap))).
-
     Definition lazy_list_inv (head: node_rep) (bot: bot_gname)
       (top_sub: sub_gname) (obot_sub: option sub_gname) : iProp Σ := 
       ∃ (S: gset node_rep) (Smap: gmap Z (argmax Z)) (L: list node_rep),
@@ -46,7 +41,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
         ∗
         match obot_sub with
         | Some bot_sub => True
-        | None => bot_list_inv bot Smap
+        | None => own (s_frac bot) (●F Smap)
         end.
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.

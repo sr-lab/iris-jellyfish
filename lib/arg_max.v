@@ -77,7 +77,7 @@ Global Arguments argmax _ {_ _}.
 Section cmra.
   Context `{Countable V}.
 
-  Local Instance gmap_unit_instance : Unit (argmax V) := botZ.
+  Local Instance arg_max_unit_instance : Unit (argmax V) := botZ.
   Local Instance arg_max_valid_instance : Valid (argmax V) := λ _, True.
   Local Instance arg_max_validN_instance : ValidN (argmax V) := λ _ _, True.
   Local Instance arg_max_pcore_instance : PCore (argmax V) := Some.

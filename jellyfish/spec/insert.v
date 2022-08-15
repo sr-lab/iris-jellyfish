@@ -50,9 +50,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_load. wp_let. wp_lam. wp_pures.
 
       case_bool_decide as Hts; wp_if.
-      + iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & Hinv_bot)" "Hclose".
+      + iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
         iAssert ⌜ In curr L ⌝%I with "[Hown_auth]" as %Hin.
         {
@@ -92,15 +91,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iPoseProof ("Himp" $! vs val with "[Hpt Hnode]") as "Hlist".
         { iNext; by iFrame. }
         rewrite /opt_map /opt_insert insert_id //.
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists S', Smap', L; by iFrame "# ∗". }
         iModIntro; iApply ("HΦ" $! val).
         iFrame "# ∗".
         by destruct (decide (ts < val_ts val)).
       + wp_alloc v' as "Hval'"; wp_pures.
-        iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
 
         iAssert ⌜ In curr L ⌝%I with "[Hown_auth]" as %Hin.
         {
@@ -152,7 +150,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
           rewrite -Hdom; rewrite -Hdom in Hequiv.
 
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
           { iNext; iExists S', (<[node_key curr:=prodZ ({[v]} ∪ vs) ts]> Smap'), L; by iFrame "# ∗". }
           iModIntro; iApply ("HΦ" $! val').
           iFrame "# ∗".
@@ -166,7 +164,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
           rewrite -Hdom; rewrite -Hdom in Hequiv.
 
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
           { iNext; iExists S', (<[node_key curr:=prodZ {[v]} ts]> Smap'), L; by iFrame "# ∗". }
           iModIntro; iApply ("HΦ" $! val').
           iFrame "# ∗".
@@ -199,8 +197,6 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             own (s_auth sub) (◯ {[ new ]})
             ∗ 
             own (s_toks sub) (GSet {[ node_key new ]})
-            ∗ 
-            own (s_keys bot) (GSet {[ node_key new ]})
             ∗ 
             ⌜ node_key new = key ⌝
             ∗
@@ -249,7 +245,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_apply (createAndLink_spec with "[Hnext Hval Hown_frag]").
         { done. }
         { iFrame "# ∗". iPureIntro; lia. }
-        iIntros (n new) "((Hown_map & _) & Hown_frag & Hown_tok & Hown_key & Hkey & Hnext & #Hn & Hval & Hnexts & Hlocks)".
+        iIntros (n new) "((Hown_map & _) & Hown_frag & Hown_tok & Hkey & Hnext & #Hn & Hval & Hnexts & Hlocks)".
         wp_let.
 
         wp_apply (release_spec with "[Hnext Hval Hlocked]").

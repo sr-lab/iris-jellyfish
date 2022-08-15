@@ -141,9 +141,8 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         assert (bot_sub = bot_sub') as <- by congruence.
 
         wp_bind (Load _).
-        iInv (levelN 0) as (S ? L) "(Hinv_sub & Hinv_bot)" "Hclose".
+        iInv (levelN 0) as (S ? L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
-        iDestruct "Hinv_bot" as "(>Hown_frac & >Hown_keys)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 
@@ -169,7 +168,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         iPoseProof ("Himp'" $! vs v' with "[Hpt' Hnode]") as "Hlist".
         { by iFrame. }
         rewrite /opt_map /opt_insert insert_id //.
-        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac Hown_keys]") as "_".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists S, Smap, L; by iFrame. }
         iPoseProof ("Himp" with "[$]") as "Hlist".
 

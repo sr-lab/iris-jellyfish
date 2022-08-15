@@ -160,8 +160,6 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks top_sub) (GSet {[ node_key new ]})
             ∗ 
-            own (s_keys bot) (GSet {[ node_key new ]})
-            ∗ 
             ⌜ node_key new = key ⌝
           )
         )
@@ -223,7 +221,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             { rewrite -Heq_key -Heq; lia. }
 
             iIntros (v new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_new & Hown_tok & Hown_key & %Hkey)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_new & Hown_tok & %Hkey)]".
             ++ rewrite Hopt. wp_pures.
                iModIntro. iApply "HΦ".
                iFrame "# ∗".
@@ -240,11 +238,11 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                }
 
                iIntros (new') "(Hown_new & Hown_tok & %Hkey')".
-               rewrite Hkey -Hkey'.
+               rewrite -Hkey'.
                wp_pures.
                iModIntro; iApply "HΦ". 
                iFrame "# ∗".
-               iSplitR "Hown_new Hown_tok Hown_key"; last first.
+               iSplitR "Hown_new Hown_tok"; last first.
                { iRight; by iFrame. }
                iExists l, down. by iFrame.
           * iDestruct (own_valid_2 with "Hown_auth Hown_pred") 
@@ -270,7 +268,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
             { lia. }
 
             iIntros (v new) "(Hlist & Hopt)".
-            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_new & Hown_tok & Hown_key & %Hkey)]".
+            iDestruct "Hopt" as "[%Hopt | (%Hopt & Hown_new & Hown_tok & %Hkey)]".
             ++ rewrite Hopt. wp_pures.
                iModIntro. iApply "HΦ".
                iFrame "# ∗".
@@ -282,11 +280,11 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
                { iFrame "# ∗". iPureIntro; lia. }
 
                iIntros (new') "(Hown_new & Hown_tok & %Hkey')".
-               rewrite Hkey -Hkey'.
+               rewrite -Hkey'.
                wp_pures.
                iModIntro; iApply ("HΦ" $! _ new'). 
                iFrame "# ∗".
-               iSplitR "Hown_new Hown_tok Hown_key"; last first.
+               iSplitR "Hown_new Hown_tok"; last first.
                { iRight; by iFrame. }
                iExists l, down. by iFrame.
         - iAssert (|={⊤}=> False)%I as "Hfalse"; last by iMod "Hfalse".
@@ -333,7 +331,7 @@ Module AddSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hlist") as "Hlist".
       wp_let.
 
-      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_new & Hown_tok & Hown_key & %Heq_key)]".
+      iDestruct "Hopt" as "[%Hnone | (%Hsome & Hown_new & Hown_tok & %Heq_key)]".
       + rewrite Hnone. wp_match.
         iModIntro. iApply "HΦ".
         iExists h, head. by iFrame.
