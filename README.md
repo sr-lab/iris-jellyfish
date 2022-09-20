@@ -14,8 +14,9 @@ This development is known to compile with
 This development contains proofs for 4 data structures. The lib/ directory contains definitions and lemmas which are common for all structures. The four structures can be found in:
 
 - lazy_list/: Proofs for an append-only lazy list.
-- skip_list/lists/: Proofs for an append-only skip list based on linked lists.
-- skip_list/arrays/: Proofs for an append-only skip list based on arrays.
+- skip_list/:
+  + lists/: Proofs for an append-only skip list based on linked lists.
+  + arrays/: Proofs for an append-only skip list based on arrays.
 - jellyfish/: Proofs for the lazy JellyFish skip list.
 
 Each of these directories is structured as:
