@@ -19,41 +19,42 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
-    Theorem update_spec (v ts: Z) (head curr: node_rep) 
-      (Smap: gmap Z (argmax Z)) (q: frac)
+    Theorem update_spec (v t: Z) (head node: node_rep) 
+      (M: gmap Z (argmax Z)) (q: frac)
       (sub: sub_gname) (bot: bot_gname) 
       (val: val_rep) :
       {{{
-        is_bot_list 0 head Smap q bot sub
+        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
         ∗
-        own (s_auth sub) (◯ {[ curr ]})
+        own (s_frac bot) (◯F{q} M)
         ∗
-        (node_val curr) ↦{#1 / 2} rep_to_val val
+        own (s_auth sub) (◯ {[ node ]})
+        ∗
+        (node_val node) ↦{#1 / 2} rep_to_val val
       }}}
-        update (rep_to_node curr) #v #ts
+        update (rep_to_node node) #v #t
       {{{ val', RET #();
-        is_bot_list 0 head (Smap ⋅ {[ node_key curr := prodZ {[ v ]} ts ]}) q bot sub
+        own (s_frac bot) (◯F{q} (M ⋅ {[ node_key node := prodZ {[ v ]} t ]}))
         ∗
-        (node_val curr) ↦{#1 / 2} rep_to_val val'
+        (node_val node) ↦{#1 / 2} rep_to_val val'
         ∗
-        if decide (ts < val_ts val) then ⌜ val = val' ⌝  
+        if decide (t < val_ts val) then ⌜ val = val' ⌝  
                                     else ⌜ val_v val' = v ⌝
                                          ∗
-                                         ⌜ val_ts val' = ts ⌝
+                                         ⌜ val_ts val' = t ⌝
                                          ∗
                                          (val_prev val') ↦□ rep_to_val val
       }}}.
     Proof.
-      iIntros (Φ) "((Hown_frag & #Hinv) & #Hown_succ & Hval) HΦ".
-
+      iIntros (Φ) "(#Hinv & Hown_frag & #Hown_succ & Hval) HΦ".
       wp_lam. wp_pures. wp_lam. wp_pures.
       wp_load. wp_let. wp_lam. wp_pures.
 
       case_bool_decide as Hts; wp_if.
-      + iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & >Hown_frac)" "Hclose".
+      + iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
-        iAssert ⌜ In curr L ⌝%I with "[Hown_auth]" as %Hin.
+        iAssert ⌜ In node L ⌝%I with "[Hown_auth]" as %Hin.
         {
           iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
             as %[Hvalid%gset_included]%auth_both_valid_discrete.
@@ -66,17 +67,17 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct (mapsto_agree with "Hval Hnode") as %<-%rep_to_val_inj.
         destruct Hval as [vs [Hsome Hv]].
 
-        assert (Smap ⋅ ∅ = Smap) as <- by rewrite right_id_L //.
-        rewrite -(Qp_div_2 q) frac_auth_frag_op.
+        assert (M ⋅ ∅ = M) as <- by rewrite right_id_L //.
+        rewrite -(Qp.div_2 q) frac_auth_frag_op.
         iDestruct "Hown_frag" as "(Hown_frag & Hown_emp)".
         iMod (own_update_2 with "Hown_frac Hown_emp") as "[Hown_frac Hown_emp]".
         { 
           apply frac_auth_update. 
           apply (insert_alloc_local_update _ _ 
-            (node_key curr) 
+            (node_key node) 
             (prodZ vs (val_ts val)) 
-            (prodZ {[v]} ts ⋅ prodZ vs (val_ts val)) 
-            (prodZ {[v]} ts)
+            (prodZ {[v]} t ⋅ prodZ vs (val_ts val)) 
+            (prodZ {[v]} t)
           ); auto.
           apply arg_max_local_update.
         }
@@ -86,21 +87,22 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         rewrite insert_singleton_op; last done.
         do 2 rewrite right_id_L.
         iCombine "Hown_frag Hown_emp" as "Hown_frag".
-        rewrite Qp_div_2.
+        rewrite Qp.div_2.
 
         iPoseProof ("Himp" $! vs val with "[Hpt Hnode]") as "Hlist".
         { iNext; by iFrame. }
         rewrite /opt_map /opt_insert insert_id //.
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-        { iNext; iExists S', Smap', L; by iFrame "# ∗". }
+        { iNext; iExists M', S', L; by iFrame "# ∗". }
         iModIntro; iApply ("HΦ" $! val).
         iFrame "# ∗".
-        by destruct (decide (ts < val_ts val)).
-      + wp_alloc v' as "Hval'"; wp_pures.
-        iInv (levelN 0) as (S' Smap' L) "(Hinv_sub & >Hown_frac)" "Hclose".
+        by destruct (decide (t < val_ts val)).
+      + wp_alloc v' as "Hval'".
+        wp_pures. wp_lam. wp_pures.
+        iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
 
-        iAssert ⌜ In curr L ⌝%I with "[Hown_auth]" as %Hin.
+        iAssert ⌜ In node L ⌝%I with "[Hown_auth]" as %Hin.
         {
           iDestruct (own_valid_2 with "Hown_auth Hown_succ") 
             as %[Hvalid%gset_included]%auth_both_valid_discrete.
@@ -113,81 +115,83 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct (mapsto_agree with "Hval Hnode") as %<-%rep_to_val_inj.
         destruct Hval as [vs [Hsome Hv]].
 
-        assert (Smap ⋅ ∅ = Smap) as <- by rewrite right_id_L //.
-        rewrite -(Qp_div_2 q) frac_auth_frag_op.
+        assert (M ⋅ ∅ = M) as <- by rewrite right_id_L //.
+        rewrite -(Qp.div_2 q) frac_auth_frag_op.
         iDestruct "Hown_frag" as "(Hown_frag & Hown_emp)".
         iMod (own_update_2 with "Hown_frac Hown_emp") as "[Hown_frac Hown_emp]".
         { 
           apply frac_auth_update. 
           apply (insert_alloc_local_update _ _ 
-            (node_key curr) 
+            (node_key node) 
             (prodZ vs (val_ts val)) 
-            (prodZ {[v]} ts ⋅ prodZ vs (val_ts val)) 
-            (prodZ {[v]} ts)
+            (prodZ {[v]} t ⋅ prodZ vs (val_ts val)) 
+            (prodZ {[v]} t)
           ); auto.
           apply arg_max_local_update.
         }
 
-        rewrite (insert_singleton_op _ _ (prodZ {[v]} ts)); last done.
+        rewrite (insert_singleton_op _ _ (prodZ {[v]} t)); last done.
         do 2 rewrite right_id_L.
         iCombine "Hown_frag Hown_emp" as "Hown_frag".
-        rewrite Qp_div_2.
+        rewrite Qp.div_2.
 
-        set (val' := (v, ts, v')).
+        set (val' := (v, t, v')).
         rewrite (fold_rep_to_val val').
         iCombine "Hval Hnode" as "Hval".
         wp_store.
         iDestruct "Hval" as "(Hval & Hnode)".
         iMod (mapsto_persist with "Hval'") as "#Hval'".
 
-        assert (val_ts val = ts ∨ val_ts val < ts) as Hts_range by lia.
+        assert (val_ts val = t ∨ val_ts val < t) as Hts_range by lia.
         clear Hts; destruct Hts_range as [->|Hlt].
         - rewrite arg_max_eq.
           iPoseProof ("Himp" $! ({[ v ]} ∪ vs) val' with "[Hpt Hnode]") as "Hlist".
           { iFrame; iPureIntro; by apply elem_of_union_l, elem_of_singleton. }
 
-          assert (dom (<[node_key curr:=prodZ ({[v]} ∪ vs) ts]> Smap') = dom Smap') as Hdom.
+          assert (dom (<[node_key node:=prodZ ({[v]} ∪ vs) t]> M') = dom M') as Hdom.
           { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
           rewrite -Hdom; rewrite -Hdom in Hequiv.
 
           iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-          { iNext; iExists S', (<[node_key curr:=prodZ ({[v]} ∪ vs) ts]> Smap'), L; by iFrame "# ∗". }
+          { iNext; iExists (<[node_key node:=prodZ ({[v]} ∪ vs) t]> M'), S', L; by iFrame "# ∗". }
           iModIntro; iApply ("HΦ" $! val').
           iFrame "# ∗".
-          destruct (decide (ts < ts)); first lia.
+          destruct (decide (t < t)); first lia.
           by iFrame "#".
         - rewrite arg_max_op arg_max_comm -arg_max_op arg_max_lt; last done.
           iPoseProof ("Himp" $! {[ v ]} val' with "[Hpt Hnode]") as "Hlist".
           { iFrame; iPureIntro; by apply elem_of_singleton. }
 
-          assert (dom (<[node_key curr:=prodZ {[v]} ts]> Smap') = dom Smap') as Hdom.
+          assert (dom (<[node_key node:=prodZ {[v]} t]> M') = dom M') as Hdom.
           { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
           rewrite -Hdom; rewrite -Hdom in Hequiv.
 
           iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-          { iNext; iExists S', (<[node_key curr:=prodZ {[v]} ts]> Smap'), L; by iFrame "# ∗". }
+          { iNext; iExists (<[node_key node:=prodZ {[v]} t]> M'), S', L; by iFrame "# ∗". }
           iModIntro; iApply ("HΦ" $! val').
           iFrame "# ∗".
-          destruct (decide (ts < val_ts val)); first lia.
+          destruct (decide (t < val_ts val)); first lia.
           by iFrame "#".
     Qed.
 
-    Theorem tryInsert_spec (key v ts h: Z) (head curr: node_rep) 
-      (Smap: gmap Z (argmax Z)) (q: frac)
+    Theorem tryInsert_spec (k v t h: Z) (head curr: node_rep) 
+      (M: gmap Z (argmax Z)) (q: frac)
       (sub: sub_gname) (bot: bot_gname) :
-      INT_MIN < key < INT_MAX →
+      INT_MIN < k < INT_MAX →
       {{{
-        is_bot_list 0 head Smap q bot sub
+        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
+        ∗
+        own (s_frac bot) (◯F{q} M)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
-        ⌜ node_key curr < key ⌝
+        ⌜ node_key curr < k ⌝
         ∗
         ⌜ 0 ≤ h ⌝ 
       }}}
-        tryInsert (rep_to_node curr) #key #v #ts #h
+        tryInsert (rep_to_node curr) #k #v #t #h
       {{{ (opt: val) (n: loc) (new: node_rep), RET opt;
-        is_bot_list 0 head (Smap ⋅ {[ key := prodZ {[ v ]} ts ]}) q bot sub
+        own (s_frac bot) (◯F{q} (M ⋅ {[ k := prodZ {[ v ]} t ]}))
         ∗
         ( 
           ⌜ opt = NONEV ⌝ ∨ 
@@ -198,7 +202,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_toks sub) (GSet {[ node_key new ]})
             ∗ 
-            ⌜ node_key new = key ⌝
+            ⌜ node_key new = k ⌝
             ∗
             n ↦□ rep_to_node new
             ∗
@@ -209,7 +213,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         )
       }}}.
     Proof.
-      iIntros (Hkey_range Φ) "((Hown_frag & #Hinv) & #Hown_curr & %Hrange & %Hh) HΦ".
+      iIntros (Hkey_range Φ) "(#Hinv & Hown_frag & #Hown_curr & %Hrange & %Hh) HΦ".
       wp_lam. wp_pures.
 
       wp_apply findLock_spec.
@@ -221,37 +225,42 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_pures. wp_lam. wp_pures. wp_load. 
       wp_pures. wp_lam. wp_pures.
       case_bool_decide as Hcase; wp_if.
-      + assert (key = node_key succ) as Heq by congruence.
+      + assert (k = node_key succ) as Heq by congruence.
         iDestruct "Hown_succ" as "[Hown_succ|%Hsucc]"; last first.
         { subst; exfalso. rewrite /node_key/tail/= in Hkey_range; lia. }
-        iDestruct "Hval" as "[%Hsucc|Hval]".
+        
+        iDestruct "Hval" as (succ') "(#Hs' & Hval)".
+        iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj.
+        iDestruct "Hval" as "[%Htail|Hval]".
         { subst; exfalso. rewrite /node_key/tail/= in Hkey_range; lia. }
         iDestruct "Hval" as (val) "Hval".
 
         wp_apply (update_spec with "[$]").
-        iIntros (val') "((Hown_frag & _) & Hval & _)".
+        iIntros (val') "(Hown_frag & Hval & _)".
         wp_pures.
 
         wp_apply (release_spec with "[Hnext Hval Hlocked]").
-        { 
-          iFrame "# ∗"; iExists s, succ; rewrite loc_add_0; iFrame "# ∗". 
-          iRight; by iExists val'.
+        {
+          iFrame "# ∗";  iExists s; rewrite loc_add_0. 
+          iFrame; iExists succ. 
+          iFrame "#"; iRight; by iExists val'.
         }
         iIntros "_". wp_pures.
         iModIntro; iApply "HΦ".
         rewrite -Heq. iFrame "# ∗". by iLeft.
-      + assert (key ≠ node_key succ) as Hneq by congruence.
+      + assert (k ≠ node_key succ) as Hneq by congruence.
 
         wp_apply (createAndLink_spec with "[Hnext Hval Hown_frag]").
         { done. }
         { iFrame "# ∗". iPureIntro; lia. }
-        iIntros (n new) "((Hown_map & _) & Hown_frag & Hown_tok & Hkey & Hnext & #Hn & Hval & Hnexts & Hlocks)".
+        iIntros (n new) "(Hown_map & Hown_frag & Hown_tok & Hkey & Hnext & #Hn & Hval & Hnexts & Hlocks)".
         wp_let.
 
         wp_apply (release_spec with "[Hnext Hval Hlocked]").
         { 
-          iFrame "# ∗"; iExists n, new; rewrite loc_add_0; iFrame "# ∗".
-          iRight; by iExists (v, ts, dummy_null).
+          iFrame "# ∗";  iExists n; rewrite loc_add_0. 
+          iFrame; iExists new. 
+          iFrame "#"; iRight; by iExists (v, t, dummy_null).
         }
         iIntros "_"; wp_pures.
         iModIntro; iApply ("HΦ" $! _ n new).
@@ -292,11 +301,11 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ l s) "(#Hl & #Hlock & Hnext' & #Hs & Hval & Hlocked)".
+      iDestruct "Hlock" as (γ l s) "(#Hl & #Hlock & Hnext' & #Hs & _ & Hlocked)".
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (Load _).
-      iInv (levelN lvl) as (S' Smap' L) "(Hinv_sub & _)" "Hclose".
+      iInv (levelN lvl) as (M' S' L) "(Hinv_sub & _)" "Hclose".
       iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
       wp_load.
 
@@ -322,7 +331,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       }
 
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
-      { iNext; iExists S', Smap', L; by iFrame "# ∗". }
+      { iNext; iExists M', S', L; by iFrame "# ∗". }
       iModIntro; wp_pures.
 
       wp_apply (link_spec with "[Hnext' Hown_frag Hown_tok Hnext Hlocks]").
@@ -332,7 +341,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       wp_pures.
       wp_apply (release_spec with "[Hnext Hlocked]").
-      { iFrame "# ∗"; iExists n, new; iFrame "# ∗". }
+      { iFrame "# ∗"; iExists n; iFrame. }
       iIntros "_"; iApply "HΦ"; iFrame.
       Unshelve. done.
     Qed.

@@ -57,7 +57,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hnext" as "((Hnext' & Hnext'') & Hnext)".
 
         wp_apply (newlock_spec (in_lock lvl (Some top_sub) head) with "[Hnext'']").
-        { iExists t, tail; iFrame "# ∗". }
+        { iExists t; iFrame. }
         iIntros (l γ) "#Hlock".
 
         wp_store. wp_pures.
@@ -108,14 +108,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
     Theorem new_spec : 
       {{{ True }}}
         new #()
-      {{{ v bot subs, RET v; is_skip_list v ∅ 1 bot subs }}}.
+      {{{ p bot subs, RET #p; is_skip_list p ∅ 1 bot subs }}}.
     Proof.
       iIntros (Φ) "_ HΦ".
       pose proof HMAX_HEIGHT as Hmax.
 
-      wp_lam. wp_alloc t as "Ht". wp_let.
-      iMod (mapsto_persist with "Ht") as "#Ht".
-
+      wp_lam. 
+      wp_alloc t as "Ht"; iMod (mapsto_persist with "Ht") as "#Ht".
       wp_alloc next as "Hnext"; first lia. wp_let.
       wp_alloc locks as "Hlocks"; first lia. wp_let.
 
@@ -131,8 +130,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       set (head := (INT_MIN, dummy_null, next, @None loc, dummy_lock, locks)).
       wp_apply (newlock_spec (in_lock 0 None head) with "[Hn']").
       { 
-        iExists t, tail; rewrite loc_add_0. 
-        iFrame "# ∗"; by iLeft.
+        iExists t; rewrite loc_add_0; iFrame.
+        iExists tail; iFrame "#"; by iLeft.
       }
       iIntros (l γ) "#Hlock".
 
@@ -184,9 +183,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iIntros (subs) "Hskip". wp_pures.
       rewrite (fold_rep_to_node head).
 
-      wp_alloc h as "Hh".
-      iModIntro; iApply ("HΦ" $! _ bot subs).
-      iExists h, head. by iFrame.
+      wp_alloc p as "Hp"; iMod (mapsto_persist with "Hp") as "#Hp".
+      iModIntro; iApply ("HΦ" $! p bot subs).
+      iExists head. by iFrame "# ∗".
     Qed.
 
   End Proofs.

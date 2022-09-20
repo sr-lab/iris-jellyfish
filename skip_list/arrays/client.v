@@ -103,7 +103,7 @@ Section Proofs.
     iIntros (v bot subs) "Hskip".
 
     wp_let.
-    rewrite -(Qp_div_2 1).
+    rewrite -(Qp.div_2 1).
     iDestruct (is_skip_list_sep with "Hskip") as "(Hskip1 & Hskip2)".
 
     wp_smart_apply (wp_par (λ _, is_skip_list v (set_list_union ∅ (keys L1)) (1 / 2) bot subs)
@@ -118,7 +118,7 @@ Section Proofs.
       { intros h Hin. apply Hh_range. by right. }
       by iIntros.
     + iIntros (v1 v2) "Hskip".
-      rewrite is_skip_list_join (Qp_div_2 1).
+      rewrite is_skip_list_join (Qp.div_2 1).
       
       iNext; wp_pures.
       wp_apply (contains_spec with "Hskip"); first done.

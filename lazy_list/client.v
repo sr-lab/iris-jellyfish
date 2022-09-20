@@ -90,7 +90,7 @@ Section Proofs.
     iIntros (v Γ) "Hlazy".
 
     wp_let.
-    rewrite -(Qp_div_2 1).
+    rewrite -(Qp.div_2 1).
     iDestruct (is_lazy_list_sep with "Hlazy") as "(Hlazy1 & Hlazy2)".
 
     wp_smart_apply (wp_par (λ _, is_lazy_list v (set_list_union ∅ L1) (1 / 2) Γ)
@@ -103,7 +103,7 @@ Section Proofs.
       { intros k Hin. apply Hrange_l. by right. }
       by iIntros.
     + iIntros (v1 v2) "Hlazy".
-      rewrite is_lazy_list_join (Qp_div_2 1).
+      rewrite is_lazy_list_join (Qp.div_2 1).
       
       iNext; wp_pures.
       wp_apply (contains_spec with "Hlazy"); first done.

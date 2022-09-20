@@ -75,7 +75,7 @@ Section Proofs.
     iIntros (v bot subs) "Hskip".
 
     wp_let.
-    rewrite -(Qp_div_2 1).
+    rewrite -(Qp.div_2 1).
     iDestruct (is_skip_list_sep with "Hskip") as "(Hskip1 & Hskip2)".
 
     wp_smart_apply (wp_par (λ _, is_skip_list v ({[20 := prodZ {[2]} 1]} ⋅ {[10 := prodZ {[3]} 2]}) (1 / 2) bot subs) 
@@ -131,7 +131,7 @@ Section Proofs.
       wp_pures. wp_lam. wp_pures.
       by iModIntro.
     + iIntros (v1 v2) "Hskip".
-      rewrite is_skip_list_join (Qp_div_2 1).
+      rewrite is_skip_list_join (Qp.div_2 1).
 
       rewrite -gmap_op. 
       rewrite -assoc_L comm_L assoc_L singleton_op arg_max_eq.
@@ -154,11 +154,11 @@ Section Proofs.
         destruct Hfalse; congruence.
       }
 
-      destruct Hsome1 as [z1 [t1 [S1 [-> [Hin1 Hsome1]]]]].
+      destruct Hsome1 as [t1 [z1 [S1 [-> [Hsome1 Hin1]]]]].
       rewrite lookup_op lookup_singleton lookup_singleton_ne // right_id_L in Hsome1.
       inversion Hsome1; subst.
 
-      destruct Hsome2 as [z2 [t2 [S2 [-> [Hin2 Hsome2]]]]].
+      destruct Hsome2 as [t2 [z2 [S2 [-> [Hsome2 Hin2]]]]].
       rewrite lookup_op lookup_singleton lookup_singleton_ne // left_id_L in Hsome2.
       inversion Hsome2; subst.
       rewrite elem_of_singleton in Hin2; subst.

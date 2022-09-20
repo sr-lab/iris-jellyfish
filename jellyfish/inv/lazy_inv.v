@@ -21,7 +21,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
     Definition sub_list_inv (head: node_rep) (Γ: sub_gname) 
       (osub: option sub_gname) (omap: option (gmap Z (argmax Z)))
-      (S: gset node_rep) (Skeys: gset Z) (L: list node_rep) : iProp Σ := 
+      (Skeys: gset Z) (S: gset node_rep) (L: list node_rep) : iProp Σ := 
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
@@ -36,12 +36,12 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
     Definition lazy_list_inv (head: node_rep) (bot: bot_gname)
       (top_sub: sub_gname) (obot_sub: option sub_gname) : iProp Σ := 
-      ∃ (S: gset node_rep) (Smap: gmap Z (argmax Z)) (L: list node_rep),
-        sub_list_inv head top_sub obot_sub (opt_map obot_sub Smap) S (dom Smap) L
+      ∃ (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep),
+        sub_list_inv head top_sub obot_sub (opt_map obot_sub M) (dom M) S L
         ∗
         match obot_sub with
         | Some bot_sub => True
-        | None => own (s_frac bot) (●F Smap)
+        | None => own (s_frac bot) (●F M)
         end.
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
@@ -49,9 +49,9 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
     Definition is_sub_list (head: node_rep) (bot: bot_gname) (top_sub bot_sub: sub_gname) : iProp Σ := 
       inv (levelN lvl) (lazy_list_inv head bot top_sub (Some bot_sub)).
 
-    Definition is_bot_list (head: node_rep) (Smap: gmap Z (argmax Z)) (q: frac)
+    Definition is_bot_list (head: node_rep) (M: gmap Z (argmax Z)) (q: frac)
       (bot: bot_gname) (sub: sub_gname) : iProp Σ := 
-      own (s_frac bot) (◯F{q} Smap)
+      own (s_frac bot) (◯F{q} M)
       ∗
       inv (levelN lvl) (lazy_list_inv head bot sub None).
 

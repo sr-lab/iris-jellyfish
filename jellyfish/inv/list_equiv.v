@@ -43,55 +43,55 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       | None => (node_val rep) ↦{#1 / 2} rep_to_val v
       end.
 
-    Definition is_val (omap: option (gmap Z (argmax Z))) (rep: node_rep) (v: val_rep) : Prop :=
-      match omap with
-      | Some Smap => ∃ (vs: gset Z), Smap !! (node_key rep) = Some (prodZ vs (val_ts v))
+    Definition is_val (oM: option (gmap Z (argmax Z))) (rep: node_rep) (v: val_rep) : Prop :=
+      match oM with
+      | Some M => ∃ (vs: gset Z), M !! (node_key rep) = Some (prodZ vs (val_ts v))
                                     ∧
                                     val_v v ∈ vs
       | None => True
       end.
 
-    Definition locked_val (succ: node_rep) : iProp Σ := 
+    Definition locked_val (s: loc) : iProp Σ := 
       match osub with
       | Some _ => True
-      | None => ⌜ succ = tail ⌝ 
-                ∨ 
-                ∃ (v: val_rep), (node_val succ) ↦{#1 / 2} rep_to_val v
+      | None => ∃ (succ: node_rep),
+                  s ↦□ rep_to_node succ
+                  ∗
+                  (⌜ succ = tail ⌝ ∨
+                  ∃ (v: val_rep), (node_val succ) ↦{#1 / 2} rep_to_val v)
       end.
 
     Definition in_lock (rep: node_rep) : iProp Σ := 
-      ∃ (s: loc) (succ: node_rep), 
+      ∃ (s: loc), 
         (node_next rep +ₗ lvl) ↦{#1 / 2} #s 
         ∗ 
-        s ↦□ rep_to_node succ
-        ∗
-        locked_val succ.
+        locked_val s.
 
-    Definition opt_map (Smap: gmap Z (argmax Z)) : option (gmap Z (argmax Z)) :=
+    Definition opt_map (M: gmap Z (argmax Z)) : option (gmap Z (argmax Z)) :=
       match osub with
       | Some _ => None
-      | None => Some Smap
+      | None => Some M
       end.
 
-    Definition opt_lookup (omap: option (gmap Z (argmax Z))) (key: Z) : option (argmax Z) := 
-      match omap with
-      | Some Smap => Smap !! key
+    Definition opt_lookup (oM: option (gmap Z (argmax Z))) (k: Z) : option (argmax Z) := 
+      match oM with
+      | Some M => M !! k
       | None => None
       end.
 
-    Definition opt_insert (omap: option (gmap Z (argmax Z))) (key: Z) (v: argmax Z) : option (gmap Z (argmax Z)) :=
-      match omap with
-      | Some Smap => Some (<[key := v]>Smap)
+    Definition opt_insert (oM: option (gmap Z (argmax Z))) (k: Z) (v: argmax Z) : option (gmap Z (argmax Z)) :=
+      match oM with
+      | Some M => Some (<[k := v]>M)
       | None => None
       end.
 
-    Definition opt_delete (omap: option (gmap Z (argmax Z))) (key: Z) : option (gmap Z (argmax Z)) :=
-      match omap with
-      | Some Smap => Some (delete key Smap)
+    Definition opt_delete (oM: option (gmap Z (argmax Z))) (k: Z) : option (gmap Z (argmax Z)) :=
+      match oM with
+      | Some M => Some (delete k M)
       | None => None
       end.
 
-    Fixpoint list_equiv (L: list node_rep) (omap: option (gmap Z (argmax Z))) : iProp Σ :=
+    Fixpoint list_equiv (L: list node_rep) (oM: option (gmap Z (argmax Z))) : iProp Σ :=
       match L with
       | nil => True
       | pred :: succs => 
@@ -116,20 +116,20 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
                        ∗
                        is_node succ v
                        ∗
-                       ⌜ is_val omap succ v ⌝
+                       ⌜ is_val oM succ v ⌝
                        ∗
-                       list_equiv succs (opt_delete omap (node_key succ))
+                       list_equiv succs (opt_delete oM (node_key succ))
         end
       end. 
     
 
     Lemma list_equiv_cons (pred: node_rep) (L: list node_rep) 
-      (omap: option (gmap Z (argmax Z))) :
-      list_equiv (pred :: L) omap ⊢ 
+      (oM: option (gmap Z (argmax Z))) :
+      list_equiv (pred :: L) oM ⊢ 
         ∃ (succ: node_rep), 
-          ( list_equiv L (opt_delete omap (node_key succ))
+          ( list_equiv L (opt_delete oM (node_key succ))
             ∗ 
-            (list_equiv L (opt_delete omap (node_key succ)) -∗ list_equiv (pred :: L) omap)).
+            (list_equiv L (opt_delete oM (node_key succ)) -∗ list_equiv (pred :: L) oM)).
     Proof.
       destruct L as [|succ].
       + iIntros "Hrep". by iFrame.
@@ -141,10 +141,10 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_join (s: loc) (head pred succ: node_rep) (L: list node_rep) 
-      (omap: option (gmap Z (argmax Z))) :
+      (oM: option (gmap Z (argmax Z))) :
       Sorted node_lt ([head] ++ L ++ [tail]) →
       pred = head ∨ In pred L →
-      list_equiv ([head] ++ L) omap ⊢
+      list_equiv ([head] ++ L) oM ⊢
         (node_next pred +ₗ lvl) ↦{#1/2} #s
         ∗ 
         s ↦□ rep_to_node succ
@@ -154,17 +154,17 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
             ∗
             (node_next pred +ₗ lvl) ↦{#1/2} #s
             ∗ 
-            list_equiv ([head] ++ L) omap.
+            list_equiv ([head] ++ L) oM.
     Proof.
       iIntros (Hsort Hin) "Hlist (Hnext & #Hs)".
       remember ([head] ++ L) as L' eqn:HeqL'.
       rewrite -in_inv in Hin.
 
-      iRevert (head omap L HeqL' Hsort Hin) "Hlist".
+      iRevert (head oM L HeqL' Hsort Hin) "Hlist".
       iInduction L' as [|head' L'] "IHL".
-      { iIntros (head omap L Hfalse); inversion Hfalse. }
+      { iIntros (head oM L Hfalse); inversion Hfalse. }
 
-      iIntros (head omap L HeqL' Hsort Hin) "Hlist".
+      iIntros (head oM L HeqL' Hsort Hin) "Hlist".
       inversion HeqL'; subst.
       destruct Hin as [Heq|Hin].
       + subst.
@@ -202,17 +202,17 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_split (pred succ: node_rep) (L L1 L2: list node_rep) 
-      (omap: option (gmap Z (argmax Z))) :
+      (oM: option (gmap Z (argmax Z))) :
       L ++ [tail] = L1 ++ [pred; succ] ++ L2 →
-      list_equiv L omap ⊢ 
+      list_equiv L oM ⊢ 
         ∃ (s: loc),
           (node_next pred +ₗ lvl) ↦{#1 / 2} #s
           ∗
           s ↦□ rep_to_node succ
           ∗
-          ((node_next pred +ₗ lvl) ↦{#1 / 2} #s -∗ list_equiv L omap).
+          ((node_next pred +ₗ lvl) ↦{#1 / 2} #s -∗ list_equiv L oM).
     Proof.
-      revert L omap. induction L1 => L omap HL.
+      revert L oM. induction L1 => L oM HL.
       + destruct L as [|curr L].
         { exfalso. inversion HL. }
         inversion HL as [[H0 HL']]; subst.
@@ -254,9 +254,9 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_invert_L (L: list node_rep) (head pred: node_rep) 
-      (omap: option (gmap Z (argmax Z))) :
+      (oM: option (gmap Z (argmax Z))) :
       In pred L →
-      list_equiv ([head] ++ L) omap ⊢ 
+      list_equiv ([head] ++ L) oM ⊢ 
         ∃ (v: val_rep) (γ: gname) (l: val) (s: loc) (succ: node_rep), 
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
           ∗
@@ -270,7 +270,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           is_node pred v
           ∗
-          ⌜ is_val omap pred v ⌝
+          ⌜ is_val oM pred v ⌝
           ∗
           ∀ (S: gset Z) (v': val_rep),
             (node_next pred +ₗ lvl) ↦{#1/2} #s 
@@ -279,11 +279,11 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
             ∗
             ⌜ val_v v' ∈ S ⌝
             -∗ 
-              list_equiv ([head] ++ L) (opt_insert omap (node_key pred) (prodZ S (val_ts v'))).
+              list_equiv ([head] ++ L) (opt_insert oM (node_key pred) (prodZ S (val_ts v'))).
     Proof.
       iIntros (Hin) "Hlist".
-      iRevert (head omap Hin) "Hlist".
-      iInduction L as [|succ L] "IHL"; iIntros (head omap) "Hin"; first by iExFalso.
+      iRevert (head oM Hin) "Hlist".
+      iInduction L as [|succ L] "IHL"; iIntros (head oM) "Hin"; first by iExFalso.
       iDestruct "Hin" as "[%Heq|Hin]"; subst; iIntros "Hlist".
       + iDestruct "Hlist" as (v γ l s) "(Hpt & #Hs & #Hl & #Hlock & Hnode & Hval & Hlist)".
         destruct L as [|next L]; subst.
@@ -295,7 +295,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           iExists v', γ, l, s. iFrame "# ∗".
           iSplit.
           {
-            destruct omap as [Smap|]; last done.
+            destruct oM as [M|]; last done.
             iExists S; rewrite lookup_insert //.
           }
           iExists γ', l', t. iFrame "# ∗".
@@ -306,7 +306,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           iIntros (S v'') "(Hpt' & Hnode & %Hval)". 
           iExists v'', γ, l, s. iFrame "# ∗".
 
-          destruct omap as [Smap|].
+          destruct oM as [M|].
           * iSplit.
             { iExists S; rewrite lookup_insert //. }
             iExists v', γ', l', n. rewrite /= delete_insert_delete. iFrame "# ∗".
@@ -322,7 +322,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iSplit.
         {
           iPureIntro. 
-          destruct omap as [Smap|]; last done.
+          destruct oM as [M|]; last done.
           simpl in *.
           destruct Hval as [vs [Hsome Hin]]; destruct Hval' as [vs' [Hsome' Hin']].
           exists vs'. split; last done.
@@ -334,7 +334,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iPoseProof ("Himp" $! S v'' with "[Hpt'' Hnode'']") as "Hlist".
         { by iFrame. }
         iExists v, γ, l, s. 
-        destruct omap as [Smap|]; last iFrame "# ∗".
+        destruct oM as [M|]; last iFrame "# ∗".
         destruct Hval as [vs [Hsome Hin]].
         destruct Hval' as [vs' [Hsome' Hin']].
         rewrite lookup_delete_Some in Hsome'.
@@ -344,9 +344,9 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_invert (L: list node_rep) (head pred: node_rep) 
-      (omap: option (gmap Z (argmax Z))) :
+      (oM: option (gmap Z (argmax Z))) :
       pred = head ∨ In pred L →
-      list_equiv ([head] ++ L) omap ⊢ 
+      list_equiv ([head] ++ L) oM ⊢ 
         ∃ (γ: gname) (l: val) (s: loc) (succ: node_rep),
           (⌜ In succ L ⌝ ∨ ⌜ succ = tail ⌝)
           ∗
@@ -358,7 +358,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           ∗
           is_lock γ l (in_lock pred)
           ∗
-          ((node_next pred +ₗ lvl) ↦{#1/2} #s -∗ list_equiv ([head] ++ L) omap).
+          ((node_next pred +ₗ lvl) ↦{#1/2} #s -∗ list_equiv ([head] ++ L) oM).
     Proof.
       intros Hin; destruct Hin as [Heq|Hin]; first subst.
       + iIntros "Hlist". destruct L as [|next L].
@@ -378,7 +378,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iExists γ, l, s, succ. iFrame.
         iIntros "Hnext". 
 
-        destruct omap as [Smap|].
+        destruct oM as [M|].
         - destruct Hval as [vs [Hsome Hvs]].
           iPoseProof ("Himp" $! vs v with "[Hnext Hnode]") as "Hlist".
           { by iFrame. }
@@ -388,13 +388,13 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Lemma list_equiv_insert (s n: loc) (head pred new succ: node_rep) (L: list node_rep) 
-      (v': val_rep) (γ': gname) (l': val) (omap: option (gmap Z (argmax Z))) :
+      (v': val_rep) (γ': gname) (l': val) (oM: option (gmap Z (argmax Z))) :
       node_key new < node_key tail →
       node_key pred < node_key new < node_key succ →
       Sorted node_lt ([head] ++ L ++ [tail]) →
       pred = head ∨ In pred L →
-      opt_lookup omap (node_key new) = None →
-      list_equiv ([head] ++ L) omap ⊢ 
+      opt_lookup oM (node_key new) = None →
+      list_equiv ([head] ++ L) oM ⊢ 
         s ↦□ rep_to_node succ
         ∗ 
         (node_next pred +ₗ lvl) ↦{#1/2} #s
@@ -418,18 +418,18 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
             ∗
             ((node_next pred +ₗ lvl) ↦{#1/2} #n 
               -∗ 
-                list_equiv ([head] ++ L') (opt_insert omap (node_key new) (prodZ {[val_v v']} (val_ts v')))).
+                list_equiv ([head] ++ L') (opt_insert oM (node_key new) (prodZ {[val_v v']} (val_ts v')))).
     Proof.
       iIntros (Hnew Hrange Hsort Hin Hnone).
       iIntros "Hlist (Hs & Hpt & Hpt' & Hn & Hl' & Hlock' & Hnode')".
       remember ([head] ++ L) as L' eqn:HeqL'.
       rewrite -in_inv in Hin.
 
-      iRevert (head L omap HeqL' Hsort Hin Hnone) "Hlist Hs Hpt Hpt' Hn Hl' Hlock' Hnode'".
+      iRevert (head L oM HeqL' Hsort Hin Hnone) "Hlist Hs Hpt Hpt' Hn Hl' Hlock' Hnode'".
       iInduction L' as [|pred'] "IHL'".
-      { iIntros (head L omap Hfalse); inversion Hfalse. }
+      { iIntros (head L oM Hfalse); inversion Hfalse. }
 
-      iIntros (head L omap HeqL' Hsort).
+      iIntros (head L oM HeqL' Hsort).
       inversion HeqL'; subst.
       iIntros (Hin Hnone); inversion Hin as [Heq|HinL].
       + subst.
@@ -451,7 +451,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           iExists v', γ, l, n. iFrame "# ∗".
           iSplit.
           {
-            destruct omap as [Smap|]; last done.
+            destruct oM as [M|]; last done.
             iPureIntro; exists {[val_v v']}.
             split; last rewrite elem_of_singleton //.
             rewrite lookup_insert //.
@@ -475,13 +475,13 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
           iExists v', γ, l, n. iFrame "# ∗".
           iSplit.
           {
-            destruct omap as [Smap|]; last done.
+            destruct oM as [M|]; last done.
             iPureIntro; exists {[val_v v']}.
             split; last rewrite elem_of_singleton //.
             rewrite lookup_insert //.
           }
           iExists v, γ', l', s.
-          destruct omap as [Smap|]; last iFrame "# ∗".
+          destruct oM as [M|]; last iFrame "# ∗".
           rewrite /= delete_insert; last done.
           iFrame "# ∗".
       + destruct L as [|next L]; first by inversion HinL.
@@ -492,10 +492,10 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         iPoseProof ("IHL'" $! next L with "[%] [%] [%] [%] [$] [$] [$] [$] [$] [$] [$] [$]") 
           as "Hclose"; auto.
         { 
-          destruct omap as [Smap|]; last done.
+          destruct oM as [M|]; last done.
           simpl in *; destruct Hval as [S [Hsome Hval]].
           rewrite lookup_delete_ne //.
-          apply (lookup_ne Smap); rewrite Hsome Hnone //.
+          apply (lookup_ne M); rewrite Hsome Hnone //.
         }
         
         iDestruct "Hclose" as (L') "(Hpt' & %Hsort' & %Hperm' & Himp')".
@@ -515,13 +515,13 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
 
         iIntros "Hpt". iExists v, γ, l, x.
         iPoseProof ("Himp'" with "Hpt") as "Hlist".
-        destruct omap as [Smap|]; last iFrame "# ∗".
+        destruct oM as [M|]; last iFrame "# ∗".
         simpl in *; destruct Hval as [S [Hsome Hval]].
         assert (node_key next ≠ node_key new) as Hne.
-        { apply (lookup_ne Smap); rewrite Hsome Hnone //. }
+        { apply (lookup_ne M); rewrite Hsome Hnone //. }
 
         rewrite delete_insert_ne; last first. 
-        { apply (lookup_ne Smap); rewrite Hsome Hnone //. }
+        { apply (lookup_ne M); rewrite Hsome Hnone //. }
         iFrame "# ∗"; iPureIntro.
         exists S. rewrite lookup_insert_ne //.
     Qed.
