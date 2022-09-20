@@ -11,7 +11,7 @@ This development is known to compile with
 
 
 ## Directory Structure
-This development contains proofs for 4 data structures. The lib/ directory contains definitions and lemmas which are common for all structures. The four structures can be found in:
+This development contains proofs for 4 data structures. The lib/ directory contains definitions and lemmas required for all structures. The four structures can be found in:
 
 - lazy_list/: Proofs for an append-only lazy list.
 - skip_list/:
