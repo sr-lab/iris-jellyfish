@@ -26,16 +26,15 @@ Module Import Get := GetSpec Params.
 Module Import Put := PutSpec Params.
 
 (* Convert a list of Coq values into a HeapLang tuple *)
-Definition node : Type := Z * Z * Z.
+Definition node : Type := Z * Z.
 Fixpoint L2tuple (L: list node) : val :=
   match L with
   | nil => NONEV
-  | (z, v, h) :: L => SOMEV (#z, #v, #h, L2tuple L)
+  | (z, v) :: L => SOMEV (#z, #v, L2tuple L)
   end.
 
-Definition nodeKey : val := λ: "l", Fst (Fst "l").
-Definition nodeVal : val := λ: "l", Snd (Fst "l").
-Definition nodeHeight : val := λ: "l", Snd "l".
+Definition nodeKey : val := λ: "l", Fst "l".
+Definition nodeVal : val := λ: "l", Snd "l".
 
 Definition putList : val :=
   rec: "put" "skip" "L" "t" :=
@@ -46,13 +45,12 @@ Definition putList : val :=
       let: "tail" := Snd "tuple" in
       let: "key" := nodeKey "node" in
       let: "val" := nodeVal "node" in
-      let: "height" := nodeHeight "node" in
-        put "skip" "key" "val" "t" "height";;
+        put "skip" "key" "val" "t";;
         "put" "skip" "tail" ("t" + #1)
     end.
 
-Definition L1 : list node := (10, 1, 3) :: (20, 2, 6) :: (10, 3, 4) :: nil.
-Definition L2 : list node := (20, 5, 2) :: (10, 2, 5) :: (10, 6, 4) :: nil.
+Definition L1 : list node := (10, 1) :: (20, 2) :: (10, 3) :: nil.
+Definition L2 : list node := (20, 5) :: (10, 2) :: (10, 6) :: nil.
 Definition skip_list_client : expr := 
   let: "skip" := new #() in
     (putList "skip" (L2tuple L1) #0 ||| putList "skip" (L2tuple L2) #0);;
@@ -81,50 +79,44 @@ Section Proofs.
     wp_smart_apply (wp_par (λ _, is_skip_list v ({[20 := prodZ {[2]} 1]} ⋅ {[10 := prodZ {[3]} 2]}) (1 / 2) bot subs) 
                            (λ _, is_skip_list v ({[10 := prodZ {[6]} 2]} ⋅ {[20 := prodZ {[5]} 0]}) (1 / 2) bot subs) 
                            with "[Hskip1] [Hskip2]").
-    + do 4 (wp_lam; wp_pures).
+    + do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip1").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
       rewrite left_id_L.
 
       wp_pures. assert (0 + 1 = 1) as -> by lia.
-      do 4 (wp_lam; wp_pures).
+      do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
       rewrite comm_L.
       
       wp_pures. assert (1 + 1 = 2) as -> by lia.
-      do 4 (wp_lam; wp_pures).
+      do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
       rewrite -assoc_L singleton_op arg_max_lt //.
 
       wp_pures. wp_lam. wp_pures.
       by iModIntro.
-    + do 4 (wp_lam; wp_pures).
+    + do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip2").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
       rewrite left_id_L.
 
       wp_pures. assert (0 + 1 = 1) as -> by lia.
-      do 4 (wp_lam; wp_pures).
+      do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
 
       wp_pures. assert (1 + 1 = 2) as -> by lia.
-      do 4 (wp_lam; wp_pures).
+      do 3 (wp_lam; wp_pures).
       wp_apply (put_spec with "Hskip").
       { rewrite /Params.INT_MIN /Params.INT_MAX //. }
-      { rewrite /Params.MAX_HEIGHT //. }
       iIntros "Hskip".
       rewrite -assoc_L singleton_op arg_max_lt // comm_L.
 

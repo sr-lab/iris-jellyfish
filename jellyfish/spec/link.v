@@ -67,7 +67,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       
       wp_lam. wp_pures.
       iInv (levelN lvl) as (M' S' L) "(Hinv_sub & _)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -85,21 +85,6 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { iNext; iFrame "# ∗". }
       iDestruct "Hlist" as (L1 L2) "(>%Hsplit & Hpt & Hlist)".
 
-      assert (node_key new ∉ dom M') as Hnin'.
-      {
-        intros Hfalse.
-        rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
-        destruct Hfalse as [x [Hkey Hin]].
-        
-        apply (sorted_node_lt_nin L1 L2 pred succ x).
-        { rewrite -Hsplit //. }
-        { rewrite Hkey; lia. }
-        rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
-      }
-
-      assert (M' !! node_key new = None) as Hnone.
-      { rewrite -not_elem_of_dom //. }
-
       rewrite (list_equiv_insert lvl (Some bot_sub) s n head pred new succ L v γ l); first last.
       { done. }
       { done. }
@@ -116,7 +101,17 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (ε ∪ {[ new ]} = {[ new ]}) as -> by set_solver.
 
       rewrite (gset_union_diff (node_key new)); first last.
-      { done. }
+      { 
+        intros Hfalse.
+        rewrite elem_of_map in Hfalse.
+        destruct Hfalse as [x [Hkey HinS']].
+        rewrite -elem_of_elements -Hperm elem_of_list_In in HinS'.
+        
+        apply (sorted_node_lt_nin L1 L2 pred succ x).
+        { rewrite -Hsplit //. }
+        { rewrite -Hkey; lia. }
+        rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
+      }
       { rewrite Zlt_range_spec; lia. }
       rewrite -gset_disj_union; last set_solver.
       iDestruct "Hown_toks" as "(Hown_toks & Hown_tok)".
@@ -127,14 +122,10 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
       {
         iNext; iExists (<[ node_key new := prodZ {[ val_v v ]} (val_ts v) ]>M'), (S' ∪ {[ new ]}), L'.
-        pose proof (dom_insert M' (node_key new) (prodZ {[ val_v v ]} (val_ts v))) as Hdom.
-        rewrite leibniz_equiv_iff comm_L in Hdom.
-        rewrite Hdom.
+        rewrite /sub_list_inv set_map_union_L set_map_singleton_L.
         iFrame. iPureIntro.
+        split; last done.
 
-        split; first last. 
-        { split; first done. by apply key_equiv_insert_nin. }
-        
         apply NoDup_Permutation.
         { 
           apply node_rep_sorted_app in Hsort'; destruct Hsort' as [_ Hsort']. 
@@ -238,8 +229,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
       wp_lam; wp_pures; rewrite loc_add_0.
       wp_bind (Store _ _).
-      iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
       iAssert ⌜ pred = head ∨ In pred L ⌝%I
         with "[Hown_auth Hown_pred]" as %Hpred_range.
@@ -261,12 +252,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (k ∉ dom M') as Hnin'.
       {
         intros Hfalse.
-        rewrite -elem_of_elements Hequiv elem_of_list_In -Hperm in_map_iff in Hfalse.
-        destruct Hfalse as [x [Hkey Hin]].
+        rewrite Hequiv elem_of_map in Hfalse.
+        destruct Hfalse as [x [Hkey HinS']].
+        rewrite -elem_of_elements -Hperm elem_of_list_In in HinS'.
         
         apply (sorted_node_lt_nin L1 L2 pred succ x).
         { rewrite -Hsplit //. }
-        { rewrite Hkey; lia. }
+        { rewrite -Hkey; lia. }
         rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
       }
 
@@ -296,7 +288,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { apply frac_auth_update, (alloc_local_update _ _ k (prodZ {[ v ]} t)); done. }
 
       rewrite (gset_union_diff k); first last.
-      { done. }
+      { rewrite -Hequiv //. }
       { rewrite Zlt_range_spec; lia. }
       rewrite -gset_disj_union; last set_solver.
       iDestruct "Hown_toks" as "(Hown_toks & Hown_tok)".
@@ -308,12 +300,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       {
         iNext; iExists (<[ k := prodZ {[ v ]} t ]>M'), (S' ∪ {[ new ]}), L'.
         pose proof (dom_insert M' k (prodZ {[v]} t)) as Hdom.
-        rewrite leibniz_equiv_iff comm_L in Hdom.
-        rewrite Hdom.
+        rewrite leibniz_equiv_iff comm_L in Hdom; rewrite Hdom.
+        rewrite /sub_list_inv set_map_union_L set_map_singleton_L.
         iFrame. iPureIntro.
 
-        split; first last. 
-        { split; first done. by apply key_equiv_insert_nin. }
+        split; last by apply set_key_equiv_insert_nin. 
+        split; last done.
         
         apply NoDup_Permutation.
         { 

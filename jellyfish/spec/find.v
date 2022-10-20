@@ -50,8 +50,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       wp_lam. wp_pures.
 
       wp_bind (Load #(node_next curr +ₗ 0)).
-      iInv (levelN 0) as (? S L) "(Hinv_sub & >Hown_frac)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      iInv (levelN 0) as (? S L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
       iDestruct (own_valid_2 with "Hown_frac Hown_frac_frag") 
         as %->%frac_auth_agree_L.
 
@@ -111,19 +111,24 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         }
 
         iPureIntro.
-        rewrite -elem_of_elements Hequiv -Hperm. 
-        split; intros.
-        * eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
+        rewrite Hequiv elem_of_map.
+        split.
+        * intros [rep [Hkey HinS]].
+          rewrite -elem_of_elements -Hperm in HinS.
+          eapply (sorted_node_lt_cover_gap (Ls ++ L1) L2 pred); try lia.
           ++ by rewrite app_ass -Hsplit_join //= app_comm_cons -app_ass -Hcurr -app_comm_cons.
           ++ assert (In k (map node_key (head :: L ++ [tail]))) as Hin.
              { 
                right. 
-               rewrite map_app in_app_iff -elem_of_list_In. 
-               by left.
+               rewrite map_app in_app_iff -elem_of_list_In.
+               left. rewrite elem_of_list_In in_map_iff.
+               exists rep. rewrite -elem_of_list_In //.
              }        
              rewrite app_comm_cons Hcurr app_ass in Hin.
              by rewrite app_ass -Hsplit_join.
-        * rewrite elem_of_list_In in_map_iff. exists succ; split; auto.
+        * intros; exists succ. split; first done.
+          rewrite -elem_of_elements -Hperm elem_of_list_In.
+
           assert (In succ Lf).
           { 
             rewrite -in_inv_rev /tail ?in_app_iff in Hsucc_range.
@@ -243,7 +248,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (Load #(node_next curr +ₗ lvl)).
       iInv (levelN lvl) as (M S L) "(Hinv_sub & Hmatch)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
       iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
       { by apply auth_update_alloc, (gset_local_update S _ S). }
@@ -349,7 +354,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       wp_pures. wp_lam. wp_pures.
       wp_bind (Load #(node_next pred +ₗ lvl)).
       iInv (levelN lvl) as (M S L) "(Hinv_sub & Hmatch)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
       iMod (own_update with "Hown_auth") as "[Hown_auth Hown_frag]".
       { by apply auth_update_alloc, (gset_local_update S _ S). }

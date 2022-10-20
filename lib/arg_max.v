@@ -5,13 +5,19 @@ From iris.algebra Require Export cmra local_updates proofmode_classes.
 Local Open Scope Z.
 
 Section arg_max.
-  Context `{Countable V}.
+  Context `{Countable A}.
 
   Inductive argmax :=
-  | prodZ : gset V → Z → argmax
+  | prodZ : gset A → Z → argmax
   | botZ : argmax.
 
   Canonical Structure argmax0 := leibnizO argmax.
+
+  Definition args (p: argmax) : gset A :=
+    match p with
+    | prodZ a i => a
+    | botZ => ∅
+    end.
 
   Definition arg_max (m n: argmax) : argmax :=
     match m, n with
@@ -75,16 +81,16 @@ End arg_max.
 Global Arguments argmax _ {_ _}.
 
 Section cmra.
-  Context `{Countable V}.
+  Context `{Countable A}.
 
-  Local Instance arg_max_unit_instance : Unit (argmax V) := botZ.
-  Local Instance arg_max_valid_instance : Valid (argmax V) := λ _, True.
-  Local Instance arg_max_validN_instance : ValidN (argmax V) := λ _ _, True.
-  Local Instance arg_max_pcore_instance : PCore (argmax V) := Some.
-  Local Instance arg_max_op_instance : Op (argmax V) := λ n m, arg_max n m.
+  Local Instance arg_max_unit_instance : Unit (argmax A) := botZ.
+  Local Instance arg_max_valid_instance : Valid (argmax A) := λ _, True.
+  Local Instance arg_max_validN_instance : ValidN (argmax A) := λ _ _, True.
+  Local Instance arg_max_pcore_instance : PCore (argmax A) := Some.
+  Local Instance arg_max_op_instance : Op (argmax A) := λ n m, arg_max n m.
   Definition arg_max_op x y : x ⋅ y = arg_max x y := eq_refl.
 
-  Lemma arg_max_ra_mixin : RAMixin (argmax V).
+  Lemma arg_max_ra_mixin : RAMixin (argmax A).
   Proof.
     apply ra_total_mixin; apply _ || eauto.
     + intros x y z. repeat rewrite arg_max_op.
@@ -92,19 +98,19 @@ Section cmra.
     + intros x y. by rewrite arg_max_op arg_max_comm.
     + intros x. by rewrite arg_max_op arg_max_id.
   Qed.
-  Canonical Structure arg_maxR : cmra := discreteR (argmax V) arg_max_ra_mixin.
+  Canonical Structure arg_maxR : cmra := discreteR (argmax A) arg_max_ra_mixin.
 
   Global Instance arg_max_cmra_discrete : CmraDiscrete arg_maxR.
   Proof. apply discrete_cmra_discrete. Qed.
 
-  Lemma arg_max_ucmra_mixin : UcmraMixin (argmax V).
+  Lemma arg_max_ucmra_mixin : UcmraMixin (argmax A).
   Proof. split; try apply _ || done. Qed.
-  Canonical Structure arg_maxUR : ucmra := Ucmra (argmax V) arg_max_ucmra_mixin.
+  Canonical Structure arg_maxUR : ucmra := Ucmra (argmax A) arg_max_ucmra_mixin.
 
-  Global Instance arg_max_core_id (x : argmax V) : CoreId x.
+  Global Instance arg_max_core_id (x : argmax A) : CoreId x.
   Proof. by constructor. Qed.
 
-  Lemma arg_max_included (x y: argmax V) : x ≼ y ↔ arg_max x y = y.
+  Lemma arg_max_included (x y: argmax A) : x ≼ y ↔ arg_max x y = y.
   Proof.
     split.
     - intros [z ->].
@@ -112,7 +118,7 @@ Section cmra.
     - by exists y.
   Qed.
 
-  Lemma arg_max_lt (a b : gset V) (i j : Z)  :
+  Lemma arg_max_lt (a b : gset A) (i j : Z)  :
     i < j → prodZ a i ⋅ prodZ b j = prodZ b j.
   Proof.
     intros. rewrite arg_max_op /arg_max.
@@ -121,28 +127,36 @@ Section cmra.
     done.
   Qed.
 
-  Lemma arg_max_eq (a b : gset V) (i : Z) :
+  Lemma arg_max_eq (a b : gset A) (i : Z) :
     prodZ a i ⋅ prodZ b i = prodZ (a ∪ b) i.
   Proof.
     rewrite arg_max_op /arg_max.
     by destruct (decide (i = i)).
   Qed.
 
-  Lemma arg_max_bot (m : argmax V) :
+  Lemma arg_max_bot (m : argmax A) :
     m ⋅ botZ = m.
   Proof.
     rewrite arg_max_op /arg_max.
     by destruct m.
   Qed.
 
-  Lemma arg_max_local_update (x y z : argmax V) :
+  Lemma arg_max_args (a b : gset A) (i j : Z) :
+    args (prodZ a i ⋅ prodZ b j) ⊆ a ∪ b.
+  Proof.
+    destruct (decide (i = j)) as [<-|]; first by rewrite arg_max_eq.
+    destruct (decide (i < j)); first (rewrite arg_max_lt //; apply union_subseteq_r).
+    assert (j < i) by lia; rewrite comm arg_max_lt //; apply union_subseteq_l.
+  Qed.
+
+  Lemma arg_max_local_update (x y z : argmax A) :
     (x,y) ~l~> (z ⋅ x,z ⋅ y).
   Proof. by apply op_local_update. Qed.
 
-  Global Instance : IdemP (=@{argmax V}) (⋅).
+  Global Instance : IdemP (=@{argmax A}) (⋅).
   Proof. intros x. rewrite arg_max_op arg_max_id //. Qed.
 
-  Global Instance arg_max_is_op (x y : argmax V) :
+  Global Instance arg_max_is_op (x y : argmax A) :
     IsOp (x ⋅ y) x y.
   Proof. done. Qed.
 End cmra.

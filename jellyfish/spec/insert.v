@@ -50,9 +50,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_lam. wp_pures. wp_lam. wp_pures.
       wp_load. wp_let. wp_lam. wp_pures.
 
-      case_bool_decide as Hts; wp_if.
-      + iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+      case_bool_decide; wp_if.
+      + iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
         iAssert ⌜ In node L ⌝%I with "[Hown_auth]" as %Hin.
         {
@@ -82,25 +82,24 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           apply arg_max_local_update.
         }
 
-        rewrite arg_max_lt; last done.
-        rewrite insert_id; last done.
-        rewrite insert_singleton_op; last done.
+        rewrite arg_max_lt // insert_id // insert_singleton_op_empty.
         do 2 rewrite right_id_L.
         iCombine "Hown_frag Hown_emp" as "Hown_frag".
         rewrite Qp.div_2.
 
         iPoseProof ("Himp" $! vs val with "[Hpt Hnode]") as "Hlist".
         { iNext; by iFrame. }
-        rewrite /opt_map /opt_insert insert_id //.
+        rewrite /opt_map/opt_insert insert_id //.
+
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists M', S', L; by iFrame "# ∗". }
         iModIntro; iApply ("HΦ" $! val).
-        iFrame "# ∗".
-        by destruct (decide (t < val_ts val)).
+        destruct (decide (t < val_ts val)); last done.
+        by iFrame "# ∗".
       + wp_alloc v' as "Hval'".
         wp_pures. wp_lam. wp_pures.
-        iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+        iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
         iAssert ⌜ In node L ⌝%I with "[Hown_auth]" as %Hin.
         {
@@ -130,48 +129,43 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           apply arg_max_local_update.
         }
 
-        rewrite (insert_singleton_op _ _ (prodZ {[v]} t)); last done.
+        rewrite insert_singleton_op_Some // insert_singleton_op_empty.
         do 2 rewrite right_id_L.
         iCombine "Hown_frag Hown_emp" as "Hown_frag".
         rewrite Qp.div_2.
 
-        set (val' := (v, t, v')).
-        rewrite (fold_rep_to_val val').
-        iCombine "Hval Hnode" as "Hval".
-        wp_store.
+        set (val' := (v, t, v')); rewrite (fold_rep_to_val val').
+        iCombine "Hval Hnode" as "Hval"; wp_store.
         iDestruct "Hval" as "(Hval & Hnode)".
         iMod (mapsto_persist with "Hval'") as "#Hval'".
 
-        assert (val_ts val = t ∨ val_ts val < t) as Hts_range by lia.
-        clear Hts; destruct Hts_range as [->|Hlt].
-        - rewrite arg_max_eq.
-          iPoseProof ("Himp" $! ({[ v ]} ∪ vs) val' with "[Hpt Hnode]") as "Hlist".
-          { iFrame; iPureIntro; by apply elem_of_union_l, elem_of_singleton. }
+        set (p := prodZ {[ v ]} t ⋅ prodZ vs (val_ts val)).
+        iPoseProof ("Himp" $! (args p) val' with "[Hpt Hnode]") as "Hlist".
+        { 
+          iFrame; iPureIntro; unfold val_v, p; simpl.
+          destruct (decide (t = val_ts val)) as [<-|].
+          + rewrite arg_max_eq /args.
+            by apply elem_of_union_l, elem_of_singleton.
+          + rewrite comm_L arg_max_lt /args ?elem_of_singleton //; lia.
+        }
+        rewrite /opt_map/opt_insert.
 
-          assert (dom (<[node_key node:=prodZ ({[v]} ∪ vs) t]> M') = dom M') as Hdom.
-          { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
-          rewrite -Hdom; rewrite -Hdom in Hequiv.
+        assert (prodZ (args p) (val_ts val') = p) as ->.
+        { 
+          unfold p; destruct (decide (t = val_ts val)) as [<-|].
+          + rewrite arg_max_eq //.
+          + rewrite comm_L arg_max_lt //; lia.
+        }
 
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-          { iNext; iExists (<[node_key node:=prodZ ({[v]} ∪ vs) t]> M'), S', L; by iFrame "# ∗". }
-          iModIntro; iApply ("HΦ" $! val').
-          iFrame "# ∗".
-          destruct (decide (t < t)); first lia.
-          by iFrame "#".
-        - rewrite arg_max_op arg_max_comm -arg_max_op arg_max_lt; last done.
-          iPoseProof ("Himp" $! {[ v ]} val' with "[Hpt Hnode]") as "Hlist".
-          { iFrame; iPureIntro; by apply elem_of_singleton. }
+        rewrite -(dom_singleton_op_Some M' (node_key node) (prodZ {[v]} t)) // in Hequiv.
+        apply (insert_singleton_op_Some _ _ _ (prodZ {[v]} t)), leibniz_equiv in Hsome.
+        rewrite Hsome.
 
-          assert (dom (<[node_key node:=prodZ {[v]} t]> M') = dom M') as Hdom.
-          { apply dom_insert_lookup_L; by exists (prodZ vs (val_ts val)). }
-          rewrite -Hdom; rewrite -Hdom in Hequiv.
-
-          iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
-          { iNext; iExists (<[node_key node:=prodZ {[v]} t]> M'), S', L; by iFrame "# ∗". }
-          iModIntro; iApply ("HΦ" $! val').
-          iFrame "# ∗".
-          destruct (decide (t < val_ts val)); first lia.
-          by iFrame "#".
+        iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
+        { iNext; iExists ({[node_key node := prodZ {[v]} t]} ⋅ M'), S', L; by iFrame "# ∗". }
+        iModIntro; iApply ("HΦ" $! val').
+        destruct (decide (t < val_ts val)); first done.
+        by iFrame "# ∗".
     Qed.
 
     Theorem tryInsert_spec (k v t h: Z) (head curr: node_rep) 
@@ -306,7 +300,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (Load _).
       iInv (levelN lvl) as (M' S' L) "(Hinv_sub & _)" "Hclose".
-      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv' & >Hown_auth & >Hown_toks & Hlist)".
+      iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
       wp_load.
 
       iAssert ⌜ node_key new ≠ node_key succ ⌝%I

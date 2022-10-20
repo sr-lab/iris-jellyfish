@@ -63,7 +63,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         - exfalso; inversion Hcase; lia.
         - wp_bind (BinOp _ _ _).
           iInv (levelN lvl) as (M' S L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
           * wp_op.            
@@ -133,8 +133,8 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
         assert (bot_sub = bot_sub') as <- by congruence.
 
         wp_bind (Load _).
-        iInv (levelN 0) as (? S L) "(Hinv_sub & >Hown_frac)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+        iInv (levelN 0) as (? S L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
         iDestruct (own_valid_2 with "Hown_frac Hown_frag") 
           as %->%frac_auth_agree_L.
 

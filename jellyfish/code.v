@@ -119,10 +119,23 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
                            SOME "n"
              end.
 
-  Definition put : val := 
+  Definition putH : val := 
     λ: "p" "k" "v" "t" "h",
       let: "pair" := findAll !"p" "k" #MAX_HEIGHT "h" in
       let: "pred" := Fst "pair" in
-      let: "_" := insertAll "pred" "k" "v" "t" "h" "h" in #().
+      let: "opt" := insertAll "pred" "k" "v" "t" "h" "h" in
+        match: "opt" with
+          NONE => #false
+        | SOME "_" => #true
+        end.
+
+  (* HeapLang does not support randomness... *)
+  Definition randomLevel : val :=
+    λ: "_", #0.
+
+  Definition put : val :=
+    λ: "p" "k" "v" "t",
+      let: "h" := randomLevel #() in
+      let: "_" := putH "p" "k" "v" "t" "h" in #().
 
 End SkipList.

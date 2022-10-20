@@ -19,41 +19,38 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
     Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
 
-    Definition sub_list_inv (head: node_rep) (Γ: sub_gname) 
-      (osub: option sub_gname) (omap: option (gmap Z (argmax Z)))
-      (Skeys: gset Z) (S: gset node_rep) (L: list node_rep) : iProp Σ := 
+    Definition sub_list_inv (head: node_rep) (Γ: sub_gname) (osub: option sub_gname) 
+      (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep) : iProp Σ := 
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
-      ⌜ key_equiv S Skeys ⌝
-      ∗
       own (s_auth Γ) (● S)
       ∗
-      own (s_toks Γ) (GSet (node_key_range ∖ Skeys))
+      own (s_toks Γ) (GSet (node_key_range ∖ (set_map node_key S)))
       ∗
-      list_equiv lvl osub ([head] ++ L) omap.
+      list_equiv lvl osub ([head] ++ L) (opt_map osub M).
 
     Definition lazy_list_inv (head: node_rep) (bot: bot_gname)
-      (top_sub: sub_gname) (obot_sub: option sub_gname) : iProp Σ := 
+      (Γ: sub_gname) (osub: option sub_gname) : iProp Σ := 
       ∃ (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep),
-        sub_list_inv head top_sub obot_sub (opt_map obot_sub M) (dom M) S L
+        sub_list_inv head Γ osub M S L
         ∗
-        match obot_sub with
-        | Some bot_sub => True
-        | None => own (s_frac bot) (●F M)
+        match osub with
+        | Some _ => True
+        | None => own (s_frac bot) (●F M) ∗ ⌜ set_key_equiv S (dom M) ⌝
         end.
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Definition is_sub_list (head: node_rep) (bot: bot_gname) (top_sub bot_sub: sub_gname) : iProp Σ := 
-      inv (levelN lvl) (lazy_list_inv head bot top_sub (Some bot_sub)).
+    Definition is_sub_list (head: node_rep) (bot: bot_gname) (Γ γ: sub_gname) : iProp Σ := 
+      inv (levelN lvl) (lazy_list_inv head bot Γ (Some γ)).
 
     Definition is_bot_list (head: node_rep) (M: gmap Z (argmax Z)) (q: frac)
-      (bot: bot_gname) (sub: sub_gname) : iProp Σ := 
+      (bot: bot_gname) (Γ: sub_gname) : iProp Σ := 
       own (s_frac bot) (◯F{q} M)
       ∗
-      inv (levelN lvl) (lazy_list_inv head bot sub None).
+      inv (levelN lvl) (lazy_list_inv head bot Γ None).
 
   End Proofs.
 End LazyListInv.

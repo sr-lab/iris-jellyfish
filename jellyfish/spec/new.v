@@ -74,8 +74,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iMod (inv_alloc (levelN lvl) ⊤ (lazy_list_inv lvl head bot sub (Some top_sub)) 
           with "[Hnext' Hown_auth Hown_toks]") as "Hinv".
         {
-          iNext; iExists ∅, ∅, nil. 
-          assert (∅ = dom ∅) as <- by set_solver.
+          iNext; iExists ∅, ∅, nil.
+          rewrite /sub_list_inv set_map_empty.
           iFrame. iSplit; first done. 
           iSplit.
           {
@@ -83,7 +83,6 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_key in Hmin.
             rewrite /node_lt /node_key Hmin /=; apply HMIN_MAX.
           }
-          iSplit; first rewrite /key_equiv //.
           iExists γ, l, t; iFrame "# ∗".
         }
 
@@ -148,20 +147,20 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (∅ : gmap Z (argmax Z)) ⋅ ◯F (∅: gmap Z (argmax Z))))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
-      assert (node_key_range = node_key_range ∖ dom (∅: gmap Z (argmax Z))) as -> by set_solver.
 
       set (sub := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac).
       iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv 0 head bot sub None) 
         with "[Hn Hown_auth Hown_toks Hown_frac]") as "Hinv".
       {
-        iNext; iExists ∅, ∅, nil. iFrame.
-        iSplit; first done. iSplit.
+        iNext; iExists ∅, ∅, nil. 
+        rewrite /sub_list_inv set_map_empty difference_empty_L dom_empty_L.
+        iFrame. iSplit; last done. iSplit; first done. 
+        iSplit.
         {
           assert (node_lt head tail); last (simpl; auto).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
-        iSplit; first rewrite /key_equiv //.
 
         iExists γ, l, t.
         repeat rewrite loc_add_0.

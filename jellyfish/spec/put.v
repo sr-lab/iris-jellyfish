@@ -74,7 +74,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
         wp_bind (BinOp _ _ _).
         iInv (levelN lvl) as (M' S' L) "(Hinv_sub & _)" "Hclose".
-        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+        iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
         iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
         - wp_op.
@@ -183,7 +183,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         - exfalso; inversion Hcase; lia.
         - wp_bind (BinOp _ _ _).
           iInv (levelN lvl) as (M' S' L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
           
           iDestruct "Hown_curr" as "[%Heq | #Hown_curr]".
           * wp_op.
@@ -290,13 +290,21 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
                iRight. by iFrame "# ∗".
     Qed.
 
-    Theorem put_spec (p: loc) (k v t h: Z) 
+    Theorem putH_spec (p: loc) (k v t h: Z) 
       (M: gmap Z (argmax Z)) (q: frac) (bot: bot_gname) (subs: list sub_gname)
       (Hrange: INT_MIN < k < INT_MAX) 
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
       {{{ is_skip_list p M q bot subs }}}
-        put #p #k #v #t #h
-      {{{ RET #(); is_skip_list p (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot subs }}}.
+        putH #p #k #v #t #h
+      {{{ b, RET #b; 
+        is_skip_list p (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot subs 
+        ∗
+        (⌜ b = false ⌝ ∨ 
+          ∃ (sub : sub_gname), 
+            own (s_toks sub) (GSet {[ k ]}) 
+            ∗ 
+            ⌜ sub = nth (Z.to_nat (MAX_HEIGHT - h)) subs sub ⌝)
+      }}}.
     Proof.
       iIntros (Φ) "H HΦ".
       iDestruct "H" as (head) "(Hpt & %Hmin & Hlist)".
@@ -317,8 +325,32 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iPoseProof ("Himp" with "Hlist") as "Hlist".
       wp_let.
 
-      iModIntro; iApply "HΦ". 
-      iExists head. by iFrame.
+      iDestruct "Hopt" as "[->|(-> & _ & Htok & -> & _)]"; wp_match.
+      + iModIntro; iApply "HΦ". 
+        iSplitR ""; last by iLeft.
+        iExists head. by iFrame.
+      + iModIntro; iApply "HΦ".
+        iSplitR "Htok"; last (iRight; iExists top_sub; by iFrame).
+        iExists head. by iFrame.
+    Qed.
+
+    Theorem put_spec (p: loc) (k v t: Z) 
+      (M: gmap Z (argmax Z)) (q: frac) (bot: bot_gname) (subs: list sub_gname)
+      (Hrange: INT_MIN < k < INT_MAX) :
+      {{{ is_skip_list p M q bot subs }}}
+        put #p #k #v #t
+      {{{ RET #(); is_skip_list p (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot subs }}}.
+    Proof.
+      iIntros (Φ) "H HΦ".
+      wp_lam. wp_pures. wp_lam. wp_pures.
+
+      wp_apply (putH_spec with "H").
+      { done. }
+      { pose proof HMAX_HEIGHT; lia. }
+
+      iIntros (b) "(H & _)".
+      wp_pures. iModIntro. 
+      by iApply "HΦ".
     Qed.
 
   End Proofs.

@@ -1,4 +1,4 @@
-From iris.algebra Require Import local_updates gset.
+From iris.algebra Require Import local_updates cmra gmap gset.
 
 
 Local Open Scope Z.
@@ -226,9 +226,38 @@ Qed.
 Section gset_extra.
   Context `{Countable K}.
   Implicit Types X Y Z : gset K.
+
   Lemma gset_local_update_union X Y W : (X,Y) ~l~> (X ∪ W,Y ∪ W).
   Proof.
     rewrite local_update_unital_discrete=> Z' _ /leibniz_equiv_iff->.
     split. done. rewrite gset_op. set_solver.
   Qed.
 End gset_extra.
+
+Section gmap_extra.
+  Context `{Countable K} {A : cmra}.
+  Implicit Types m : gmap K A.
+  Implicit Types i : K.
+  Implicit Types x y : A.
+
+  Lemma insert_singleton_op_Some m i x y : m !! i = Some x → <[i:=y ⋅ x]> m ≡ {[ i := y ]} ⋅ m.
+  Proof.
+    intros Hsome; symmetry.
+    rewrite -(insert_delete m i x) //.
+    rewrite insert_singleton_op; last apply lookup_delete.
+    rewrite assoc singleton_op.
+    do 2 (rewrite -insert_singleton_op; last apply lookup_delete).
+    rewrite (insert_delete m i x) //.
+    by rewrite insert_delete_insert.
+  Qed.
+
+  Lemma insert_singleton_op_empty i x : <[i:=x]> (∅ : gmap K A) = {[ i := x ]} ⋅ ∅.
+  Proof. by apply insert_singleton_op. Qed.
+
+  Lemma dom_singleton_op m i x : dom ({[ i := x ]} ⋅ m) = {[i]} ∪ dom m.
+  Proof. rewrite dom_op. set_solver. Qed.
+
+  Lemma dom_singleton_op_Some m i x : is_Some (m !! i) → dom ({[ i := x ]} ⋅ m) = dom m.
+  Proof. rewrite -elem_of_dom dom_op. set_solver. Qed.
+
+End gmap_extra.
