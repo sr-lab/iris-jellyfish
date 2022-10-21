@@ -1,16 +1,17 @@
-# Formal Verification of Concurrent Maps in Iris: the Lazy JellyFish Skip List
+# Formal Verification of a Concurrent Map in Iris: the Lazy JellyFish Skip List
+## A Case Study on the Specification and Verification of Concurrent Data Structures
 
 Artifact containing mechanized proofs of the lazy JellyFish skip list. We also present proofs for simpler data structures which showcase how our arguments evolve from a simple linked list to a complex skip list. To compile this Coq development, simply run ```make```.
 
 
-## Prerequisites
+### Prerequisites
 This development is known to compile with
 
 - Coq 8.16.0
 - A development version of Iris
 
 
-## Directory Structure
+### Directory Structure
 This development contains proofs for 4 data structures. The lib/ directory contains definitions and lemmas required for all structures. The four structures can be found in:
 
 - lazy_list/: Proofs for an append-only lazy list.
