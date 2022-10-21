@@ -296,10 +296,10 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
       {{{ is_skip_list p M q bot subs }}}
         putH #p #k #v #t #h
-      {{{ b, RET #b; 
+      {{{ opt, RET opt; 
         is_skip_list p (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot subs 
         ∗
-        (⌜ b = false ⌝ ∨ 
+        (⌜ opt = NONEV ⌝ ∨ 
           ∃ (sub : sub_gname), 
             own (s_toks sub) (GSet {[ k ]}) 
             ∗ 
@@ -323,15 +323,14 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
       iIntros (opt n new) "(Hlist & Hopt)".
       iPoseProof ("Himp" with "Hlist") as "Hlist".
-      wp_let.
 
-      iDestruct "Hopt" as "[->|(-> & _ & Htok & -> & _)]"; wp_match.
-      + iModIntro; iApply "HΦ". 
+      iDestruct "Hopt" as "[->|(-> & _ & Htok & -> & _)]".
+      + iApply "HΦ". 
         iSplitR ""; last by iLeft.
-        iExists head. by iFrame.
-      + iModIntro; iApply "HΦ".
+        iExists head; by iFrame.
+      + iApply "HΦ".
         iSplitR "Htok"; last (iRight; iExists top_sub; by iFrame).
-        iExists head. by iFrame.
+        iExists head; by iFrame.
     Qed.
 
     Theorem put_spec (p: loc) (k v t: Z) 
@@ -348,9 +347,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       { done. }
       { pose proof HMAX_HEIGHT; lia. }
 
-      iIntros (b) "(H & _)".
-      wp_pures. iModIntro. 
-      by iApply "HΦ".
+      iIntros (?) "(H & _)".
+      wp_pures; iModIntro; by iApply "HΦ".
     Qed.
 
   End Proofs.
