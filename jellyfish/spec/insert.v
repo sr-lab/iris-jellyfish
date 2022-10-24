@@ -97,7 +97,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         destruct (decide (t < val_ts val)); last done.
         by iFrame "# ∗".
       + wp_alloc v' as "Hval'".
+        iMod (mapsto_persist with "Hval'") as "#Hval'".
         wp_pures. wp_lam. wp_pures.
+        set (val' := (v, t, v')); rewrite (fold_rep_to_val val').
+
         iInv (levelN 0) as (M' S' L) "(Hinv_sub & >Hown_frac & >%Hequiv)" "Hclose".
         iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
@@ -110,7 +113,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         }
 
         rewrite list_equiv_invert_L; last done.
-        iDestruct "Hlist" as (val' γ l s succ) "(_ & Hpt & _ & _ & _ & >Hnode & >%Hval & Himp)".
+        iDestruct "Hlist" as (val'' γ l s succ) "(_ & Hpt & _ & _ & _ & >Hnode & >%Hval & Himp)".
         iDestruct (mapsto_agree with "Hval Hnode") as %<-%rep_to_val_inj.
         destruct Hval as [vs [Hsome Hv]].
 
@@ -134,10 +137,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iCombine "Hown_frag Hown_emp" as "Hown_frag".
         rewrite Qp.div_2.
 
-        set (val' := (v, t, v')); rewrite (fold_rep_to_val val').
         iCombine "Hval Hnode" as "Hval"; wp_store.
         iDestruct "Hval" as "(Hval & Hnode)".
-        iMod (mapsto_persist with "Hval'") as "#Hval'".
 
         set (p := prodZ {[ v ]} t ⋅ prodZ vs (val_ts val)).
         iPoseProof ("Himp" $! (args p) val' with "[Hpt Hnode]") as "Hlist".
@@ -157,9 +158,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           + rewrite comm_L arg_max_lt //; lia.
         }
 
-        rewrite -(dom_singleton_op_Some M' (node_key node) (prodZ {[v]} t)) // in Hequiv.
-        apply (insert_singleton_op_Some _ _ _ (prodZ {[v]} t)), leibniz_equiv in Hsome.
-        rewrite Hsome.
+        rewrite insert_singleton_op_Some_L //.
+        rewrite -(dom_singleton_op_Some _ (node_key node) (prodZ {[v]} t)) // in Hequiv.
 
         iMod ("Hclose" with "[Hlist Hown_auth Hown_toks Hown_frac]") as "_".
         { iNext; iExists ({[node_key node := prodZ {[v]} t]} ⋅ M'), S', L; by iFrame "# ∗". }
