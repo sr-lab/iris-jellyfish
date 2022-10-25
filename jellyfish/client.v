@@ -125,7 +125,6 @@ Section Proofs.
     + iIntros (v1 v2) "Hskip".
       rewrite is_skip_list_join (Qp.div_2 1).
 
-      rewrite -gmap_op. 
       rewrite -assoc_L comm_L assoc_L singleton_op arg_max_eq.
       rewrite -assoc_L singleton_op arg_max_lt //.
 

@@ -1,4 +1,5 @@
 From iris.base_logic.lib Require Import invariants.
+From iris.algebra Require Import gmap.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
@@ -116,7 +117,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Lemma skip_list_equiv_join (lvl: Z) (head: node_rep) (M1 M2: gmap Z (argmax Z)) 
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       skip_list_equiv lvl head M1 q1 bot subs ∗ skip_list_equiv lvl head M2 q2 bot subs ⊢ 
-        skip_list_equiv lvl head (merge op M1 M2) (q1 + q2) bot subs.
+        skip_list_equiv lvl head (M1 ⋅ M2) (q1 + q2) bot subs.
     Proof.
       iRevert (lvl head).
       iInduction subs as [|top_sub bot_subs] "IHsubs"; 
@@ -149,7 +150,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Lemma is_skip_list_join (p: loc) (M1 M2: gmap Z (argmax Z))
       (q1 q2: frac) (bot: bot_gname) (subs: list sub_gname) :
       is_skip_list p M1 q1 bot subs ∗ is_skip_list p M2 q2 bot subs ⊢ 
-        is_skip_list p (merge op M1 M2) (q1 + q2) bot subs.
+        is_skip_list p (M1 ⋅ M2) (q1 + q2) bot subs.
     Proof.
       iIntros "(Hlist1 & Hlist2)".
       iDestruct "Hlist1" as (head) "(#Hpt1 & %Hmin & Hlist1)".
