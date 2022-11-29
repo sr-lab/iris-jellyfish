@@ -146,7 +146,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_auth top_sub) (◯ {[ new ]})
             ∗ 
-            own (s_toks top_sub) (GSet {[ node_key new ]})
+            own (s_toks top_sub) (◯ GSet {[ node_key new ]})
             ∗ 
             ⌜ node_key new = k ⌝
             ∗
@@ -301,7 +301,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         ∗
         (⌜ opt = NONEV ⌝ ∨ 
           ∃ (sub : sub_gname), 
-            own (s_toks sub) (GSet {[ k ]}) 
+            own (s_toks sub) (◯ GSet {[ k ]}) 
             ∗ 
             ⌜ sub = nth (Z.to_nat (MAX_HEIGHT - h)) subs sub ⌝)
       }}}.

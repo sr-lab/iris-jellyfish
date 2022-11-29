@@ -14,7 +14,7 @@ Local Open Scope Z.
 Class skipGS Σ := SkipGS {
   frac_gmapR :> inG Σ (frac_authR (gmapUR Z (arg_maxUR Z)));
   auth_gsetR :> inG Σ (authR (gsetUR node_rep));
-  gset_tokR :> inG Σ (gset_disjR Z)
+  auth_toksR :> inG Σ (authR (gset_disjUR Z))
 }.
 
 Record sub_gname := mk_sub_gname {
@@ -38,7 +38,7 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       match osub with
       | Some bot => own (s_auth bot) (◯ {[ rep ]})
                     ∗
-                    own (s_toks bot) (GSet {[ node_key rep ]})
+                    own (s_toks bot) (◯ GSet {[ node_key rep ]})
                     
       | None => (node_val rep) ↦{#1 / 2} rep_to_val v
       end.

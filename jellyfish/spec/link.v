@@ -46,7 +46,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       {{{ RET #();
         own (s_auth top_sub) (◯ {[ new ]})
         ∗ 
-        own (s_toks top_sub) (GSet {[ node_key new ]})
+        own (s_toks top_sub) (◯ GSet {[ node_key new ]})
         ∗
         (node_next pred +ₗ lvl) ↦{#1 / 2} #n
       }}}.
@@ -100,9 +100,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       { apply auth_update_alloc, (gset_local_update_union _ _ {[ new ]}). }
       assert (ε ∪ {[ new ]} = {[ new ]}) as -> by set_solver.
 
-      rewrite (gset_union_diff (node_key new)); first last.
-      { 
-        intros Hfalse.
+      assert ({[node_key new]} ## (set_map node_key S' : gset Z)) as Hdisj.
+      {
+        rewrite disjoint_singleton_l; intros Hfalse.
         rewrite elem_of_map in Hfalse.
         destruct Hfalse as [x [Hkey HinS']].
         rewrite -elem_of_elements -Hperm elem_of_list_In in HinS'.
@@ -112,9 +112,10 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         { rewrite -Hkey; lia. }
         rewrite -Hsplit. apply in_or_app; right. apply in_or_app; by left.
       }
-      { rewrite Zlt_range_spec; lia. }
-      rewrite -gset_disj_union; last set_solver.
-      iDestruct "Hown_toks" as "(Hown_toks & Hown_tok)".
+      
+      iMod (own_update with "Hown_toks") as "[Hown_toks Hown_toks_frag]".
+      { by apply auth_update_alloc, (gset_disj_alloc_op_local_update _ _ {[ node_key new ]}). }
+      rewrite gset_disj_union // gset_disj_union // right_id_L.
 
       wp_store.
       iDestruct "Hpt" as "(Hpt & Hpt_dup)".
@@ -122,8 +123,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
       {
         iNext; iExists (<[ node_key new := prodZ {[ val_v v ]} (val_ts v) ]>M'), (S' ∪ {[ new ]}), L'.
-        rewrite /sub_list_inv set_map_union_L set_map_singleton_L.
-        iFrame. iPureIntro.
+        rewrite /sub_list_inv comm_L set_map_union_L set_map_singleton_L.
+        iFrame. iPureIntro. rewrite comm_L.
         split; last done.
 
         apply NoDup_Permutation.
@@ -179,7 +180,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         own (s_auth sub) (◯ {[ new ]})
         ∗ 
-        own (s_toks sub) (GSet {[ node_key new ]})
+        own (s_toks sub) (◯ GSet {[ node_key new ]})
         ∗ 
         ⌜ node_key new = k ⌝
         ∗ 
@@ -287,11 +288,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_update_2 with "Hown_frac Hown_frag") as "[Hown_frac Hown_frac_frag]".
       { apply frac_auth_update, (alloc_local_update _ _ k (prodZ {[ v ]} t)); done. }
 
-      rewrite (gset_union_diff k); first last.
-      { rewrite -Hequiv //. }
-      { rewrite Zlt_range_spec; lia. }
-      rewrite -gset_disj_union; last set_solver.
-      iDestruct "Hown_toks" as "(Hown_toks & Hown_tok)".
+      assert ({[node_key new]} ## (set_map node_key S' : gset Z)) as Hdisj.
+      { rewrite disjoint_singleton_l -Hequiv //. }
+
+      iMod (own_update with "Hown_toks") as "[Hown_toks Hown_toks_frag]".
+      { by apply auth_update_alloc, (gset_disj_alloc_op_local_update _ _ {[ node_key new ]}). }
+      rewrite gset_disj_union // gset_disj_union // right_id_L.
 
       wp_store.
       iDestruct "Hpt" as "(Hpt & Hpt_dup)".
@@ -301,9 +303,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         iNext; iExists (<[ k := prodZ {[ v ]} t ]>M'), (S' ∪ {[ new ]}), L'.
         pose proof (dom_insert M' k (prodZ {[v]} t)) as Hdom.
         rewrite leibniz_equiv_iff comm_L in Hdom; rewrite Hdom.
-        rewrite /sub_list_inv set_map_union_L set_map_singleton_L.
-        iFrame. iPureIntro.
-
+        rewrite /sub_list_inv comm_L set_map_union_L set_map_singleton_L.
+        iFrame. iPureIntro. rewrite comm_L.
+        
         split; last by apply set_key_equiv_insert_nin. 
         split; last done.
         

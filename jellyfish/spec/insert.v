@@ -194,7 +194,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             ∗ 
             own (s_auth sub) (◯ {[ new ]})
             ∗ 
-            own (s_toks sub) (GSet {[ node_key new ]})
+            own (s_toks sub) (◯ GSet {[ node_key new ]})
             ∗ 
             ⌜ node_key new = k ⌝
             ∗
@@ -273,7 +273,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         ∗ 
         own (s_auth bot_sub) (◯ {[ new ]})
         ∗ 
-        own (s_toks bot_sub) (GSet {[ node_key new ]})
+        own (s_toks bot_sub) (◯ GSet {[ node_key new ]})
         ∗
         n ↦□ rep_to_node new
         ∗
@@ -285,7 +285,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       {{{ RET #();
         own (s_auth top_sub) (◯ {[ new ]})
         ∗ 
-        own (s_toks top_sub) (GSet {[ node_key new ]})
+        own (s_toks top_sub) (◯ GSet {[ node_key new ]})
       }}}.
     Proof.
       iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & Hown_frag & Hown_tok & #Hn & Hnext & Hlocks) HΦ".
@@ -320,7 +320,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hnode" as "(_ & Hown_tok')".
 
         iDestruct (own_valid_2 with "Hown_tok Hown_tok'") as 
-          %Hdisj%gset_disj_valid_op.
+          %Hdisj%auth_frag_op_valid_1%gset_disj_valid_op.
         iPureIntro; set_solver.
       }
 

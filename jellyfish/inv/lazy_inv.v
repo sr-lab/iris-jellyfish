@@ -17,8 +17,6 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z).
 
-    Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
-
     Definition sub_list_inv (head: node_rep) (Γ: sub_gname) (osub: option sub_gname) 
       (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep) : iProp Σ := 
       ⌜ Permutation L (elements S) ⌝
@@ -27,7 +25,7 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       own (s_auth Γ) (● S)
       ∗
-      own (s_toks Γ) (GSet (node_key_range ∖ (set_map node_key S)))
+      own (s_toks Γ) (● GSet (set_map node_key S))
       ∗
       list_equiv lvl osub ([head] ++ L) (opt_map osub M).
 

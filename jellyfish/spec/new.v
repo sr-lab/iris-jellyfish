@@ -63,12 +63,12 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         wp_store. wp_pures.
         iMod (mapsto_persist with "Hl") as "#Hl".
 
-        iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
+        iMod (own_alloc (● ∅ ⋅ ◯ ∅))
           as (γauth) "[Hown_auth _]"; 
           first by apply auth_both_valid.
-        iMod (own_alloc (GSet node_key_range))
-          as (γtoks) "Hown_toks"; first done.
-        assert (node_key_range = node_key_range ∖ ∅) as -> by set_solver.
+        iMod (own_alloc (● GSet ∅ ⋅ ◯ GSet ∅))
+          as (γtoks) "[Hown_toks _]"; 
+          first by apply auth_both_valid.
 
         set (sub := mk_sub_gname γauth γtoks).
         iMod (inv_alloc (levelN lvl) ⊤ (lazy_list_inv lvl head bot sub (Some top_sub)) 
@@ -138,12 +138,12 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       wp_store; iMod (mapsto_persist with "Hlocks'") as "#Hl".
       wp_pures; assert (0 + 1 = 1) as -> by lia.
 
-      iMod (own_alloc (● (∅ : gset node_rep) ⋅ ◯ (∅: gset node_rep)))
+      iMod (own_alloc (● ∅ ⋅ ◯ ∅))
         as (γauth) "[Hown_auth _]"; 
         first by apply auth_both_valid.
-      iMod (own_alloc (GSet node_key_range))
-        as (γtoks) "Hown_toks"; 
-        first done.
+      iMod (own_alloc (● GSet ∅ ⋅ ◯ GSet ∅))
+        as (γtoks) "[Hown_toks _]"; 
+        first by apply auth_both_valid.
       iMod (own_alloc (●F (∅ : gmap Z (argmax Z)) ⋅ ◯F (∅: gmap Z (argmax Z))))
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
@@ -154,7 +154,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         with "[Hn Hown_auth Hown_toks Hown_frac]") as "Hinv".
       {
         iNext; iExists ∅, ∅, nil. 
-        rewrite /sub_list_inv set_map_empty difference_empty_L dom_empty_L.
+        rewrite /sub_list_inv set_map_empty dom_empty_L.
         iFrame. iSplit; last done. iSplit; first done. 
         iSplit.
         {
