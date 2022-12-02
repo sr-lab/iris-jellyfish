@@ -4,7 +4,6 @@ lib/misc.v
 lib/arg_max.v
 lib/node_rep.v
 lib/node_lt.v
-lib/key_equiv.v
 
 lazy_list/code.v
 lazy_list/inv/list_equiv.v

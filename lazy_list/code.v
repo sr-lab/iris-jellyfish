@@ -16,64 +16,44 @@ Module LazyList (Params: LAZY_LIST_PARAMS).
   
   Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock, dummy_null).  
 
-  (* Lazy list constructor *)
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
-      ref (#INT_MIN, #dummy_null, "t", NONEV, newlock #(), #dummy_null).
+        ref (#INT_MIN, #dummy_null, "t", NONEV, newlock #(), #dummy_null).
 
-  (* Find function *)
   Definition find : val := 
     rec: "find" "pred" "k" :=
-      let: "curr" := !(nodeNext "pred") in
-      let: "ck" := nodeKey "curr" in
-        if: "k" ≤ "ck"
-        then ("pred", "curr")
-        else "find" "curr" "k".
+      let: "succ" := !(nodeNext "pred") in
+        if: "k" ≤ nodeKey "succ" then ("pred", "succ")
+        else "find" "succ" "k".
   
   Definition findLock : val := 
-    rec: "find" "head" "k" :=
-      let: "pair" := find "head" "k" in
+    rec: "find" "pred" "k" :=
+      let: "pair" := find "pred" "k" in
       let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-        acquire (nodeLock "pred");;
-        let: "next" := !(nodeNext "pred") in
-        let: "nk" := nodeKey "next" in
-        let: "ck" := nodeKey "curr" in
-          if: "nk" = "ck" 
-          then "pair"
-          else
-            release (nodeLock "pred");;
-            "find" "pred" "k".
+      let: "lock" := nodeLock "pred" in
+        acquire "lock";;
+        let: "succ" := !(nodeNext "pred") in
+          if: "k" ≤ nodeKey "succ" then ("pred", "succ")
+          else release "lock";;
+               "find" "succ" "k".
 
-  (* Lazy list lookup *)
   Definition contains : val := 
-    λ: "head" "k",
-      let: "np" := !"head" in
-      let: "pair" := find "np" "k" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := nodeKey "curr" in
-        ("k" = "ck").
+    λ: "p" "k",
+      let: "pair" := find !"p" "k" in
+      let: "succ" := Snd "pair" in
+        "k" = nodeKey "succ".
   
-  (* Lazy list insertion *)
   Definition add : val := 
-    λ: "head" "k",
-      let: "np" := !"head" in
-      let: "pair" := findLock "np" "k" in
+    λ: "p" "k",
+      let: "pair" := findLock !"p" "k" in
       let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := nodeKey "curr" in
-        if: "k" = "ck"
-        then
-          release (nodeLock "pred");;
-          #false
-        else
-          let: "np" := nodeNext "pred" in
-          let: "succ" := !"np" in
-          let: "next" := ref "succ" in
-          let: "node" := ("k", #dummy_null, "next", NONEV, newlock #(), #dummy_null) in
-            "np" <- "node";;
-            release (nodeLock "pred");;
-            #true.
+      let: "succ" := Snd "pair" in
+        if: "k" = nodeKey "succ"
+        then release (nodeLock "pred")
+        else let: "np" := nodeNext "pred" in
+             let: "next" := ref !"np" in
+               "np" <- ("k", #dummy_null, "next", NONEV, newlock #(), #dummy_null);;
+               release (nodeLock "pred").
 
 End LazyList.

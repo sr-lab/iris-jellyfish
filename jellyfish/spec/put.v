@@ -3,7 +3,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.jellyfish.spec Require Import insert.
 
@@ -20,41 +20,41 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem findAll_spec (k h lvl: Z) (head curr: node_rep) 
       (M: gmap Z (argmax Z)) (q: frac) (bot: bot_gname) 
-      (top_sub: sub_gname) (bot_subs: list sub_gname) :
+      (Γ: sub_gname) (subs: list sub_gname) :
       {{{
-        skip_list_equiv lvl head M q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head M q bot (Γ :: subs)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < k < INT_MAX ⌝
         ∗
         ⌜ 0 ≤ h ≤ lvl ⌝
       }}}
         findAll (rep_to_node curr) #k #lvl #h
-      {{{ pred succ top_sub' bot_subs', RET ((rep_to_node pred), (rep_to_node succ));
-        ⌜ top_sub' = nth (Z.to_nat (lvl - h)) (top_sub :: bot_subs) top_sub' ⌝
+      {{{ pred succ Γ' subs', RET ((rep_to_node pred), (rep_to_node succ));
+        ⌜ Γ' = nth (Z.to_nat (lvl - h)) (Γ :: subs) Γ' ⌝
         ∗
-        skip_list_equiv h head M q bot (top_sub' :: bot_subs')
+        skip_list_equiv h head M q bot (Γ' :: subs')
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth top_sub') (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth Γ') (◯ {[ pred ]}))
         ∗
         ⌜ node_key pred < k < INT_MAX ⌝
         ∗
         ∀ (v t: Z),
-          skip_list_equiv h head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (top_sub' :: bot_subs')
+          skip_list_equiv h head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (Γ' :: subs')
           -∗
-          skip_list_equiv lvl head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (top_sub :: bot_subs)
+          skip_list_equiv lvl head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (Γ :: subs)
       }}}.
     Proof.
       iIntros (Φ) "(Hlist & Hown_curr & Hcurr_range & Hh) HΦ".
-      iRevert (curr head lvl top_sub bot_subs) "Hlist Hown_curr Hcurr_range Hh HΦ".
+      iRevert (curr head lvl Γ subs) "Hlist Hown_curr Hcurr_range Hh HΦ".
       iLöb as "IH".
-      iIntros (curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hcurr_range %Hh HΦ".
+      iIntros (curr head lvl Γ subs) "Hlist #Hown_curr %Hcurr_range %Hh HΦ".
 
       wp_lam. wp_let. wp_let. wp_let.
 
       rewrite skip_list_equiv_cons.
-      iDestruct "Hlist" as (obot) "(Hinv & Hlist)".
+      iDestruct "Hlist" as (obot osub) "(Hinv & Hlist)".
       wp_apply (find_sub_spec with "[Hinv]").
       { by iFrame "# ∗". }
 
@@ -68,7 +68,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iSplit; first (iPureIntro; lia).
         iIntros (v t) "?"; iFrame.
       + assert (h ≠ lvl) by congruence.
-        destruct bot_subs as [|bot_sub bot_subs].
+        destruct subs as [|γ subs].
         { iDestruct "Hlist" as "(%Hfalse & _)"; lia. }
         iDestruct "Hlist" as "(#Hlvl & #Hinv & Hmatch)"; unfold is_sub_list.
 
@@ -88,7 +88,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
 
           iNext. 
-          iIntros (pred' succ' top_sub' bot_subs').
+          iIntros (pred' succ' Γ' subs').
           iIntros "(%Hnth & Hlist & Hown_pred' & Hpred'_range & Himp)".
           iApply "HΦ". iFrame "# ∗". iPureIntro.
           by assert (Z.to_nat (lvl - h) = S (Z.to_nat (lvl - 1 - h))) as -> by lia.
@@ -116,7 +116,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           { lia. }
 
           iNext.
-          iIntros (pred' succ' top_sub' bot_subs').
+          iIntros (pred' succ' Γ' subs').
           iIntros "(%Hnth & Hlist & Hown_pred' & Hpred'_range & Himp)".
           iApply "HΦ". iFrame "# ∗". iPureIntro.
           by assert (Z.to_nat (lvl - h) = S (Z.to_nat (lvl - 1 - h))) as -> by lia.
@@ -124,12 +124,12 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem insertAll_spec (k v t h lvl: Z) (head curr: node_rep) 
       (M: gmap Z (argmax Z)) (q: frac) (bot: bot_gname) 
-      (top_sub: sub_gname) (bot_subs: list sub_gname) :
+      (Γ: sub_gname) (subs: list sub_gname) :
       INT_MIN < k < INT_MAX →
       {{{
-        skip_list_equiv lvl head M q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head M q bot (Γ :: subs)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < k ⌝
         ∗
@@ -137,16 +137,16 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       }}}
         insertAll (rep_to_node curr) #k #v #t #h #lvl
       {{{ (opt: val) (n: loc) (new: node_rep), RET opt;
-        skip_list_equiv lvl head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head (M ⋅ {[ k := prodZ {[ v ]} t ]}) q bot (Γ :: subs)
         ∗
         ( 
           ⌜ opt = NONEV ⌝ ∨ 
           ( 
             ⌜ opt = SOMEV #n ⌝ 
             ∗ 
-            own (s_auth top_sub) (◯ {[ new ]})
+            own (s_auth Γ) (◯ {[ new ]})
             ∗ 
-            own (s_toks top_sub) (◯ GSet {[ node_key new ]})
+            own (s_toks Γ) (◯ GSet {[ node_key new ]})
             ∗ 
             ⌜ node_key new = k ⌝
             ∗
@@ -160,12 +160,12 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       }}}.
     Proof.
       iIntros (Hkey_range Φ) "(Hlist & Hown_curr & Hrange & Hh) HΦ".
-      iRevert (Φ curr head lvl top_sub bot_subs) "Hlist Hown_curr Hrange Hh HΦ".
+      iRevert (Φ curr head lvl Γ subs) "Hlist Hown_curr Hrange Hh HΦ".
       iLöb as "IH".
-      iIntros (Φ curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange %Hh HΦ".
+      iIntros (Φ curr head lvl Γ subs) "Hlist #Hown_curr %Hrange %Hh HΦ".
       wp_lam. wp_pures.
 
-      destruct bot_subs as [|bot_sub bot_subs].
+      destruct subs as [|γ subs].
       + iDestruct "Hlist" as "(%Hlvl & (Hown_frag & #Hinv))".
         rewrite Hlvl; wp_pures.
 
@@ -191,7 +191,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             { iNext; iExists M', S', L; by iFrame. }
             iModIntro.
 
-            iPoseProof (skip_list_equiv_cons with "Hmatch") as (obot) "(Hinv' & Hlist')".
+            iPoseProof (skip_list_equiv_cons with "Hmatch") as (obot osub) "(Hinv' & Hlist')".
             wp_apply (find_sub_spec with "[Hinv']").
             { iFrame "Hinv'". iSplit; first by iLeft. iPureIntro; lia. }
             iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & _)".
@@ -236,7 +236,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             rewrite (list_equiv_invert_L _ _ _ _ curr); last first.
             { rewrite Hperm -elem_of_list_In elem_of_elements; set_solver. }
 
-            iDestruct "Hlist" as (v' γ' l' s' succ') "(_ & Hpt & #Hs & _ & _ & Hnode & _ & Himp)".
+            iDestruct "Hlist" as (v' γl l s succ') "(_ & Hpt & #Hs & _ & _ & Hnode & _ & Himp)".
             iDestruct "Hnode" as "(Hown_frag & Hown_tok)".
             assert ({[ curr ]} = {[ curr ]} ⋅ {[ curr ]}) as -> by set_solver.
             iDestruct "Hown_frag" as "(Hown_frag & Hown_frag_dup)".
@@ -249,7 +249,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             { iNext; iExists M', S', L; by iFrame. }
             iModIntro.
 
-            iPoseProof (skip_list_equiv_cons with "Hmatch") as (obot) "(Hinv' & Hlist')".
+            iPoseProof (skip_list_equiv_cons with "Hmatch") as (obot osub) "(Hinv' & Hlist')".
             wp_apply (find_sub_spec with "[Hinv' Hown_frag]").
             { iFrame. iPureIntro; lia. }
             iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & _)".
@@ -310,10 +310,10 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "H" as (head) "(Hpt & %Hmin & Hlist)".
       wp_lam. wp_pures. wp_load.
 
-      destruct subs as [|sub subs]; first by iExFalso.
+      destruct subs as [|Γ subs]; first by iExFalso.
       wp_apply (findAll_spec  with "[Hlist]").
       { iFrame. iSplit; first by iLeft. iPureIntro; lia. }
-      iIntros (pred succ top_sub bot_subs).
+      iIntros (pred succ Γ' subs').
       iIntros "(%Hnth & Hlist & #Hown_pred & %Hpred_range & Himp)".
       wp_pures.
 
@@ -329,7 +329,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iSplitR ""; last by iLeft.
         iExists head; by iFrame.
       + iApply "HΦ".
-        iSplitR "Htok"; last (iRight; iExists top_sub; by iFrame).
+        iSplitR "Htok"; last (iRight; iExists Γ'; by iFrame).
         iExists head; by iFrame.
     Qed.
 

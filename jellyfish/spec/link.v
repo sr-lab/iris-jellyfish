@@ -4,7 +4,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.jellyfish.spec Require Import find.
 
@@ -20,13 +20,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
 
     Theorem link_spec (lvl: Z) (head pred new succ: node_rep) 
-      (bot: bot_gname) (top_sub bot_sub: sub_gname) 
-      (v: val_rep) (s n: loc) :
+      (Γ γ: sub_gname) (v: val_rep) (s n: loc) :
       INT_MIN < node_key new < INT_MAX →
       {{{ 
-        inv (levelN lvl) (lazy_list_inv lvl head bot top_sub (Some bot_sub))
+        inv (levelN lvl) (lazy_list_inv lvl head None Γ (Some γ))
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth top_sub) (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth Γ) (◯ {[ pred ]}))
         ∗
         ⌜ node_key pred < node_key new < node_key succ ⌝
         ∗
@@ -34,7 +33,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         ∗
         s ↦□ rep_to_node succ
         ∗
-        is_node (Some bot_sub) new v
+        is_node (Some γ) new v
         ∗
         n ↦□ rep_to_node new
         ∗
@@ -44,9 +43,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       }}}
         link (rep_to_node pred) #lvl #n
       {{{ RET #();
-        own (s_auth top_sub) (◯ {[ new ]})
+        own (s_auth Γ) (◯ {[ new ]})
         ∗ 
-        own (s_toks top_sub) (◯ GSet {[ node_key new ]})
+        own (s_toks Γ) (◯ GSet {[ node_key new ]})
         ∗
         (node_next pred +ₗ lvl) ↦{#1 / 2} #n
       }}}.
@@ -56,12 +55,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       wp_lam. wp_pures.
       wp_load. wp_let.
       wp_lam. wp_pures. wp_load.
-      wp_lam. wp_pures.       
+      wp_lam. wp_pures.
       wp_store; iDestruct "Hnext" as "(Hnext & Hnext')".
 
-      wp_apply (newlock_spec (in_lock lvl (Some bot_sub) new) with "[Hnext']").
+      wp_apply (newlock_spec (in_lock lvl (Some γ) new) with "[Hnext']").
       { iExists s; iFrame. }
-      iIntros (l γ) "#Hlock".
+      iIntros (l γl) "#Hlock".
       wp_lam. wp_pures.
       wp_store; iMod (mapsto_persist with "Hl") as "#Hl".
       
@@ -80,12 +79,12 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         set_solver.
       }
 
-      rewrite (list_equiv_join lvl (Some bot_sub) s head pred succ); auto.
+      rewrite (list_equiv_join lvl (Some γ) s head pred succ); auto.
       iDestruct ("Hlist" with "[Hpt]") as "Hlist".
       { iNext; iFrame "# ∗". }
       iDestruct "Hlist" as (L1 L2) "(>%Hsplit & Hpt & Hlist)".
 
-      rewrite (list_equiv_insert lvl (Some bot_sub) s n head pred new succ L v γ l); first last.
+      rewrite list_equiv_insert; first last.
       { done. }
       { done. }
       { done. }
@@ -124,7 +123,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       {
         iNext; iExists (<[ node_key new := prodZ {[ val_v v ]} (val_ts v) ]>M'), (S' ∪ {[ new ]}), L'.
         rewrite /sub_list_inv comm_L set_map_union_L set_map_singleton_L.
-        iFrame. iPureIntro. rewrite comm_L.
+        iFrame. iPureIntro.
         split; last done.
 
         apply NoDup_Permutation.
@@ -140,13 +139,13 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         + rewrite elem_of_elements Hperm' elem_of_list_In.
           intros Hin. destruct Hin as [Heq|Hin].
           - set_solver.
-          - apply elem_of_union_l. 
+          - apply elem_of_union_r. 
             by rewrite -elem_of_elements -Hperm elem_of_list_In.
         + rewrite elem_of_elements Hperm'. 
           intros Hin. apply elem_of_union in Hin as [Hin|Heq].
+          - set_solver.
           - rewrite elem_of_list_In. right.
             by rewrite -elem_of_list_In Hperm elem_of_elements.
-          - set_solver.
       }
 
       iModIntro. iApply "HΦ". 
@@ -155,14 +154,14 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem createAndLink_spec (k v t h: Z) (head pred succ: node_rep) 
       (M: gmap Z (argmax Z)) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) (s: loc) :
+      (bot: bot_gname) (Γ: sub_gname) (s: loc) :
       INT_MIN < k < INT_MAX →
       {{{ 
-        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
+        inv (levelN 0) (lazy_list_inv 0 head (Some bot) Γ None)
         ∗
         own (s_frac bot) (◯F{q} M)
         ∗
-        (⌜ pred = head ⌝ ∨ own (s_auth sub) (◯ {[ pred ]}))
+        (⌜ pred = head ⌝ ∨ own (s_auth Γ) (◯ {[ pred ]}))
         ∗
         ⌜ node_key pred < k < node_key succ ⌝
         ∗
@@ -178,9 +177,9 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       {{{ (n: loc) (new: node_rep), RET #n;
         own (s_frac bot) (◯F{q} (M ⋅ {[ k := prodZ {[ v ]} t ]}))
         ∗
-        own (s_auth sub) (◯ {[ new ]})
+        own (s_auth Γ) (◯ {[ new ]})
         ∗ 
-        own (s_toks sub) (◯ GSet {[ node_key new ]})
+        own (s_toks Γ) (◯ GSet {[ node_key new ]})
         ∗ 
         ⌜ node_key new = k ⌝
         ∗ 
@@ -266,7 +265,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
       assert (M' !! k = None) as Hnone.
       { rewrite -not_elem_of_dom //. }
 
-      rewrite (list_equiv_insert 0 None s node head pred new succ L val γ l); first last.
+      rewrite (list_equiv_insert _ _ _ _ _ _ new succ); first last.
       { done. }
       { done. }
       { done. }
@@ -306,9 +305,8 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         rewrite /sub_list_inv comm_L set_map_union_L set_map_singleton_L.
         iFrame. iPureIntro. rewrite comm_L.
         
-        split; last by apply set_key_equiv_insert_nin. 
+        split; last by set_solver. 
         split; last done.
-        
         apply NoDup_Permutation.
         { 
           apply node_rep_sorted_app in Hsort'; destruct Hsort' as [_ Hsort']. 
@@ -341,7 +339,7 @@ Module LinkSpec (Params: SKIP_LIST_PARAMS).
         rewrite Hnone comm op_None in Heq.
         by destruct Heq.
       }
-      rewrite comm_L. by iFrame "# ∗". 
+      rewrite comm_L; by iFrame "# ∗". 
     Qed.
 
   End Proofs.

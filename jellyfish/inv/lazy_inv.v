@@ -6,7 +6,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish Require Import list_equiv.
 
 Module LazyListInv (Params: SKIP_LIST_PARAMS).
@@ -16,6 +16,12 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
 
   Section Proofs.
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (lvl: Z).
+
+    Definition opt_map (osub: option sub_gname) (M: gmap Z (argmax Z)) : option (gmap Z (argmax Z)) :=
+      match osub with
+      | Some _ => None
+      | None => Some M
+      end.
 
     Definition sub_list_inv (head: node_rep) (Γ: sub_gname) (osub: option sub_gname) 
       (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep) : iProp Σ := 
@@ -29,26 +35,26 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
       ∗
       list_equiv lvl osub ([head] ++ L) (opt_map osub M).
 
-    Definition lazy_list_inv (head: node_rep) (bot: bot_gname)
+    Definition lazy_list_inv (head: node_rep) (obot: option bot_gname)
       (Γ: sub_gname) (osub: option sub_gname) : iProp Σ := 
-      ∃ (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep),
-        sub_list_inv head Γ osub M S L
-        ∗
-        match osub with
-        | Some _ => True
-        | None => own (s_frac bot) (●F M) ∗ ⌜ set_key_equiv S (dom M) ⌝
-        end.
+        ∃ (M: gmap Z (argmax Z)) (S: gset node_rep) (L: list node_rep),
+          sub_list_inv head Γ osub M S L
+          ∗
+          match obot with
+          | Some bot => own (s_frac bot) (●F M) ∗ ⌜ dom M = set_map node_key S ⌝
+          | None => True
+          end.
 
     Definition levelN (lvl: Z) := nroot .@ "level" .@ lvl.
 
-    Definition is_sub_list (head: node_rep) (bot: bot_gname) (Γ γ: sub_gname) : iProp Σ := 
-      inv (levelN lvl) (lazy_list_inv head bot Γ (Some γ)).
+    Definition is_sub_list (head: node_rep) (Γ γ: sub_gname) : iProp Σ := 
+      inv (levelN lvl) (lazy_list_inv head None Γ (Some γ)).
 
     Definition is_bot_list (head: node_rep) (M: gmap Z (argmax Z)) (q: frac)
       (bot: bot_gname) (Γ: sub_gname) : iProp Σ := 
       own (s_frac bot) (◯F{q} M)
       ∗
-      inv (levelN lvl) (lazy_list_inv head bot Γ None).
+      inv (levelN lvl) (lazy_list_inv head (Some bot) Γ None).
 
   End Proofs.
 End LazyListInv.

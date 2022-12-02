@@ -6,7 +6,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 
 
@@ -23,7 +23,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Theorem find_bot_spec (k: Z) (head curr: node_rep) 
       (M: gmap Z (argmax Z)) (bot: bot_gname) (sub: sub_gname) :
       {{{ 
-        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
+        inv (levelN 0) (lazy_list_inv 0 head (Some bot) sub None)
         ∗
         own (s_frac bot) (◯F M)
         ∗
@@ -212,14 +212,13 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         * wp_if.
           iApply ("IH" $! next with "[$] [$] [%]").
           { lia. }
-
           iNext; iApply "HΦ".
     Qed.
     
     Theorem find_sub_spec (k lvl: Z) (head curr: node_rep)
-      (bot: bot_gname) (sub: sub_gname) (obot: option sub_gname) :
+      (obot: option bot_gname) (sub: sub_gname) (osub: option sub_gname) :
       {{{ 
-        inv (levelN lvl) (lazy_list_inv lvl head bot sub obot)
+        inv (levelN lvl) (lazy_list_inv lvl head obot sub osub)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
@@ -236,7 +235,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∃ (γ: gname) (l: val), 
           (node_locks pred +ₗ lvl) ↦□ l
           ∗
-          is_lock γ l (in_lock lvl obot pred)
+          is_lock γ l (in_lock lvl osub pred)
       }}}.
     Proof.
       iIntros (Φ) "(#Hinv & Hown_curr & Hrange) HΦ".
@@ -303,9 +302,9 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem findLock_spec (k lvl: Z) (head curr: node_rep)
-      (bot: bot_gname) (sub: sub_gname) (obot: option sub_gname) :
+      (obot: option bot_gname) (sub: sub_gname) (osub: option sub_gname) :
       {{{ 
-        inv (levelN lvl) (lazy_list_inv lvl head bot sub obot)
+        inv (levelN lvl) (lazy_list_inv lvl head obot sub osub)
         ∗
         (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
         ∗
@@ -322,13 +321,13 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ∃ (γ: gname) (l: val) (s: loc), 
           (node_locks pred +ₗ lvl) ↦□ l
           ∗
-          is_lock γ l (in_lock lvl obot pred)
+          is_lock γ l (in_lock lvl osub pred)
           ∗
           (node_next pred +ₗ lvl) ↦{#1 / 2} #s
           ∗
           s ↦□ rep_to_node succ
           ∗
-          locked_val obot s
+          locked_val osub s
           ∗
           locked γ
       }}}.
@@ -338,10 +337,10 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iLöb as "IH". 
       iIntros (curr) "#Hown_curr %Hrange".
       
-      wp_lam. wp_let. wp_let.
+      wp_lam. wp_pures.
       wp_apply (find_sub_spec with "[Hown_curr]").
       { by iFrame "#". }
-      iIntros (pred succ'') "(%Hrange' & #Hown_pred & _ & Hlock)".
+      iIntros (pred succ') "(%Hrange' & #Hown_pred & _ & Hlock)".
       iDestruct "Hlock" as (γ l) "(#Hl & #Hlock)".
       wp_pures. wp_lam. wp_pures.
 
@@ -392,8 +391,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iModIntro. wp_load.
       wp_let. wp_lam. wp_pures.
       case_bool_decide as Hle; wp_if.
-      + wp_pures; iApply "HΦ".
-        iModIntro; iFrame "#".
+      + wp_pures; iModIntro.
+        iApply "HΦ"; iFrame "# ∗".
         iSplit; first by (iPureIntro; lia).
         iExists γ, l, s. iFrame "# ∗".
       + wp_apply (release_spec with "[Hnext Hval Hlocked]").

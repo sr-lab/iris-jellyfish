@@ -5,7 +5,7 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lazy_list Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 
 
 Local Open Scope Z.

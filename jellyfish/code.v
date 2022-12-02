@@ -123,7 +123,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
     λ: "p" "k" "v" "t" "h",
       let: "pair" := findAll !"p" "k" #MAX_HEIGHT "h" in
       let: "pred" := Fst "pair" in
-      insertAll "pred" "k" "v" "t" "h" "h".
+        insertAll "pred" "k" "v" "t" "h" "h".
 
   (* HeapLang does not support randomness... *)
   Definition randomLevel : val :=

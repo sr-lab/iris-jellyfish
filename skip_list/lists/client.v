@@ -15,21 +15,19 @@ Module Params <: SKIP_LIST_PARAMS.
   Definition MAX_HEIGHT := 20.  
   Lemma HMIN_MAX : INT_MIN < INT_MAX.
   Proof. unfold INT_MIN, INT_MAX; lia. Qed.
+  Lemma HMAX_HEIGHT : 0 ≤ MAX_HEIGHT.
+  Proof. unfold MAX_HEIGHT; lia. Qed.
 End Params.
 
 Module Import New := NewSpec Params.
 Module Import Contains := ContainsSpec Params.
 Module Import Add := AddSpec Params.
 
-Notation node := (prod Z Z).
-Definition keys (L: list node) : list Z := map fst L.
-Definition heights (L: list node) : list Z := map snd L.
-
 (* Convert a list of Coq ints into a HeapLang tuple *)
-Fixpoint L2tuple (L: list node) : val :=
+Fixpoint L2tuple (L: list Z) : val :=
   match L with
   | nil => NONEV
-  | (z, h) :: L => SOMEV (#z, #h, L2tuple L)
+  | z :: L => SOMEV (#z, L2tuple L)
   end.
 
 Definition addList : val :=
@@ -37,14 +35,13 @@ Definition addList : val :=
     match: "L" with
       NONE => #()
     | SOME "tuple" =>
-      let: "key" := Fst (Fst "tuple") in
-      let: "height" := Snd (Fst "tuple") in
+      let: "key" := Fst "tuple" in
       let: "tail" := Snd "tuple" in
-        add "skip" "key" "height";;
+        add "skip" "key";;
         "add" "skip" "tail"
     end.
 
-Definition skip_list_client (L1 L2: list node) (key: Z) : expr := 
+Definition skip_list_client (L1 L2: list Z) (key: Z) : expr := 
   let: "skip" := new #() in
     (addList "skip" (L2tuple L1) ||| addList "skip" (L2tuple L2));;
     contains "skip" #key.
@@ -52,68 +49,61 @@ Definition skip_list_client (L1 L2: list node) (key: Z) : expr :=
 Section Proofs.
   Context `{!heapGS Σ, !skipGS Σ, !lockG Σ, !spawnG Σ}.
 
-  Lemma addList_spec (v: val) (S: gset Z) (q: frac) 
-    (bot: bot_gname) (subs: list sub_gname) (L: list node) :
-    (∀ (k: Z), k ∈ keys L → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: Z), h ∈ heights L → 0 ≤ h ≤ Params.MAX_HEIGHT) →
-    {{{ is_skip_list v S q bot subs }}}
-      addList v (L2tuple L)
-    {{{ RET #(); is_skip_list v (set_list_union S (keys L)) q bot subs }}}.
+  Lemma addList_spec (p: loc) (S: gset Z) (q: frac) 
+    (bot: bot_gname) (subs: list sub_gname) (L: list Z) :
+    (∀ (k: Z), k ∈ L → Params.INT_MIN < k < Params.INT_MAX) →
+    {{{ is_skip_list p S q bot subs }}}
+      addList #p (L2tuple L)
+    {{{ RET #(); is_skip_list p (set_list_union S L) q bot subs }}}.
   Proof.
-    iIntros (Hk_range Hh_range Φ) "Hskip HΦ".
-    iRevert (S L Hk_range Hh_range) "Hskip HΦ".
+    iIntros (Hk_range Φ) "Hskip HΦ".
+    iRevert (S L Hk_range) "Hskip HΦ".
     iLöb as "IH".
-    iIntros (S L Hk_range Hh_range) "Hskip HΦ".
+    iIntros (S L Hk_range) "Hskip HΦ".
 
     wp_lam. wp_let.
-    destruct L as [|pair L].
+    destruct L as [|z L].
     + wp_match. iModIntro. iApply "HΦ". iFrame.
-    + destruct pair as [key height]. wp_pures. 
+    + wp_pures. 
       
       wp_apply (add_spec with "Hskip").
       { apply Hk_range. left. }
-      { apply Hh_range. left. }
+      iIntros "Hskip".
 
-      iIntros (b) "Hskip".
       wp_pures.
-      iApply ("IH" with "[%] [%] [$]").
+      iApply ("IH" with "[%] [$]").
       { intros k Hin. apply Hk_range. by right. }
-      { intros h Hin. apply Hh_range. by right. }
-
       iNext; iFrame.
   Qed.
 
-  Lemma skip_list_client_spec (L1 L2: list node) (key: Z) :
+  Lemma skip_list_client_spec (L1 L2: list Z) (key: Z) :
     (Params.INT_MIN < key < Params.INT_MAX) →
-    (∀ (k: Z), k ∈ keys L1 ∨ k ∈ keys L2 → Params.INT_MIN < k < Params.INT_MAX) →
-    (∀ (h: Z), h ∈ heights L1 ∨ h ∈ heights L2 → 0 ≤ h ≤ Params.MAX_HEIGHT) →
+    (∀ (k: Z), k ∈ L1 ∨ k ∈ L2 → Params.INT_MIN < k < Params.INT_MAX) →
     {{{ True }}}
       skip_list_client L1 L2 key
     {{{ (b: bool), RET #b;
-      ⌜ if b then key ∈ keys L1 ∨ key ∈ keys L2 
-             else key ∉ keys L1 ∧ key ∉ keys L2 ⌝ 
+      ⌜ if b then key ∈ L1 ∨ key ∈ L2 
+             else key ∉ L1 ∧ key ∉ L2 ⌝ 
     }}}.
   Proof.
-    iIntros (Hrange Hk_range Hh_range Φ) "_ HΦ".
+    iIntros (Hrange Hk_range Φ) "_ HΦ".
 
     unfold skip_list_client.
     wp_apply new_spec; first done.
-    iIntros (v bot subs) "Hskip".
+    iIntros (p bot subs) "Hskip".
 
     wp_let.
     rewrite -(Qp.div_2 1).
     iDestruct (is_skip_list_sep with "Hskip") as "(Hskip1 & Hskip2)".
 
-    wp_smart_apply (wp_par (λ _, is_skip_list v (set_list_union ∅ (keys L1)) (1 / 2) bot subs)
-                           (λ _, is_skip_list v (set_list_union ∅ (keys L2)) (1 / 2) bot subs) 
+    wp_smart_apply (wp_par (λ _, is_skip_list p (set_list_union ∅ L1) (1 / 2) bot subs)
+                           (λ _, is_skip_list p (set_list_union ∅ L2) (1 / 2) bot subs) 
                            with "[Hskip1] [Hskip2]").
     + wp_apply (addList_spec with "Hskip1").
       { intros k Hin. apply Hk_range. by left. }
-      { intros h Hin. apply Hh_range. by left. }
       by iIntros.
     + wp_apply (addList_spec with "Hskip2").
       { intros k Hin. apply Hk_range. by right. }
-      { intros h Hin. apply Hh_range. by right. }
       by iIntros.
     + iIntros (v1 v2) "Hskip".
       rewrite is_skip_list_join (Qp.div_2 1).

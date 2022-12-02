@@ -5,14 +5,14 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.skip_list.lists Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.skip_list.lists.inv Require Import list_equiv.
 
 
 Class skipGS Σ := SkipGS { 
   frac_gsetR :> inG Σ (frac_authR (gsetUR Z));
   auth_gsetR :> inG Σ (authR (gsetUR node_rep));
-  gset_tokR :> inG Σ (gset_disjUR Z)
+  auth_toksR :> inG Σ (authR (gset_disjUR Z))
 }.
 
 Record sub_gname := mk_sub_gname {
@@ -34,60 +34,50 @@ Module LazyListInv (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ} (N: namespace).
 
-    Definition from_sub_list (obot: option sub_gname) (key: Z) (odown: option loc) : iProp Σ := 
+    Definition is_node (obot: option sub_gname) (key: Z) (odown: option loc) : iProp Σ := 
       match obot, odown with
-      | None, None => True
       | Some bot, Some d => ∃ (down: node_rep),
                             d ↦ rep_to_node down
                             ∗
                             own (s_auth bot) (◯ {[ down ]})
                             ∗
-                            own (s_toks bot) (GSet {[ node_key down ]})
+                            own (s_toks bot) (◯ GSet {[ node_key down ]})
                             ∗
                             ⌜ key = node_key down ⌝
+      | None, None => True
       | _, _ => False
       end.
 
-    Definition from_bot_list : Z → option loc → iProp Σ := 
-      from_sub_list None.
-
-    Definition from_top_list (bot: sub_gname) : Z → option loc → iProp Σ := 
-      from_sub_list (Some bot).
-
-    Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
-
-    Definition sub_list_inv (head: node_rep) (Γ: sub_gname) (P: Z → option loc → iProp Σ) 
-      (S: gset node_rep) (Skeys: gset Z) (L: list node_rep) : iProp Σ := 
+    Definition sub_list_inv (head: node_rep) (Γ: sub_gname) (osub: option sub_gname)
+      (S: gset node_rep) (L: list node_rep) : iProp Σ := 
       ⌜ Permutation L (elements S) ⌝
       ∗
       ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
       ∗
-      ⌜ key_equiv S Skeys ⌝
-      ∗
       own (s_auth Γ) (● S)
       ∗
-      own (s_toks Γ) (GSet (node_key_range ∖ Skeys))
+      own (s_toks Γ) (● GSet (set_map node_key S))
       ∗
-      list_equiv ([head] ++ L) P.
+      list_equiv ([head] ++ L) (is_node osub).
     
-    Definition lazy_list_inv (head: node_rep) (sub: sub_gname) (obot: option bot_gname)
-      (P: Z → option loc → iProp Σ) : iProp Σ := 
-      ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
-      sub_list_inv head sub P S Skeys L
-      ∗
-      match obot with
-      | None => True
-      | Some bot => own (s_frac bot) (●F Skeys)
-      end.
+    Definition lazy_list_inv (head: node_rep) (obot: option bot_gname) 
+      (Γ: sub_gname) (osub: option sub_gname) : iProp Σ := 
+      ∃ (S: gset node_rep) (L: list node_rep),
+        sub_list_inv head Γ osub S L
+        ∗
+        match obot with
+        | Some bot => own (s_frac bot) (●F (set_map node_key S))
+        | None => True
+        end.
 
-    Definition is_top_list (head: node_rep) (top bot: sub_gname) : iProp Σ := 
-      inv N (lazy_list_inv head top None (from_top_list bot)).
+    Definition is_sub_list (head: node_rep) (Γ γ: sub_gname) : iProp Σ := 
+      inv N (lazy_list_inv head None Γ (Some γ)).
 
     Definition is_bot_list (head: node_rep) (Skeys: gset Z) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) : iProp Σ := 
+      (bot: bot_gname) (Γ: sub_gname) : iProp Σ := 
       own (s_frac bot) (◯F{q} Skeys)
       ∗
-      inv N (lazy_list_inv head sub (Some bot) from_bot_list).
+      inv N (lazy_list_inv head (Some bot) Γ None).
 
   End Proofs.
 End LazyListInv.

@@ -5,7 +5,7 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.skip_list.arrays Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 
 
 Local Open Scope Z.
@@ -27,26 +27,26 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       | pred :: succs => 
         match succs with
         | nil => ∃ (γ: gname) (h: Z) (t: loc), 
-                 (node_next pred +ₗ lvl) ↦{#1 / 2} #t
-                 ∗
-                 t ↦□ rep_to_node tail
-                 ∗
-                 is_lock γ (node_lock pred) (is_array (node_next pred) h)
-                 ∗
-                 ⌜ lvl < h ⌝
+                  (node_next pred +ₗ lvl) ↦{#1 / 2} #t
+                  ∗
+                  t ↦□ rep_to_node tail
+                  ∗
+                  is_lock γ (node_lock pred) (is_array (node_next pred) h)
+                  ∗
+                  ⌜ lvl < h ⌝
 
         | succ :: _ => ∃ (γ: gname) (h: Z) (s: loc), 
-                       (node_next pred +ₗ lvl) ↦{#1 / 2} #s
-                       ∗
-                       s ↦□ rep_to_node succ
-                       ∗
-                       is_lock γ (node_lock pred) (is_array (node_next pred) h)
-                       ∗
-                       ⌜ lvl < h ⌝
-                       ∗
-                       P succ
-                       ∗
-                       list_equiv succs P
+                        (node_next pred +ₗ lvl) ↦{#1 / 2} #s
+                        ∗
+                        s ↦□ rep_to_node succ
+                        ∗
+                        is_lock γ (node_lock pred) (is_array (node_next pred) h)
+                        ∗
+                        ⌜ lvl < h ⌝
+                        ∗
+                        P succ
+                        ∗
+                        list_equiv succs P
         end
       end. 
     

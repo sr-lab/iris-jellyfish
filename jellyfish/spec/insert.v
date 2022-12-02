@@ -4,7 +4,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.jellyfish.spec Require Import link.
 
@@ -21,14 +21,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem update_spec (v t: Z) (head node: node_rep) 
       (M: gmap Z (argmax Z)) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) 
+      (bot: bot_gname) (Γ: sub_gname) 
       (val: val_rep) :
       {{{
-        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
+        inv (levelN 0) (lazy_list_inv 0 head (Some bot) Γ None)
         ∗
         own (s_frac bot) (◯F{q} M)
         ∗
-        own (s_auth sub) (◯ {[ node ]})
+        own (s_auth Γ) (◯ {[ node ]})
         ∗
         (node_val node) ↦{#1 / 2} rep_to_val val
       }}}
@@ -170,14 +170,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem tryInsert_spec (k v t h: Z) (head curr: node_rep) 
       (M: gmap Z (argmax Z)) (q: frac)
-      (sub: sub_gname) (bot: bot_gname) :
+      (bot: bot_gname) (Γ: sub_gname) :
       INT_MIN < k < INT_MAX →
       {{{
-        inv (levelN 0) (lazy_list_inv 0 head bot sub None)
+        inv (levelN 0) (lazy_list_inv 0 head (Some bot) Γ None)
         ∗
         own (s_frac bot) (◯F{q} M)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < k ⌝
         ∗
@@ -192,9 +192,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           ( 
             ⌜ opt = SOMEV #n ⌝ 
             ∗ 
-            own (s_auth sub) (◯ {[ new ]})
+            own (s_auth Γ) (◯ {[ new ]})
             ∗ 
-            own (s_toks sub) (◯ GSet {[ node_key new ]})
+            own (s_toks Γ) (◯ GSet {[ node_key new ]})
             ∗ 
             ⌜ node_key new = k ⌝
             ∗
@@ -262,18 +262,18 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
     Qed.
 
     Theorem insert_spec (lvl: Z) (head curr new: node_rep) 
-      (bot: bot_gname) (top_sub bot_sub: sub_gname) (n: loc) :
+      (Γ γ: sub_gname) (n: loc) :
       INT_MIN < node_key new < INT_MAX →
       {{{
-        inv (levelN lvl) (lazy_list_inv lvl head bot top_sub (Some bot_sub))
+        inv (levelN lvl) (lazy_list_inv lvl head None Γ (Some γ))
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
         ∗
         ⌜ node_key curr < node_key new ⌝
         ∗ 
-        own (s_auth bot_sub) (◯ {[ new ]})
+        own (s_auth γ) (◯ {[ new ]})
         ∗ 
-        own (s_toks bot_sub) (◯ GSet {[ node_key new ]})
+        own (s_toks γ) (◯ GSet {[ node_key new ]})
         ∗
         n ↦□ rep_to_node new
         ∗
@@ -283,9 +283,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       }}}
         insert (rep_to_node curr) #lvl #n
       {{{ RET #();
-        own (s_auth top_sub) (◯ {[ new ]})
+        own (s_auth Γ) (◯ {[ new ]})
         ∗ 
-        own (s_toks top_sub) (◯ GSet {[ node_key new ]})
+        own (s_toks Γ) (◯ GSet {[ node_key new ]})
       }}}.
     Proof.
       iIntros (Hkey_range Φ) "(#Hinv & #Hown_curr & %Hrange & Hown_frag & Hown_tok & #Hn & Hnext & Hlocks) HΦ".
@@ -295,7 +295,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       wp_apply findLock_spec.
       { iFrame "#". iPureIntro; lia. }
       iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & Hlock)".
-      iDestruct "Hlock" as (γ l s) "(#Hl & #Hlock & Hnext' & #Hs & _ & Hlocked)".
+      iDestruct "Hlock" as (γl l s) "(#Hl & #Hlock & Hnext' & #Hs & _ & Hlocked)".
       wp_pures. wp_lam. wp_pures.
 
       wp_bind (Load _).

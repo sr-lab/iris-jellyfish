@@ -2,7 +2,7 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.skip_list.arrays Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.skip_list.arrays.inv Require Import list_equiv lazy_inv skip_inv.
 From SkipList.skip_list.arrays.spec Require Import find.
 
@@ -17,55 +17,53 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
   Section Proofs.
     Context `{!heapGS Σ, !skipGS Σ, !lockG Σ}.
     
-    Theorem findPred_spec (key lvl: Z) (head curr: node_rep) 
+    Theorem findAll_spec (k lvl: Z) (head curr: node_rep) 
       (Skeys: gset Z) (bot: bot_gname) 
-      (top_sub: sub_gname) (bot_subs: list sub_gname) :
+      (Γ: sub_gname) (subs: list sub_gname) :
       {{{ 
-        skip_list_equiv lvl head Skeys 1 bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys 1 bot (Γ :: subs)
         ∗
-        (⌜ curr = head ⌝ ∨ own (s_auth top_sub) (◯ {[ curr ]}))
+        (⌜ curr = head ⌝ ∨ own (s_auth Γ) (◯ {[ curr ]}))
         ∗
-        ⌜ node_key curr < key < INT_MAX ⌝
+        ⌜ node_key curr < k < INT_MAX ⌝
       }}}
-        findPred (rep_to_node curr) #key #lvl
+        findAll (rep_to_node curr) #k #lvl #0
       {{{ pred succ, RET ((rep_to_node pred), (rep_to_node succ));
-        skip_list_equiv lvl head Skeys 1 bot (top_sub :: bot_subs)
+        skip_list_equiv lvl head Skeys 1 bot (Γ :: subs)
         ∗
-        ⌜ key ∈ Skeys ↔ node_key succ = key ⌝
+        ⌜ k ∈ Skeys ↔ node_key succ = k ⌝
       }}}.
     Proof.
       iIntros (Φ) "(Hlist & Hown_curr & Hrange) HΦ".
-      iRevert (curr head lvl top_sub bot_subs) "Hlist Hown_curr Hrange HΦ".
+      iRevert (curr head lvl Γ subs) "Hlist Hown_curr Hrange HΦ".
       iLöb as "IH".
-      iIntros (curr head lvl top_sub bot_subs) "Hlist #Hown_curr %Hrange HΦ".
+      iIntros (curr head lvl Γ subs) "Hlist #Hown_curr %Hrange HΦ".
+      wp_lam. wp_pures.
 
-      wp_lam. wp_let. wp_let.
-      destruct bot_subs as [|bot_sub].
-      + iDestruct "Hlist" as "(%Hlvl & (Hown_frag & #Hinv))".
+      destruct subs as [|γ subs].
+      + iDestruct "Hlist" as "(%Hlvl & (Hown_frag & #Hinv))"; rewrite Hlvl.
         wp_apply (find_bot_spec with "[Hown_frag]").
         { by iFrame "# ∗". }
         iIntros (pred succ) "(Hown_frag & %Hpred_key & #Hown_pred & %Hkey_in_S)".
 
-        wp_pures. case_bool_decide; wp_if.
-        - iModIntro. iApply "HΦ". 
-          by iFrame "# ∗".
-        - exfalso; congruence.
+        wp_pures. 
+        iModIntro; iApply "HΦ". 
+        by iFrame "# ∗".
       + iDestruct "Hlist" as "(%Hlvl & #Hinv & Hmatch)".
-        unfold is_top_list.
         wp_apply find_sub_spec.
         { by iFrame "# ∗". }
         iIntros (pred succ) "(%Hrange' & #Hown_pred & #Hown_succ & _)".
 
         wp_pures. case_bool_decide as Hcase; wp_if.
         - exfalso; inversion Hcase; lia.
-        - wp_bind (Fst _).
-          iInv (levelN lvl) as (S Skeys' L) "(Hinv_sub & _)" "Hclose".
-          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >%Hequiv & >Hown_auth & >Hown_toks & Hlist)".
+        - wp_bind (BinOp _ _ _).
+          iInv (levelN lvl) as (S L) "(Hinv_sub & _)" "Hclose".
+          iDestruct "Hinv_sub" as "(>%Hperm & >%Hsort & >Hown_auth & >Hown_toks & Hlist)".
 
           iDestruct "Hown_pred" as "[%Heq | #Hown_pred]".
-          * wp_proj.
+          * wp_op.
             iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
-            { iNext; iExists S, Skeys', L; by iFrame. }
+            { iNext; iExists S, L; by iFrame. }
 
             iModIntro; wp_pures.
             iApply ("IH" with "[$] [] [%]").
@@ -82,17 +80,17 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             }
 
             rewrite list_equiv_invert_L; last done.
-            iDestruct "Hlist" as (γ h s' succ') "(>%Hsucc'_range & Hpt' & #Hs' & Hlock & #Hlvl & HP & Himp)".
-            iDestruct "HP" as"(>Hauth_pred & >Htoks_pred)".
+            iDestruct "Hlist" as (γl h s succ') "(>%Hsucc'_range & Hpt & #Hs & Hlock & #Hlvl & Hnode & Himp)".
+            iDestruct "Hnode" as"(>Hauth_pred & >Htoks_pred)".
 
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as -> by set_solver.
             iDestruct "Hauth_pred" as "(Hauth_pred & ?)".
             assert ({[ pred ]} = {[ pred ]} ⋅ {[ pred ]}) as <- by set_solver.
 
-            wp_proj.
+            wp_op.
             iPoseProof ("Himp" with "[$]") as "Hlist".
             iMod ("Hclose" with "[Hlist Hown_auth Hown_toks]") as "_".
-            { iNext; iExists S, Skeys', L; by iFrame. }
+            { iNext; iExists S, L; by iFrame. }
 
             iModIntro; wp_pures.
             iApply ("IH" with "[$] [Hauth_pred] [%]").
@@ -102,35 +100,34 @@ Module ContainsSpec (Params: SKIP_LIST_PARAMS).
             iApply "HΦ". by iFrame "# ∗".
     Qed.
     
-    Theorem contains_spec (v: val) (key: Z) 
+    Theorem contains_spec (p: loc) (k: Z) 
       (S: gset Z) (bot: bot_gname) (subs: list sub_gname)
-      (Hrange: INT_MIN < key < INT_MAX) :
-      {{{ is_skip_list v S 1 bot subs }}}
-        contains v #key
+      (Hrange: INT_MIN < k < INT_MAX) :
+      {{{ is_skip_list p S 1 bot subs }}}
+        contains #p #k
       {{{ (b: bool), RET #b; 
-        is_skip_list v S 1 bot subs
+        is_skip_list p S 1 bot subs
         ∗
-        ⌜ if b then key ∈ S else key ∉ S ⌝
+        ⌜ if b then k ∈ S else k ∉ S ⌝
       }}}.
     Proof.
       iIntros (Φ) "H HΦ".
-      iDestruct "H" as (h head) "(%Hv & Hpt & %Hmin & Hlist)".
-      wp_lam. wp_let. rewrite -Hv. wp_load. wp_let.
-      destruct subs as [|sub subs]; first by iExFalso.
+      iDestruct "H" as (head) "(Hpt & %Hmin & Hlist)".
+      wp_lam. wp_let. wp_load.
 
-      wp_apply (findPred_spec with "[Hlist]").
+      destruct subs as [|Γ subs]; first by iExFalso.
+      wp_apply (findAll_spec with "[Hlist]").
       { iFrame. iSplit. by iLeft. iPureIntro; lia. }
-
       iIntros (pred succ) "(Hlist & %Hkey_in_S)".
       wp_pures. wp_lam. wp_pures.
       
       iModIntro; case_bool_decide.
       + iApply "HΦ". iSplit.
-        { iExists h, head; by iFrame. }
+        { iExists head; by iFrame. }
         iPureIntro. 
         rewrite Hkey_in_S; congruence.
       + iApply "HΦ". iSplit. 
-        { iExists h, head; by iFrame. }
+        { iExists head; by iFrame. }
         iPureIntro; intros Hin. 
         rewrite Hkey_in_S in Hin; congruence.
     Qed.

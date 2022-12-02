@@ -5,20 +5,18 @@ From iris.algebra Require Import auth frac_auth gset.
 From iris.heap_lang Require Import proofmode.
 
 From SkipList.lazy_list Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.lazy_list.inv Require Import list_equiv.
 
 
 Class lazyGS Σ := LazyGS { 
   frac_gsetR :> inG Σ (frac_authR (gsetUR Z));
-  auth_gsetR :> inG Σ (authR (gsetUR node_rep));
-  gset_tokR :> inG Σ (gset_disjUR Z)
+  auth_gsetR :> inG Σ (authR (gsetUR node_rep))
 }.
 
 Record lazy_gname := mk_lazy_gname {
   s_auth: gname;
-  s_frac: gname;
-  s_keys: gname
+  s_frac: gname
 }.
 
 Local Open Scope Z.
@@ -33,63 +31,50 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
 
     Definition lazyN := nroot .@ "lazy".
 
-    Definition node_key_range : gset Z := Zlt_range INT_MIN INT_MAX.
-
     Definition lazy_list_inv (head: node_rep) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (S: gset node_rep) (Skeys: gset Z) (L: list node_rep),
-      ⌜ Permutation L (elements S) ⌝
-      ∗
-      ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
-      ∗
-      ⌜ key_equiv S Skeys ⌝
-      ∗
-      own (s_auth Γ) (● S)
-      ∗
-      own (s_frac Γ) (●F Skeys)
-      ∗
-      own (s_keys Γ) (GSet (node_key_range ∖ Skeys))
-      ∗
-      list_equiv ([head] ++ L).
+      ∃ (S: gset node_rep) (L: list node_rep),
+        ⌜ Permutation L (elements S) ⌝
+        ∗
+        ⌜ Sorted node_lt ([head] ++ L ++ [tail]) ⌝
+        ∗
+        own (s_auth Γ) (● S)
+        ∗
+        own (s_frac Γ) (●F (set_map node_key S))
+        ∗
+        list_equiv ([head] ++ L).
 
-    Definition is_lazy_list (v: val) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
-      ∃ (l: loc) (head: node_rep),
-      ⌜ #l = v ⌝
-      ∗
-      l ↦{#q} rep_to_node head
-      ∗
-      ⌜ node_key head = INT_MIN ⌝
-      ∗
-      own (s_frac Γ) (◯F{q} Skeys)
-      ∗
-      inv lazyN (lazy_list_inv head Γ).
+    Definition is_lazy_list (p: loc) (Skeys: gset Z) (q: frac) (Γ: lazy_gname) : iProp Σ := 
+      ∃ (head: node_rep),
+        p ↦□ rep_to_node head
+        ∗
+        ⌜ node_key head = INT_MIN ⌝
+        ∗
+        own (s_frac Γ) (◯F{q} Skeys)
+        ∗
+        inv lazyN (lazy_list_inv head Γ).
 
 
-    Lemma is_lazy_list_sep (v: val) (S: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
-      is_lazy_list v S (q1 + q2) Γ ⊢ 
-        is_lazy_list v S q1 Γ ∗ is_lazy_list v S q2 Γ.
+    Lemma is_lazy_list_sep (p: loc) (S: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
+      is_lazy_list p S (q1 + q2) Γ ⊢ 
+        is_lazy_list p S q1 Γ ∗ is_lazy_list p S q2 Γ.
     Proof.
       iIntros "Hlist".
-      iDestruct "Hlist" as (h head) "(%Hv & Hpt & %Hmin & Hown_frag &#Hinv)".
-      iDestruct "Hpt" as "(Hpt1 & Hpt2)".
+      iDestruct "Hlist" as (head) "(#Hpt & %Hmin & Hown_frag &#Hinv)".
       iDestruct "Hown_frag" as "(Hown_frag1 & Hown_frag2)".
-      iSplitL "Hpt1 Hown_frag1".
-      + iExists h, head. by iFrame "# ∗".
-      + iExists h, head. by iFrame "# ∗".
+      iSplitL "Hown_frag1"; iExists head; by iFrame "# ∗".
     Qed.
     
-    Lemma is_lazy_list_join (v: val) (S1 S2: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
-      is_lazy_list v S1 q1 Γ ∗ is_lazy_list v S2 q2 Γ ⊢ 
-        is_lazy_list v (S1 ∪ S2) (q1 + q2) Γ.
+    Lemma is_lazy_list_join (p: loc) (S1 S2: gset Z) (q1 q2: frac) (Γ: lazy_gname) :
+      is_lazy_list p S1 q1 Γ ∗ is_lazy_list p S2 q2 Γ ⊢ 
+        is_lazy_list p (S1 ∪ S2) (q1 + q2) Γ.
     Proof.
       iIntros "(Hlist1 & Hlist2)".
-      iDestruct "Hlist1" as (h head) "(%Hv & Hpt1 & %Hmin & Hown_frag1 & #Hinv)".
-      iDestruct "Hlist2" as (h' head') "(%Hv' & Hpt2 & _ & Hown_frag2 & _)".
+      iDestruct "Hlist1" as (head) "(#Hpt & %Hmin & Hown_frag1 & #Hinv)".
+      iDestruct "Hlist2" as (head') "(Hpt' & _ & Hown_frag2 & _)".
+      iDestruct (mapsto_agree with "Hpt Hpt'") as %<-%rep_to_node_inj; iClear "Hpt'".
 
-      assert (h = h') as <- by congruence.
-      iDestruct (mapsto_agree with "Hpt1 Hpt2") as %<-.
-      iCombine "Hpt1 Hpt2" as "Hpt".
       iCombine "Hown_frag1 Hown_frag2" as "Hown_frag".
-      iExists h, head. by iFrame "# ∗".
+      iExists head; by iFrame "# ∗".
     Qed.
 
   End Proofs.

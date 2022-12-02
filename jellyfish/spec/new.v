@@ -4,7 +4,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv skip_inv.
 
 
@@ -49,16 +49,16 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         inversion Hcase; subst.
         by assert (MAX_HEIGHT + 1 - 1 = MAX_HEIGHT) as -> by lia.
       + assert (lvl ≠ MAX_HEIGHT + 1) as Hneq by congruence.
-        destruct subs as [| top_sub bot_subs]; first by iExFalso.
+        destruct subs as [|γ subs]; first by iExFalso.
 
         assert (Z.to_nat (MAX_HEIGHT + 1 - lvl) = S (Z.to_nat (MAX_HEIGHT - lvl))) as -> by lia.
         repeat rewrite replicate_S array_cons.
         iDestruct "Hlocks" as "(Hl & Hlocks)".
         iDestruct "Hnext" as "((Hnext' & Hnext'') & Hnext)".
 
-        wp_apply (newlock_spec (in_lock lvl (Some top_sub) head) with "[Hnext'']").
+        wp_apply (newlock_spec (in_lock lvl (Some γ) head) with "[Hnext'']").
         { iExists t; iFrame. }
-        iIntros (l γ) "#Hlock".
+        iIntros (l γl) "#Hlock".
 
         wp_store. wp_pures.
         iMod (mapsto_persist with "Hl") as "#Hl".
@@ -70,8 +70,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           as (γtoks) "[Hown_toks _]"; 
           first by apply auth_both_valid.
 
-        set (sub := mk_sub_gname γauth γtoks).
-        iMod (inv_alloc (levelN lvl) ⊤ (lazy_list_inv lvl head bot sub (Some top_sub)) 
+        set (Γ := mk_sub_gname γauth γtoks).
+        iMod (inv_alloc (levelN lvl) ⊤ (lazy_list_inv lvl head None Γ (Some γ)) 
           with "[Hnext' Hown_auth Hown_toks]") as "Hinv".
         {
           iNext; iExists ∅, ∅, nil.
@@ -83,10 +83,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
             rewrite /node_key in Hmin.
             rewrite /node_lt /node_key Hmin /=; apply HMIN_MAX.
           }
-          iExists γ, l, t; iFrame "# ∗".
+          iExists γl, l, t; iFrame "# ∗".
         }
 
-        iApply ("IH" $! _ (sub :: top_sub :: bot_subs) with "[Hskip Hinv] [Hnext] [Hlocks] [%]").
+        iApply ("IH" $! _ (Γ :: γ :: subs) with "[Hskip Hinv] [Hnext] [Hlocks] [%]").
         {
           assert (lvl + 1 - 1 = lvl) as -> by lia.
           iFrame. iPureIntro; lia.
@@ -132,7 +132,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iExists t; rewrite loc_add_0; iFrame.
         iExists tail; iFrame "#"; by iLeft.
       }
-      iIntros (l γ) "#Hlock".
+      iIntros (l γl) "#Hlock".
 
       wp_pures; rewrite loc_add_0.
       wp_store; iMod (mapsto_persist with "Hlocks'") as "#Hl".
@@ -148,9 +148,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         as (γfrac) "[Hown_frac Hown_frac_frag]"; 
         first by apply auth_both_valid.
 
-      set (sub := mk_sub_gname γauth γtoks).
+      set (Γ := mk_sub_gname γauth γtoks).
       set (bot := mk_bot_gname γfrac).
-      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv 0 head bot sub None) 
+      iMod (inv_alloc (levelN 0) ⊤ (lazy_list_inv 0 head (Some bot) Γ None) 
         with "[Hn Hown_auth Hown_toks Hown_frac]") as "Hinv".
       {
         iNext; iExists ∅, ∅, nil. 
@@ -162,12 +162,12 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           rewrite /node_lt/node_key//=; apply HMIN_MAX.
         }
 
-        iExists γ, l, t.
+        iExists γl, l, t.
         repeat rewrite loc_add_0.
         iFrame "# ∗".
       }
 
-      iAssert (skip_list_equiv 0 head ∅ 1 bot [sub]) 
+      iAssert (skip_list_equiv 0 head ∅ 1 bot [Γ]) 
         with "[Hinv Hown_frac_frag]" as "Hskip".
       { by iFrame. }
 

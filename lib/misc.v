@@ -207,22 +207,6 @@ Proof.
   rewrite /Zlt_range Zset_exclusive_range_spec; lia.
 Qed.
 
-Lemma gset_union_diff (z: Z) (S Sminus: gset Z) :
-  z ∈ S →
-  z ∉ Sminus →
-  S ∖ Sminus = (S ∖ (Sminus ∪ {[ z ]})) ∪ {[ z ]}.
-Proof.
-  intros Hin Hnin.
-  rewrite -leibniz_equiv_iff.
-  intros x. split.
-  + intros Hin_diff. apply elem_of_union.
-    destruct (Ztrichotomy_inf x z) as [[Hlt|Heq]|Hgt].
-    - left. assert (x ≠ z) by lia. set_solver.
-    - right. rewrite elem_of_singleton //.
-    - left. assert (x ≠ z) by lia. set_solver.
-  + intros [Hin_diff|Hin_singleton]%elem_of_union; set_solver.
-Qed.
-
 Section gset_extra.
   Context `{Countable K}.
   Implicit Types X Y Z : gset K.

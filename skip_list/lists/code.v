@@ -10,6 +10,7 @@ Module Type SKIP_LIST_PARAMS.
   Parameter INT_MAX : Z.
   Parameter MAX_HEIGHT : Z.
   Parameter (HMIN_MAX: INT_MIN < INT_MAX).
+  Parameter (HMAX_HEIGHT: 0 ≤ MAX_HEIGHT).
 End SKIP_LIST_PARAMS.
 
 Module SkipList (Params: SKIP_LIST_PARAMS).
@@ -17,141 +18,120 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, None, dummy_lock, dummy_null).
 
-  (* Skip list constructor *)
-  Definition newLoop : val := 
-    rec: "loop" "head" "l" :=
+  Definition initLevels : val := 
+    rec: "init" "head" "l" :=
       let: "h" := ref "head" in
-        if: "l" = #MAX_HEIGHT
-        then "h"
-        else
-          let: "t" := ref (rep_to_node tail) in
-          let: "head" := (#INT_MIN, #dummy_null, "t", SOME "h", newlock #(), #dummy_null) in
-            "loop" "head" ("l" + #1).
+        if: "l" = #MAX_HEIGHT then "h"
+        else let: "t" := ref (rep_to_node tail) in
+             let: "head" := (#INT_MIN, #dummy_null, "t", SOME "h", newlock #(), #dummy_null) in
+               "init" "head" ("l" + #1).
   
   Definition new : val := 
     λ: "_", 
       let: "t" := ref (rep_to_node tail) in
       let: "head" := (#INT_MIN, #dummy_null, "t", NONEV, newlock #(), #dummy_null) in
-        newLoop "head" #0.
+        initLevels "head" #0.
 
-  (* Find function *)
   Definition find : val := 
     rec: "find" "pred" "k" :=
-      let: "curr" := !(nodeNext "pred") in
-      let: "ck" := nodeKey "curr" in
-        if: "k" ≤ "ck"
-        then ("pred", "curr")
-        else "find" "curr" "k".
+      let: "succ" := !(nodeNext "pred") in
+        if: "k" ≤ nodeKey "succ" then ("pred", "succ")
+        else "find" "succ" "k".
   
   Definition findLock : val := 
-    rec: "find" "head" "k" :=
-      let: "pair" := find "head" "k" in
+    rec: "find" "pred" "k" :=
+      let: "pair" := find "pred" "k" in
       let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-        acquire (nodeLock "pred");;
-        let: "next" := !(nodeNext "pred") in
-        let: "nk" := nodeKey "next" in
-        let: "ck" := nodeKey "curr" in
-          if: "nk" = "ck" 
-          then "pair"
-          else
-            release (nodeLock "pred");;
-            "find" "pred" "k".
+      let: "lock" := nodeLock "pred" in
+        acquire "lock";;
+        let: "succ" := !(nodeNext "pred") in
+          if: "k" ≤ nodeKey "succ" then ("pred", "succ")
+          else release "lock";;
+               "find" "succ" "k".
 
-  (* Skip list lookup *)
-  Definition findPred : val := 
-    rec: "find" "head" "k" := 
-      let: "pair" := find "head" "k" in
+  Definition findAll : val := 
+    rec: "find" "pred" "k" := 
+      let: "pair" := find "pred" "k" in
       let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
         match: nodeDown "pred" with
           NONE => "pair"
-        | SOME "np" => 
-          let: "pred" := !"np" in
-            "find" "pred" "k"
+        | SOME "n" => "find" !"n" "k"
         end.
 
   Definition contains : val := 
-    λ: "head" "k", 
-      let: "np" := !"head" in
-      let: "pair" := findPred "np" "k" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := nodeKey "curr" in
-        "k" = "ck".
+    λ: "p" "k", 
+      let: "pair" := findAll !"p" "k" in
+      let: "succ" := Snd "pair" in
+        "k" = nodeKey "succ".
 
-  (* Link node in lazy list *)
-  Definition link : val := 
+  Definition createAndLink : val := 
     λ: "pred" "k" "odown",
       let: "np" := nodeNext "pred" in
-      let: "succ" := !"np" in
-      let: "next" := ref "succ" in
+      let: "next" := ref !"np" in
       let: "node" := ("k", #dummy_null, "next", "odown", newlock #(), #dummy_null) in
         "np" <- "node";;
-        release (nodeLock "pred");;
         "node".
 
-  (* Lazy list insertion *)
+  Definition insert : val := 
+    λ: "head" "down",
+      let: "k" := nodeKey "down" in
+      let: "pair" := findLock "head" "k" in
+      let: "pred" := Fst "pair" in
+      let: "lock" := nodeLock "pred" in
+      let: "d" := ref "down" in
+      let: "node" := createAndLink "pred" "k" (SOME "d") in
+        release "lock";;
+        "node".
+
   Definition tryInsert : val := 
     λ: "head" "k",
       let: "pair" := findLock "head" "k" in
       let: "pred" := Fst "pair" in
-      let: "curr" := Snd "pair" in
-      let: "ck" := (nodeKey "curr") in
-        if: "k" = "ck"
-        then
-          release (nodeLock "pred");;
-          NONEV
-        else
-          let: "node" := link "pred" "k" NONEV in
-            SOME "node".
+      let: "succ" := Snd "pair" in
+      let: "lock" := nodeLock "pred" in
+        if: "k" = nodeKey "succ"
+        then release "lock";;
+             NONEV
+        else let: "node" := createAndLink "pred" "k" NONEV in
+               release "lock";;
+               SOME "node".
 
-  Definition insert : val := 
-    λ: "head" "k" "down",
-      let: "pair" := findLock "head" "k" in
+  Definition findLevel : val := 
+    rec: "find" "pred" "k" "lvl" "h" :=
+      let: "pair" := find "pred" "k" in
       let: "pred" := Fst "pair" in
-      let: "d" := ref "down" in
-        link "pred" "k" (SOME "d").
-
-  (* Skip list insertion *)
-  Definition topLevel : val := 
-    rec: "loop" "head" "k" "h" "l" :=
-      let: "pair" := find "head" "k" in
-      let: "pred" := Fst "pair" in
-        if: "h" = "l"
-        then "pred"
-        else
-          match: nodeDown "pred" with
-            NONE => #()
-          | SOME "np" => 
-            let: "pred" := !"np" in
-              "loop" "pred" "k" "h" ("l" - #1)
-          end.
+        if: "lvl" = "h" then "pred"
+        else match: nodeDown "pred" with
+               NONE => #()
+             | SOME "d" => "find" !"d" "k" ("lvl" - #1) "h"
+             end.
       
-  Definition addAll : val := 
-    rec: "add" "head" "k" := 
-      let: "pair" := find "head" "k" in
-      let: "pred" := Fst "pair" in
-        match: nodeDown "pred" with
-          NONE => tryInsert "pred" "k"
-        | SOME "np" => 
-          let: "down" := !"np" in
-          let: "onode" := "add" "down" "k" in
-          match: "onode" with 
-            NONE => NONEV
-          | SOME "node" => 
-            let: "node" := insert "pred" "k" "node" in
-              SOME "node"
-          end
-        end.
+  Definition insertAll : val := 
+    rec: "insert" "curr" "k" := 
+      match: nodeDown "curr" with
+        NONE => tryInsert "curr" "k"
+      | SOME "d" => let: "pair" := find !"d" "k" in
+                    let: "pred" := Fst "pair" in
+                    let: "opt" := "insert" "pred" "k" in
+                      match: "opt" with
+                        NONE => NONEV
+                      | SOME "down" => let: "node" := insert "curr" "down" in
+                                         SOME "node"
+                      end
+      end.
 
-  Definition add : val := 
-    λ: "head" "k" "h",
-      let: "np" := !"head" in
-      let: "pred" := topLevel "np" "k" "h" #MAX_HEIGHT in
-      let: "onode" := addAll "pred" "k" in
-        match: "onode" with
-          NONE => #false
-        | SOME "node" => #true
-        end.
+  Definition addH : val := 
+    λ: "p" "k" "h",
+      let: "pred" := findLevel !"p" "k" #MAX_HEIGHT "h" in
+        insertAll "pred" "k".
+
+  (* HeapLang does not support randomness... *)
+  Definition randomLevel : val :=
+    λ: "_", #0.
+
+  Definition add : val :=
+    λ: "p" "k",
+      let: "h" := randomLevel #() in
+      let: "opt" := addH "p" "k" "h" in #().
 
 End SkipList.

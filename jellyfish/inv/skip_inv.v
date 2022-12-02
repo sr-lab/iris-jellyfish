@@ -4,7 +4,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 From SkipList.jellyfish.inv Require Import list_equiv lazy_inv.
 
 
@@ -22,19 +22,19 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (q: frac) (bot: bot_gname) (subs: list sub_gname) : iProp Σ :=
       match subs with
       | nil => False
-      | top_sub :: bot_subs =>
-        match bot_subs with
+      | Γ :: subs =>
+        match subs with
         | nil =>
           ⌜ lvl = 0 ⌝
           ∗
-          is_bot_list 0 head M q bot top_sub
+          is_bot_list 0 head M q bot Γ
 
-        | bot_sub :: _ =>
+        | γ :: _ =>
           ⌜ lvl > 0 ⌝
           ∗
-          is_sub_list lvl head bot top_sub bot_sub
+          is_sub_list lvl head Γ γ
           ∗
-          skip_list_equiv (lvl - 1) head M q bot bot_subs
+          skip_list_equiv (lvl - 1) head M q bot subs
         end
       end.
 
@@ -49,18 +49,18 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     
     Lemma skip_list_equiv_cons (head: node_rep) (lvl: Z) (M: gmap Z (argmax Z)) 
-      (q: frac) (bot: bot_gname) (top_sub: sub_gname) (bot_subs: list sub_gname) :
-      skip_list_equiv lvl head M q bot (top_sub :: bot_subs) ⊢ 
-        ∃ (obot: option sub_gname),
-          inv (levelN lvl) (lazy_list_inv lvl head bot top_sub obot)
+      (q: frac) (bot: bot_gname) (Γ: sub_gname) (subs: list sub_gname) :
+      skip_list_equiv lvl head M q bot (Γ :: subs) ⊢ 
+        ∃ (obot: option bot_gname) (osub: option sub_gname),
+          inv (levelN lvl) (lazy_list_inv lvl head obot Γ osub)
           ∗
-          skip_list_equiv lvl head M q bot (top_sub :: bot_subs).
+          skip_list_equiv lvl head M q bot (Γ :: subs).
     Proof.
-      destruct bot_subs as [|bot_sub bot_subs].
-      + iIntros "Htop". iExists None.
+      destruct subs as [|γ subs].
+      + iIntros "Htop". iExists (Some bot), None.
         iDestruct "Htop" as "(%Hlvl & ? & #Hinv)".
         subst; by iFrame "# ∗".
-      + iIntros "Hlist". iExists (Some bot_sub).
+      + iIntros "Hlist". iExists None, (Some γ).
         iDestruct "Hlist" as "(? & #Hinv & ?)".
         iFrame "# ∗".
     Qed.
@@ -76,14 +76,14 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           (is_bot_list 0 head M q bot sub -∗ skip_list_equiv lvl head M q bot subs).
     Proof.
       iRevert (lvl).
-      iInduction subs as [|top_sub subs] "IHsubs";
+      iInduction subs as [|Γ subs] "IHsubs";
         iIntros (lvl) "Hlist"; 
         first by iExFalso.
       
-      destruct subs as [|bot_sub subs].
+      destruct subs as [|γ subs].
       + iDestruct "Hlist" as "(%Hlvl & Hbot)".
         rewrite Hlvl.
-        iExists top_sub; iFrame.
+        iExists Γ; iFrame.
         iSplit; first done.
         iIntros "Hbot"; by iFrame.
       + iDestruct "Hlist" as "(Hlvl & Hsub & Hmatch)".
@@ -101,11 +101,11 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         skip_list_equiv lvl head M q1 bot subs ∗ skip_list_equiv lvl head M q2 bot subs.
     Proof.
       iRevert (lvl head).
-      iInduction subs as [|top_sub bot_subs] "IHsubs"; 
+      iInduction subs as [|Γ subs] "IHsubs"; 
         iIntros (lvl head) "Hlist"; 
         first by iExFalso.
 
-      destruct bot_subs as [|bot_sub bot_subs].
+      destruct subs as [|γ subs].
       + iDestruct "Hlist" as "(%Hlvl & Hown_frag & #Hinv)".
         iDestruct "Hown_frag" as "(Hown_frag1 & Hown_frag2)".
         by iFrame "# ∗".
@@ -120,11 +120,11 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         skip_list_equiv lvl head (M1 ⋅ M2) (q1 + q2) bot subs.
     Proof.
       iRevert (lvl head).
-      iInduction subs as [|top_sub bot_subs] "IHsubs"; 
+      iInduction subs as [|Γ subs] "IHsubs"; 
         iIntros (lvl head) "(Hlist1 & Hlist2)"; 
         first by iExFalso.
 
-      destruct bot_subs as [|bot_sub bot_subs].
+      destruct subs as [|γ subs].
       + iDestruct "Hlist1" as "(%Hlvl & Hown_frag1 & #Hinv)".
         iDestruct "Hlist2" as "(_ & Hown_frag2 & _)".
         iCombine "Hown_frag1 Hown_frag2" as "Hown_frag".

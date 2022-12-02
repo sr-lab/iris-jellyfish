@@ -47,11 +47,11 @@ Definition lazy_list_client (L1 L2: list Z) (key: Z) : expr :=
 Section Proofs.
   Context `{!heapGS Σ, !lazyGS Σ, !lockG Σ, !spawnG Σ}.
 
-  Lemma addList_spec (v: val) (S: gset Z) (q: frac) (Γ: lazy_gname) (L: list Z) :
+  Lemma addList_spec (p: loc) (S: gset Z) (q: frac) (Γ: lazy_gname) (L: list Z) :
     (∀ (k: Z), k ∈ L → Params.INT_MIN < k < Params.INT_MAX) →
-    {{{ is_lazy_list v S q Γ }}}
-      addList v (L2tuple L)
-    {{{ RET #(); is_lazy_list v (set_list_union S L) q Γ }}}.
+    {{{ is_lazy_list p S q Γ }}}
+      addList #p (L2tuple L)
+    {{{ RET #(); is_lazy_list p (set_list_union S L) q Γ }}}.
   Proof.
     iIntros (Hrange Φ) "Hlazy HΦ".
     iRevert (S L Hrange) "Hlazy HΦ".
@@ -65,7 +65,7 @@ Section Proofs.
       wp_apply (add_spec with "Hlazy").
       { apply Hrange. left. }
 
-      iIntros (b) "Hlazy".
+      iIntros "Hlazy".
       wp_pures.
       iApply ("IH" with "[%] [$]").
       { intros k Hin. apply Hrange. by right. }
@@ -87,14 +87,14 @@ Section Proofs.
 
     unfold lazy_list_client.
     wp_apply new_spec; first done.
-    iIntros (v Γ) "Hlazy".
+    iIntros (p Γ) "Hlazy".
 
     wp_let.
     rewrite -(Qp.div_2 1).
     iDestruct (is_lazy_list_sep with "Hlazy") as "(Hlazy1 & Hlazy2)".
 
-    wp_smart_apply (wp_par (λ _, is_lazy_list v (set_list_union ∅ L1) (1 / 2) Γ)
-                           (λ _, is_lazy_list v (set_list_union ∅ L2) (1 / 2) Γ) 
+    wp_smart_apply (wp_par (λ _, is_lazy_list p (set_list_union ∅ L1) (1 / 2) Γ)
+                           (λ _, is_lazy_list p (set_list_union ∅ L2) (1 / 2) Γ) 
                            with "[Hlazy1] [Hlazy2]").
     + wp_apply (addList_spec with "Hlazy1").
       { intros k Hin. apply Hrange_l. by left. }

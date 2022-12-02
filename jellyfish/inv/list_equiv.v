@@ -6,7 +6,7 @@ From iris.heap_lang Require Import proofmode.
 
 From SkipList.lib Require Import arg_max.
 From SkipList.jellyfish Require Import code.
-From SkipList.lib Require Import misc node_rep node_lt key_equiv.
+From SkipList.lib Require Import misc node_rep node_lt.
 
 
 Local Open Scope Z.
@@ -45,9 +45,10 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
 
     Definition is_val (oM: option (gmap Z (argmax Z))) (rep: node_rep) (v: val_rep) : Prop :=
       match oM with
-      | Some M => ∃ (vs: gset Z), M !! (node_key rep) = Some (prodZ vs (val_ts v))
-                                    ∧
-                                    val_v v ∈ vs
+      | Some M => ∃ (vs: gset Z), 
+                    M !! (node_key rep) = Some (prodZ vs (val_ts v))
+                    ∧
+                    val_v v ∈ vs
       | None => True
       end.
 
@@ -66,12 +67,6 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
         (node_next rep +ₗ lvl) ↦{#1 / 2} #s 
         ∗ 
         locked_val s.
-
-    Definition opt_map (M: gmap Z (argmax Z)) : option (gmap Z (argmax Z)) :=
-      match osub with
-      | Some _ => None
-      | None => Some M
-      end.
 
     Definition opt_lookup (oM: option (gmap Z (argmax Z))) (k: Z) : option (argmax Z) := 
       match oM with
@@ -97,28 +92,28 @@ Module ListEquiv (Params: SKIP_LIST_PARAMS).
       | pred :: succs => 
         match succs with
         | nil => ∃ (γ: gname) (l: val) (t: loc), 
-                 (node_next pred +ₗ lvl) ↦{#1 / 2} #t
-                 ∗
-                 t ↦□ rep_to_node tail
-                 ∗
-                 (node_locks pred +ₗ lvl) ↦□ l
-                 ∗
-                 is_lock γ l (in_lock pred)
+                  (node_next pred +ₗ lvl) ↦{#1 / 2} #t
+                  ∗
+                  t ↦□ rep_to_node tail
+                  ∗
+                  (node_locks pred +ₗ lvl) ↦□ l
+                  ∗
+                  is_lock γ l (in_lock pred)
 
         | succ :: _ => ∃ (v: val_rep) (γ: gname) (l: val) (s: loc), 
-                       (node_next pred +ₗ lvl) ↦{#1 / 2} #s
-                       ∗
-                       s ↦□ rep_to_node succ
-                       ∗
-                       (node_locks pred +ₗ lvl) ↦□ l
-                       ∗
-                       is_lock γ l (in_lock pred)
-                       ∗
-                       is_node succ v
-                       ∗
-                       ⌜ is_val oM succ v ⌝
-                       ∗
-                       list_equiv succs (opt_delete oM (node_key succ))
+                        (node_next pred +ₗ lvl) ↦{#1 / 2} #s
+                        ∗
+                        s ↦□ rep_to_node succ
+                        ∗
+                        (node_locks pred +ₗ lvl) ↦□ l
+                        ∗
+                        is_lock γ l (in_lock pred)
+                        ∗
+                        is_node succ v
+                        ∗
+                        ⌜ is_val oM succ v ⌝
+                        ∗
+                        list_equiv succs (opt_delete oM (node_key succ))
         end
       end. 
     
