@@ -18,7 +18,7 @@ This development contains proofs for 4 data structures. The lib/ directory conta
 - skip_list/:
   + lists/: Proofs for an append-only skip list based on linked lists.
   + arrays/: Proofs for an append-only skip list based on arrays.
-- jellyfish/: Proofs for the lazy JellyFish skip list.
+- jelly_fish/: Proofs for the lazy JellyFish skip list.
 
 Each of these directories is structured as:
 

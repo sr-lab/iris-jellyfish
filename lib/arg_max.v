@@ -1,11 +1,10 @@
 From stdpp Require Import gmap.
-From iris.algebra Require Export cmra local_updates proofmode_classes.
+From iris.algebra Require Export local_updates proofmode_classes.
 
-
-Local Open Scope Z.
 
 Section arg_max.
   Context `{Countable A}.
+  Local Open Scope Z.
 
   Inductive argmax :=
   | prodZ : gset A → Z → argmax
@@ -82,6 +81,7 @@ Global Arguments argmax _ {_ _}.
 
 Section cmra.
   Context `{Countable A}.
+  Local Open Scope Z.
 
   Local Instance arg_max_unit_instance : Unit (argmax A) := botZ.
   Local Instance arg_max_valid_instance : Valid (argmax A) := λ _, True.
