@@ -31,20 +31,20 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     (* Public state for concurrent writes *)
     Definition mut_set (s: gset Z) (q: frac) (Γ: rw_gname) : iProp Σ := 
       own Γ.(mut_gname) (◯F{q} s).
-    Lemma mut_set_sep s q1 q2 Γ :
+    Lemma mut_set_sep (s: gset Z) (q1 q2: frac) (Γ: rw_gname) :
       mut_set s (q1 + q2) Γ -∗ mut_set s q1 Γ ∗ mut_set s q2 Γ.
     Proof. iIntros "(Hmut1 & Hmut2)"; iFrame. Qed.
-    Lemma mut_set_join s1 s2 q1 q2 Γ :
+    Lemma mut_set_join (s1 s2: gset Z) (q1 q2: frac) (Γ: rw_gname) :
       mut_set s1 q1 Γ ∗ mut_set s2 q2 Γ -∗ mut_set (s1 ⋅ s2) (q1 + q2) Γ.
     Proof. iIntros "(Hmut1 & Hmut2)"; by iCombine "Hmut1 Hmut2" as "Hmut". Qed.
 
     (* Public state for concurrent reads *)
     Definition const_set (s: gset Z) (q: frac) (Γ: rw_gname) : iProp Σ := 
       own Γ.(agr_gname) (◯F{q} (to_agree s)).
-    Lemma const_set_sep s q1 q2 Γ :
+    Lemma const_set_sep (s: gset Z) (q1 q2: frac) (Γ: rw_gname) :
       const_set s (q1 + q2) Γ -∗ const_set s q1 Γ ∗ const_set s q2 Γ.
     Proof. iIntros "(Hmut1 & Hmut2)"; iFrame. Qed.
-    Lemma const_set_join s1 s2 q1 q2 Γ :
+    Lemma const_set_join (s1 s2: gset Z) (q1 q2: frac) (Γ: rw_gname) :
       const_set s1 q1 Γ ∗ const_set s2 q2 Γ -∗ const_set (s1 ⋅ s2) (q1 + q2) Γ.
     Proof. 
       iIntros "(Hmut1 & Hmut2)"; iCombine "Hmut1 Hmut2" as "Hmut". 
@@ -62,8 +62,8 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
         own Γ.(agr_gname) (●F (to_agree s))
         ∗
         (own Γ.(mut_gname) (◯F s) ∨ own Γ.(agr_gname) (◯F (to_agree s))).
-    Lemma rw_inv_alloc_mut s Γs:
-      set s Γs ={⊤}=∗ ∃ Γ, inv rw_lazyN (rw_inv Γ Γs) ∗ mut_set s 1 Γ.
+    Lemma rw_inv_alloc_mut (s: gset Z) (Γs: set_gname) :
+      set s Γs ={⊤}=∗ ∃ (Γ: rw_gname), inv rw_lazyN (rw_inv Γ Γs) ∗ mut_set s 1 Γ.
     Proof.
       iIntros "Hset".
       iMod (own_alloc (●F s ⋅ ◯F s)) as (γmut) "[Hmut● Hmut◯]"; 
@@ -76,8 +76,8 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       { iNext; iExists s; iFrame. }
       iModIntro; iExists Γ; iFrame "# ∗".
     Qed.
-    Lemma rw_inv_alloc_const s Γs:
-      set s Γs ={⊤}=∗ ∃ Γ, inv rw_lazyN (rw_inv Γ Γs) ∗ const_set s 1 Γ.
+    Lemma rw_inv_alloc_const (s: gset Z) (Γs: set_gname) :
+      set s Γs ={⊤}=∗ ∃ (Γ: rw_gname), inv rw_lazyN (rw_inv Γ Γs) ∗ const_set s 1 Γ.
     Proof.
       iIntros "Hset".
       iMod (own_alloc (●F s ⋅ ◯F s)) as (γmut) "[Hmut● Hmut◯]"; 
@@ -92,7 +92,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Qed.
 
     (* Helper lemmas for switching between concurrent writes and concurrent reads *)
-    Lemma mut_to_const s Γ Γs :
+    Lemma mut_to_const (s: gset Z) (Γ: rw_gname) (Γs: set_gname) :
       inv rw_lazyN (rw_inv Γ Γs) -∗ mut_set s 1 Γ ={⊤}=∗ const_set s 1 Γ.
     Proof.
       rewrite /mut_set/const_set; iIntros "#Hinv Hmut◯".
@@ -103,7 +103,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. iSplitR "Hagr◯"; last (iModIntro; iFrame).
       iNext; iExists s; iFrame.
     Qed.
-    Lemma const_to_mut s Γ Γs :
+    Lemma const_to_mut (s: gset Z) (Γ: rw_gname) (Γs: set_gname) :
       inv rw_lazyN (rw_inv Γ Γs) -∗ const_set s 1 Γ ={⊤}=∗ mut_set s 1 Γ.
     Proof.
       rewrite /mut_set/const_set; iIntros "#Hinv Hagr◯".

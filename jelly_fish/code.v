@@ -1,8 +1,6 @@
 From iris.heap_lang Require Export notation spin_lock.
 
 
-Local Open Scope Z.
-
 Section node_rep.
   Definition node_rep : Type := Z * loc * loc * loc.
   Definition dummy_null : loc := {|loc_car := 0|}.
@@ -31,15 +29,18 @@ Section node_rep.
 End node_rep.
 
 Section val_rep.
+  Local Open Scope Z.
   Definition val_rep : Type := Z * Z * loc.
   Definition dummy_val : val_rep := (0, 0, dummy_null).
 
   Definition val_v (v: val_rep) : Z := v.1.1.
   Definition val_t (v: val_rep) : Z := v.1.2.
+  Definition val_vt (v: val_rep) : Z * Z := v.1.
   Definition val_p (v: val_rep) : loc := v.2.
 
   Definition valV : val := λ: "l", Fst (Fst "l").
   Definition valT : val := λ: "l", Snd (Fst "l").
+  Definition valVT : val := λ: "l", Fst "l".
   Definition valP : val := λ: "l", Snd "l".
 
   Definition rep_to_val (v: val_rep) : val := 
@@ -58,6 +59,7 @@ Section val_rep.
 End val_rep.
 
 Module Type SKIP_LIST_PARAMS.
+  Local Open Scope Z.
   Parameter INT_MIN : Z.
   Parameter INT_MAX : Z.
   Parameter MAX_HEIGHT : Z.
@@ -100,19 +102,18 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
           else release "lock";;
                "find" "succ" "k" "lvl".
 
-  Definition findAll : val := 
-    rec: "find" "pred" "k" "lvl" "h" := 
+  Definition findAll : val :=
+    rec: "find" "pred" "k" "lvl" :=
       let: "pair" := find "pred" "k" "lvl" in
       let: "pred" := Fst "pair" in
-        if: "lvl" = "h" then "pair"
-        else "find" "pred" "k" ("lvl" - #1) "h".
+      let: "succ" := Snd "pair" in
+        if: "k" = nodeKey "succ" 
+        then let: "val" := !(nodeVal "succ") in SOME (valVT "val")
+        else if: "lvl" = #0 then NONEV
+             else "find" "pred" "k" ("lvl" - #1).
 
   Definition get : val :=
-    λ: "p" "k", 
-      let: "pair" := findAll !"p" "k" #MAX_HEIGHT #0 in
-      let: "succ" := Snd "pair" in
-        if: "k" ≠ nodeKey "succ" then NONEV
-        else let: "val" := !(nodeVal "succ") in SOME (valV "val", valT "val").
+    λ: "p" "k", findAll !"p" "k" #MAX_HEIGHT.
 
   Definition link : val := 
     λ: "pred" "lvl" "n",
@@ -159,6 +160,13 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
                release "lock";;
                SOME "n".
 
+  Definition findLevel : val := 
+    rec: "find" "pred" "k" "lvl" "h" := 
+      let: "pair" := find "pred" "k" "lvl" in
+      let: "pred" := Fst "pair" in
+        if: "lvl" = "h" then "pair"
+        else "find" "pred" "k" ("lvl" - #1) "h".
+
   Definition insertAll : val := 
     rec: "insert" "curr" "k" "v" "t" "h" "lvl" := 
       if: "lvl" = #0 then tryInsert "curr" "k" "v" "t" "h"
@@ -173,7 +181,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition putH : val := 
     λ: "p" "k" "v" "t" "h",
-      let: "pair" := findAll !"p" "k" #MAX_HEIGHT "h" in
+      let: "pair" := findLevel !"p" "k" #MAX_HEIGHT "h" in
       let: "pred" := Fst "pair" in
         insertAll "pred" "k" "v" "t" "h" "h".
 

@@ -18,14 +18,14 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
     
     Theorem find_spec (k: Z) (head curr: node_rep) (Γi: inv_gname) (Γs: set_gname) :
       node_key curr < k < INT_MAX →
-      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
       (⌜ curr = head ⌝ ∨ own Γi.(auth_gname) (◯ {[curr]})) -∗
+      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
       <<< ∀∀ (s: gset Z), own Γs.(excl_gname) (◯E s) >>>
         find (rep_to_node curr) #k @ ↑(lazyN N)
       <<< ∃∃ pred succ,
         own Γs.(excl_gname) (◯E s)
         ∗
-        ⌜ k ∈ s ↔ node_key succ = k ⌝
+        ⌜ k = node_key succ ↔ k ∈ s ⌝
         ∗
         (⌜ pred = head ⌝ ∨ own Γi.(auth_gname) (◯ {[pred]}))
         ∗
@@ -36,7 +36,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
         ∃ (γl: gname), is_lock γl (node_lock pred) (in_lock (node_next pred)),
       RET ((rep_to_node pred), (rep_to_node succ)) >>>.
     Proof.
-      iIntros "%Hk #Hinv Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iIntros "%Hk Hcurr #Hinv %Φ"; iRevert (curr Hk) "Hcurr".
       iLöb as "IH"; iIntros "%curr %Hk #Hcurr AU".
       wp_lam. wp_let. wp_lam. wp_pures.
 
@@ -48,7 +48,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
       iDestruct "Hlocks" as "(Hlock & Hlocks)"; iDestruct "Hnexts" as "(Hnext & Hnexts)".
       iDestruct "Hlock" as (γl) "#His_lock"; iDestruct "Hnext" as (succ) ">(Hnext & #Hsucc & Hkeys)".
 
-      destruct (decide(k ≤ node_key succ)) as [|Hcase].
+      destruct (decide (k ≤ node_key succ)) as [|Hcase].
       + iMod "AU" as (?) "[Hexcl◯ [_ Hclose]]".
         iDestruct (own_valid_2 with "Hexcl● Hexcl◯") as %<-%excl_auth_agree_L.
         iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
@@ -67,10 +67,10 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
         {
           iFrame "# ∗"; iPureIntro.
           split; last lia; split.
-          + intros Hin; destruct (decide (node_key succ = k)); first done.
-            exfalso. rewrite zrange_disj in Hdisj; apply (Hdisj k); first lia; done.
-          + intros <-; destruct Hsucc as [->|Hsucc]; last set_solver.
+          + intros ->; destruct Hsucc as [->|Hsucc]; last set_solver.
             exfalso. rewrite /node_key/= in Hk; lia.
+          + intros Hin. destruct (decide (node_key succ = k)); first done.
+            exfalso. by apply (Hdisj k); last (rewrite zrange_spec; lia).
         }
 
         iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".
@@ -96,16 +96,16 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
         iApply ("IH" with "[%] [$] AU"); lia.
     Qed.
 
-    Theorem find_lock_spec (k: Z) (head curr: node_rep) (Γi: inv_gname) (Γs: set_gname) :
+    Theorem findLock_spec (k: Z) (head curr: node_rep) (Γi: inv_gname) (Γs: set_gname) :
       node_key curr < k < INT_MAX →
-      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
       (⌜ curr = head ⌝ ∨ own Γi.(auth_gname) (◯ {[curr]})) -∗
+      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
       <<< ∀∀ (s: gset Z), own Γs.(excl_gname) (◯E s) >>>
         findLock (rep_to_node curr) #k @ ↑(lazyN N)
       <<< ∃∃ pred succ,
         own Γs.(excl_gname) (◯E s)
         ∗
-        ⌜ k ∈ s ↔ node_key succ = k ⌝
+        ⌜ k = node_key succ ↔ k ∈ s ⌝
         ∗
         (⌜ pred = head ⌝ ∨ own Γi.(auth_gname) (◯ {[pred]}))
         ∗
@@ -120,11 +120,11 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
                       locked γl,
       RET ((rep_to_node pred), (rep_to_node succ)) >>>.
     Proof.
-      iIntros "%Hk #Hinv Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iIntros "%Hk Hcurr #Hinv %Φ"; iRevert (curr Hk) "Hcurr".
       iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
       wp_lam. wp_let.
       
-      awp_apply (find_spec with "Hinv Hcurr"); first done.
+      awp_apply (find_spec with "Hcurr Hinv"); first done.
       iApply (aacc_aupd with "AU"); first done.
       iIntros (s) "Hexcl◯"; iAaccIntro with "Hexcl◯".
       { do 2 (iIntros "?"; iModIntro; iFrame). }
@@ -150,7 +150,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
       iDestruct "Hnext" as (?) ">(Hnext & #Hsucc & Hkeys)".
       iDestruct (mapsto_agree with "Hnext Hnext'") as %->%rep_to_node_inj.
 
-      destruct (decide(k ≤ node_key succ)) as [|Hcase].
+      destruct (decide (k ≤ node_key succ)) as [|Hcase].
       + iMod "AU" as (?) "[Hexcl◯ [_ Hclose]]".
         iDestruct (own_valid_2 with "Hexcl● Hexcl◯") as %<-%excl_auth_agree_L.
         iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
@@ -168,10 +168,10 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
           iFrame "# ∗". iSplit; first last.
           { iSplit; first (iPureIntro; lia). iExists γl; iFrame "# ∗". }
           iPureIntro; split.
-          - intros Hin; destruct (decide (node_key succ = k)); first done.
-            exfalso. rewrite zrange_disj in Hdisj; apply (Hdisj k); first lia; done.
-          - intros <-; destruct Hsucc as [->|Hsucc]; last set_solver.
+          + intros ->; destruct Hsucc as [->|Hsucc]; last set_solver.
             exfalso. rewrite /node_key/= in Hk; lia.
+          + intros Hin; destruct (decide (node_key succ = k)); first done.
+            exfalso. rewrite zrange_disj in Hdisj; apply (Hdisj k); first lia; done.
         }
 
         iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".

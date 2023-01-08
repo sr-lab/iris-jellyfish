@@ -22,8 +22,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         new #()
       {{{ p Γs, RET #p; set_inv N p Γs ∗ set ∅ Γs }}}.
     Proof.
-      iIntros (Φ) "_ HΦ".
-      wp_lam. 
+      iIntros (Φ) "_ HΦ"; wp_lam. 
 
       wp_alloc t as "(Ht & Ht')"; wp_let.
       wp_apply (newlock_spec (in_lock t) with "[Ht']").
@@ -39,7 +38,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         first by apply auth_both_valid.
       iMod (own_alloc (GSet ∅ ⋅ ZRange INT_MIN INT_MAX))
         as (γdisj) "[Hdisj Hkeys]";
-        first by (pose proof HMIN_MAX; rewrite ZRange_disj).
+        first by (pose HMIN_MAX; rewrite ZRange_disj).
       iMod (own_alloc (●E ∅ ⋅ ◯E ∅))
         as (γexcl) "[Hexcl Hexcl']";
         first by apply auth_both_valid.
@@ -69,15 +68,15 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       iDestruct "H" as (head Γi) "(Hp & %Hmin & #Hinv)".
       wp_lam. wp_let. wp_load.
 
-      awp_apply (find_spec with "Hinv"); first lia; first by iLeft.
+      awp_apply (find_spec with "[] Hinv"); first lia; first by iLeft.
       iApply (aacc_aupd with "AU"); first done.
       iIntros (s) "Hexcl◯"; iAaccIntro with "Hexcl◯".
       { do 2 (iIntros "?"; iModIntro; iFrame). }
       iIntros (pred succ) "(Hexcl' & %Hkin & _)".
 
       iModIntro; iRight; iFrame.
-      iExists (bool_decide(node_key succ = k)).
-      case_bool_decide; (rewrite Hkin; iSplit; first done). 
+      iExists (bool_decide (k = node_key succ)).
+      case_bool_decide; (rewrite -Hkin; iSplit; first done). 
       all: iIntros "HΦ"; iModIntro; wp_pures; wp_lam; wp_pures.
       all: case_bool_decide; try done; try congruence.
     Qed.
@@ -93,14 +92,14 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       iDestruct "H" as (head Γi) "(Hp & %Hmin & #Hinv)".
       wp_lam. wp_let. wp_load.
 
-      awp_apply (find_lock_spec with "Hinv"); first lia; first by iLeft.
+      awp_apply (findLock_spec with "[] Hinv"); first lia; first by iLeft.
       iApply (aacc_aupd with "AU"); first done.
       iIntros (s) "Hexcl◯"; iAaccIntro with "Hexcl◯".
       { do 2 (iIntros "?"; iModIntro; iFrame). }
       iIntros (pred succ) "(Hexcl◯ & %Hkin & #Hpred & #Hsucc & %Hk & His_lock)".
       iDestruct "His_lock" as (γl) "(#His_lock & Hnext' & Hlocked)".
 
-      destruct (decide(k = node_key succ)) as [->|Hneq].
+      destruct (decide (k = node_key succ)) as [->|Hneq].
       + replace (s ∪ {[node_key succ]}) with s by set_solver.
         iDestruct "Hsucc" as "[->|Hsucc]"; first (rewrite /node_key/tail/= in Hrange; lia).
         iModIntro; iRight; iFrame.

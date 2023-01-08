@@ -1,4 +1,3 @@
-From iris.algebra Require Import gset.
 From iris.program_logic Require Import atomic.
 From iris.heap_lang Require Import par proofmode.
 
@@ -63,7 +62,7 @@ Section Proofs.
     
     iIntros (? ?) "Hmut"; iDestruct (mut_set_join with "Hmut") as "Hmut".
     iNext; wp_pure; wp_pure.
-    rewrite gset_op Qp.div_2; iDestruct (mut_to_const with "Hinv Hmut") as ">Hconst".
+    rewrite Qp.div_2; iDestruct (mut_to_const with "Hinv Hmut") as ">Hconst".
     rewrite -(Qp.div_2 1); iDestruct (const_set_sep with "Hconst") as "(Hconst1 & Hconst2)".
     wp_smart_apply (wp_par (λ v, ⌜ v = #true ⌝%I) (λ v, ⌜ v = #true ⌝%I) with "[Hconst1] [Hconst2]").
     {

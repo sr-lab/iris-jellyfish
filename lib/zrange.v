@@ -35,7 +35,7 @@ Section zrange.
   Proof. rewrite /zrange zrange_gap_spec; lia. Qed.
   Lemma zrange_disj S l r:
     S ## zrange l r ↔ ∀ m, l < m < r → m ∉ S.
-  Proof. pose proof zrange_spec; set_solver. Qed.
+  Proof. pose zrange_spec; set_solver. Qed.
   Lemma zrange_disj_l l r:
     {[l]} ## zrange l r.
   Proof. intros ?; rewrite zrange_spec elem_of_singleton; lia. Qed.
@@ -45,6 +45,18 @@ Section zrange.
   Lemma zrange_disj_m m l r:
     zrange l m ## zrange m r.
   Proof. intros ?; do 2 rewrite zrange_spec; lia. Qed.
+  Lemma zrange_empty_l z:
+    zrange (z - 1) z = ∅.
+  Proof.
+    rewrite set_eq; intros m; split; last done.
+    rewrite zrange_spec; intros; lia.
+  Qed.
+  Lemma zrange_empty_r z:
+    zrange z (z + 1) = ∅.
+  Proof.
+    rewrite set_eq; intros m; split; last done.
+    rewrite zrange_spec; intros; lia.
+  Qed.
   Lemma zrange_split m l r:
     l < m < r → zrange l r = zrange l m ∪ {[m]} ∪ zrange m r.
   Proof.
@@ -56,13 +68,25 @@ Section zrange.
       - apply elem_of_union_r, zrange_spec; lia.
     + rewrite ?elem_of_union elem_of_singleton ?zrange_spec; intros [[Hlt|Heq]|Hgt]; lia.
   Qed.
+  Lemma zrange_split_l l r:
+    l < r → zrange (l - 1) r = {[l]} ∪ zrange l r.
+  Proof.
+    intros Hlt. rewrite (zrange_split l); last lia.
+    rewrite zrange_empty_l left_id_L //.
+  Qed.
+  Lemma zrange_split_r l r:
+    l < r → zrange l (r + 1) = zrange l r ∪ {[r]}.
+  Proof.
+    intros Hlt. rewrite (zrange_split r); last lia.
+    rewrite zrange_empty_r right_id_L //.
+  Qed.
 End zrange.
 
 Section ZRange.
   Local Open Scope Z.
 
   Definition ZRange (l r: Z) : gset_disj Z := 
-    if decide(l < r) then GSet (zrange l r) else GSetBot.
+    if decide (l < r) then GSet (zrange l r) else GSetBot.
   Lemma ZRange_disj S l r:
     ✓ (GSet S ⋅ ZRange l r) ↔ S ## zrange l r ∧ l < r.
   Proof. rewrite /ZRange; case_decide; first set_solver; by split; last lia. Qed.

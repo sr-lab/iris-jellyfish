@@ -74,8 +74,8 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Section proofs.
     Context `{!lazyG Σ}.
 
-    Lemma singleton_frag_in S n s Γ :
-      own Γ (● S) -∗ ⌜ n = s ⌝ ∨ own Γ (◯ {[n]}) -∗ ⌜ n ∈ {[s]} ∪ S ⌝.
+    Lemma singleton_frag_in (S: gset node_rep) (n s: node_rep) (γ: gname) :
+      own γ (● S) -∗ ⌜ n = s ⌝ ∨ own γ (◯ {[n]}) -∗ ⌜ n ∈ {[s]} ∪ S ⌝.
     Proof.
       iIntros "Hauth Hnode".
       iDestruct "Hnode" as "[->|Hnode]"; first (iPureIntro; set_solver).

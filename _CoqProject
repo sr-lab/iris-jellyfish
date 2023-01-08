@@ -12,3 +12,7 @@ lazy_list/client/rw_spec.v
 lazy_list/client/rw_example.v
 
 jelly_fish/code.v
+jelly_fish/inv.v
+jelly_fish/spec/new.v
+jelly_fish/spec/find.v
+jelly_fish/spec/get.v
