@@ -76,7 +76,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Definition is_map (p: loc) (Γ: rw_gname) : iProp Σ :=
       ∃ (mΓ: gmap Z lazy_gname), inv rw_mapN (map_inv p mΓ Γ).
     Lemma rw_inv_alloc_mut (p: loc) (mΓ: gmap Z lazy_gname) :
-      vc_map p ∅ mΓ ={⊤}=∗
+      vc_map p ∅ mΓ ={↑rw_mapN}=∗
         ∃ (Γ: rw_gname), is_map p Γ ∗ mut_map ∅ 1 Γ.
     Proof.
       iIntros "Hmap".
@@ -85,13 +85,13 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree ∅) ⋅ ◯F (to_agree ∅)))
         as (γagr) "[Hagr● Hagr◯]"; first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_mapN ⊤ (map_inv p mΓ Γ)
+      iMod (inv_alloc rw_mapN (↑rw_mapN) (map_inv p mΓ Γ)
         with "[Hmap Hmut● Hagr● Hagr◯]") as "#Hinv".
       { iNext; iExists ∅; rewrite fmap_empty; iFrame. }
       iModIntro; iExists Γ; iFrame "# ∗"; by iExists mΓ.
     Qed.
     Lemma rw_inv_alloc_const (p: loc) (mΓ: gmap Z lazy_gname) :
-      vc_map p ∅ mΓ ={⊤}=∗
+      vc_map p ∅ mΓ ={↑rw_mapN}=∗
         ∃ (Γ: rw_gname), is_map p Γ ∗ const_map ∅ 1 Γ.
     Proof.
       iIntros "Hmap".
@@ -100,7 +100,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree ∅) ⋅ ◯F (to_agree ∅)))
         as (γagr) "[Hagr● Hagr◯]"; first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_mapN ⊤ (map_inv p mΓ Γ)
+      iMod (inv_alloc rw_mapN (↑rw_mapN) (map_inv p mΓ Γ)
         with "[Hmap Hmut● Hagr● Hmut◯]") as "#Hinv".
       { iNext; iExists ∅; rewrite fmap_empty; iFrame. }
       iModIntro; iExists Γ; iFrame "# ∗"; by iExists mΓ.
@@ -108,7 +108,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     (* Helper lemmas for switching between concurrent writes and concurrent reads *)
     Lemma mut_to_const (p: loc) (m: gmap Z (argmax Z)) (Γ: rw_gname) :
-      is_map p Γ -∗ mut_map m 1 Γ ={⊤}=∗ const_map m 1 Γ.
+      is_map p Γ -∗ mut_map m 1 Γ ={↑rw_mapN}=∗ const_map m 1 Γ.
     Proof.
       rewrite /mut_map/const_map; iIntros "[%mΓ #Hinv] Hmut◯".
       iInv "Hinv" as (m') ">(Hmap & Hmut● & Hagr● & Hagr◯)".
@@ -119,7 +119,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iNext; iExists m'; iFrame.
     Qed.
     Lemma const_to_mut (p: loc) (m: gmap Z (argmax Z)) (Γ: rw_gname) :
-      is_map p Γ -∗ const_map m 1 Γ ={⊤}=∗ mut_map m 1 Γ.
+      is_map p Γ -∗ const_map m 1 Γ ={↑rw_mapN}=∗ mut_map m 1 Γ.
     Proof.
       rewrite /mut_map/const_map; iIntros "[%mΓ #Hinv] Hagr◯".
       iInv "Hinv" as (m') ">(Hmap & Hmut● & Hagr● & Hmut◯)".
@@ -147,7 +147,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_map N p Γ -∗
       <<< ∀∀ m q, const_map m q Γ >>>
-        get #p #k @ ↑N
+        get #p #k @ ↑(rw_mapN N)
       <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
       {{{ True }}}.
     Proof.
@@ -184,7 +184,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       (k v t: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_map N p Γ -∗
       <<< ∀∀ m q, mut_map m q Γ >>>
-        put #p #k #v #t @ ↑N
+        put #p #k #v #t @ ↑(rw_mapN N)
       <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
       {{{ True }}}.
     Proof.

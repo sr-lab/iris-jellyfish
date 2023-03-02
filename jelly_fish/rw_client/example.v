@@ -37,12 +37,10 @@ Section Proofs.
       skip_list_client
     {{{ (v: Z), RET (SOMEV (#v, #2), SOMEV (#5, #1)); ⌜ v = 3 ∨ v = 4 ⌝ }}}.
   Proof.
-    iIntros (Φ) "_ HΦ".
-
-    unfold skip_list_client.
-    wp_apply new_spec; first done.
-    iIntros (p mΓ) "Hmap".
-    iDestruct (rw_inv_alloc_mut exampleN with "Hmap") as ">Hinv".
+    iIntros (Φ) "_ HΦ"; unfold skip_list_client.
+    wp_apply new_spec; first done. iIntros (p mΓ) "Hmap".
+    iDestruct (rw_inv_alloc_mut exampleN with "Hmap") as "Hinv".
+    iMod (fupd_mask_mono with "Hinv") as "Hinv"; first solve_ndisj.
     iDestruct "Hinv" as (Γ) "[#Hinv Hmut]".
 
     wp_let.
@@ -84,7 +82,8 @@ Section Proofs.
     iDestruct (mut_map_join with "Hmut") as "Hmut".
 
     iNext; wp_pure; wp_pure.
-    rewrite Qp.div_2; iDestruct (mut_to_const with "Hinv Hmut") as ">Hconst".
+    rewrite Qp.div_2; iDestruct (mut_to_const with "Hinv Hmut") as "Hconst".
+    iMod (fupd_mask_mono with "Hconst") as "Hconst"; first solve_ndisj.
     rewrite -(Qp.div_2 1); iDestruct (const_map_sep with "Hconst") as "[Hconst1 Hconst2]".
     wp_smart_apply (wp_par 
       (λ v, ⌜ v = SOMEV (#3, #2) ∨ v = SOMEV (#4, #2) ⌝%I) 
