@@ -28,6 +28,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
   Section invariant.
     Context `{!heapGS Σ, !rwG Σ} (N: namespace).
+    Local Open Scope Z.
 
     Definition rw_mapN := N .@ "rw_map".
 
@@ -55,7 +56,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Fixpoint vs_to_set (vl: list tval) (t: Z) : gset Z :=
       match vl with
       | nil => ∅
-      | vt :: vl => if (decide (Z.lt vt.2 t)) then ∅
+      | vt :: vl => if (decide (vt.2 < t)) then ∅
                    else {[vt.1]} ∪ vs_to_set vl t
       end.
     Definition f_vs (vt: tval * list tval) : argmax Z := 
