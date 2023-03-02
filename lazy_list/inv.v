@@ -1,25 +1,20 @@
-From iris.algebra Require Import gset excl_auth.
-From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import proofmode.
-
+From SkipList.atomic Require Import proofmode lock.
 From SkipList.lib Require Import zrange.
 From SkipList.lazy_list Require Import code.
+
+From iris.algebra Require Import auth gset.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation.
 
 
 Class lazyG Σ := LazyG { 
   lazy_authG :> inG Σ (authR (gsetR node_rep));
-  lazy_disjG :> inG Σ (gset_disjR Z);
-  lazy_exclG :> inG Σ (excl_authR (gset Z));
-  lazy_lockG :> lockG Σ
+  lazy_disjG :> inG Σ (gset_disjR Z)
 }.
 
-Record inv_gname := mk_inv_gname {
+Record lazy_gname := mk_lazy_gname {
   auth_gname: gname;
   disj_gname: gname
-}.
-
-Record set_gname := mk_set_gname {
-  excl_gname: gname
 }.
 
 Module LazyListInv (Params: LAZY_LIST_PARAMS).
@@ -28,60 +23,122 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
   Export LazyList.
 
   Section invariant.
-    Context `{!heapGS Σ, !lazyG Σ} (N: namespace).
+    Context `{!heapGS Σ, !lazyG Σ}.
 
-    Definition lazyN := N .@ "lazy".
-
-    Definition in_lock (l: loc) : iProp Σ := 
-      ∃ (succ: node_rep), l ↦{#1 / 2} rep_to_node succ.
-
-    Definition has_lock (node: node_rep) : iProp Σ := 
-      ∃ (γl: gname), is_lock γl (node_lock node) (in_lock (node_next node)).
-
-    Definition has_next (Γi: inv_gname) (pred: node_rep) : iProp Σ :=
+    (* Successor chain *)
+    Definition has_next (Γ: lazy_gname) (pred: node_rep) : iProp Σ :=
       ∃ (succ: node_rep), 
         node_next pred ↦{#1 / 2} rep_to_node succ
         ∗
-        (⌜ succ = tail ⌝ ∨ own Γi.(auth_gname) (◯ {[succ]}))
+        (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
         ∗
-        own Γi.(disj_gname) (ZRange (node_key pred) (node_key succ)).
+        own Γ.(disj_gname) (ZRange (node_key pred) (node_key succ)).
 
-    Definition lazy_list_inv (head: node_rep) (Γi: inv_gname) (Γs: set_gname) : iProp Σ :=
-      ∃ (S: gset node_rep),
-        own Γi.(auth_gname) (● S)
-        ∗
-        own Γi.(disj_gname) (GSet (set_map node_key S))
-        ∗
-        ([∗ set] n ∈ {[head]} ∪ S, has_lock n)
-        ∗
-        ([∗ set] n ∈ {[head]} ∪ S, has_next Γi n)
-        ∗
-        own Γs.(excl_gname) (●E (set_map node_key S)).
+    (* Lock resources *)
+    Definition in_lock (pred: node_rep) : iProp Σ := 
+      ∃ (succ: node_rep), node_next pred ↦{#1 / 2} rep_to_node succ.
+    Definition has_lock (pred: node_rep) : iProp Σ := 
+      is_lock #(node_lock pred) (in_lock pred).
 
-    Definition set_inv (p: loc) (Γs: set_gname) : iProp Σ :=
-      ∃ (head: node_rep) (Γi: inv_gname),
+    (* Lazy list resources *)
+    Definition lazy_list (head: node_rep) (S: gset node_rep) (Γ: lazy_gname) : iProp Σ :=
+      own Γ.(auth_gname) (● S)
+      ∗
+      own Γ.(disj_gname) (GSet (set_map node_key S))
+      ∗
+      ([∗ set] n ∈ {[head]} ∪ S, has_next Γ n)
+      ∗
+      ([∗ set] n ∈ {[head]} ∪ S, has_lock n).
+
+    (* Abstract representation predicate *)
+    Definition set (p: loc) (s: gset Z) (Γ: lazy_gname) : iProp Σ :=
+      ∃ (head: node_rep) (S: gset node_rep),
         p ↦□ rep_to_node head
         ∗
         ⌜ node_key head = INT_MIN ⌝
         ∗
-        inv lazyN (lazy_list_inv head Γi Γs).
-
-    Definition set (s: gset Z) (Γs: set_gname) : iProp Σ := 
-      own Γs.(excl_gname) (◯E s).
+        ⌜ s = set_map node_key S ⌝
+        ∗
+        lazy_list head S Γ.
 
   End invariant.
 
   Section proofs.
-    Context `{!lazyG Σ}.
+    Context `{!heapGS Σ, !lazyG Σ}.
 
-    Lemma singleton_frag_in (S: gset node_rep) (n s: node_rep) (γ: gname) :
-      own γ (● S) -∗ ⌜ n = s ⌝ ∨ own γ (◯ {[n]}) -∗ ⌜ n ∈ {[s]} ∪ S ⌝.
+    Lemma singleton_frag_in (h n s: node_rep) (S: gset node_rep) (Γ: lazy_gname) :
+      ⌜ n = s ⌝ ∨ own Γ.(auth_gname) (◯ {[n]}) -∗ lazy_list h S Γ -∗ ⌜ n ∈ {[s]} ∪ S ⌝.
     Proof.
-      iIntros "Hauth Hnode".
+      iIntros "Hnode Hlazy".
+      iDestruct "Hlazy" as "(Hauth & Hdisj & Hnexts & Hlocks)".
       iDestruct "Hnode" as "[->|Hnode]"; first (iPureIntro; set_solver).
       iDestruct (own_valid_2 with "Hauth Hnode") 
         as %[?%gset_included]%auth_both_valid_discrete.
       iPureIntro; set_solver.
     Qed.
+
+    Lemma node_has_next (head pred: node_rep) (S: gset node_rep) (Γ: lazy_gname) :
+      ⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}) -∗
+      lazy_list head S Γ -∗
+        ∃ (succ: node_rep), 
+          node_next pred ↦{#1 / 2} rep_to_node succ
+          ∗
+          (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
+          ∗
+          ⌜ set_map node_key S ## zrange (node_key pred) (node_key succ) ⌝
+          ∗
+          (node_next pred ↦{#1 / 2} rep_to_node succ -∗ lazy_list head S Γ).
+    Proof.
+      iIntros "#Hpred Hlazy".
+      iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
+      iDestruct "Hlazy" as "(Hauth & Hdisj & Hnexts & Hlocks)".
+      rewrite (big_sepS_delete (has_next Γ) _ pred) //.
+      iDestruct "Hnexts" as "(Hnext & Hnexts)".
+      iDestruct "Hnext" as (succ) "(Hnext & #Hsucc & Hkeys)".
+      iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
+
+      iExists succ; iFrame "# ∗"; iSplit; first done. iIntros "Hnext". 
+      iAssert (has_next Γ pred) with "[Hnext Hkeys]" as "Hnext".
+      { iExists succ; by iFrame. }
+      iCombine "Hnext Hnexts" as "Hnexts"; rewrite -big_sepS_delete //.
+    Qed.
+
+    Lemma lazy_node_has_lock (head node: node_rep) (S: gset node_rep) (Γ: lazy_gname) :
+      ⌜ node = head ⌝ ∨ own Γ.(auth_gname) (◯ {[node]}) -∗
+      lazy_list head S Γ -∗
+        has_lock node ∗ (has_lock node -∗ lazy_list head S Γ).
+    Proof.
+      iIntros "#Hnode Hlazy".
+      iDestruct (singleton_frag_in with "Hnode Hlazy") as %Hnode.
+      iDestruct "Hlazy" as "(Hauth & Hdisj & Hnexts & Hlocks)".
+      rewrite (big_sepS_delete has_lock _ node) //.
+      iDestruct "Hlocks" as "(Hlock & Hlocks)".
+      iFrame; iIntros "Hlock".
+      iCombine "Hlock Hlocks" as "Hlocks"; rewrite -big_sepS_delete //.
+    Qed.
+
+    Lemma set_node_has_lock (p: loc) (head node: node_rep) (s: gset Z) (Γ: lazy_gname) :
+      p ↦□ rep_to_node head -∗
+      ⌜ node = head ⌝ ∨ own Γ.(auth_gname) (◯ {[node]}) -∗
+      set p s Γ -∗
+        has_lock node ∗ (has_lock node -∗ set p s Γ).
+    Proof.
+      iIntros "Hhead #Hnode Hset".
+      iDestruct "Hset" as (h' S) "(H & Hmin & Hkeys & Hlazy)".
+      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (lazy_node_has_lock with "Hnode Hlazy") as "[Hlock Hlazy]".
+      iFrame "Hlock". iIntros. iExists head, S. iFrame. by iApply "Hlazy".
+    Qed.
+
+    Lemma set_has_lazy (p: loc) (head: node_rep) (s: gset Z) (Γ: lazy_gname) :
+      p ↦□ rep_to_node head -∗
+      set p s Γ -∗
+        ∃ (S : gset node_rep), 
+          lazy_list head S Γ ∗ (lazy_list head S Γ -∗ set p s Γ).
+    Proof.
+      iIntros "Hhead Hset". iDestruct "Hset" as (Γl S) "(H & ? & ? & Hlazy)".
+      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iExists S. iFrame "Hlazy". iIntros "Hlazy". iExists head, S. iFrame.
+    Qed. 
   End proofs.
 End LazyListInv.

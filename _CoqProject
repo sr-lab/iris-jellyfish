@@ -4,15 +4,24 @@ lib/arg_max.v
 lib/gmap_extra.v
 lib/zrange.v
 
+atomic/update.v
+atomic/weakestpre.v
+atomic/proofmode.v
+atomic/lock.v
+
 lazy_list/code.v
 lazy_list/inv.v
 lazy_list/spec/find.v
 lazy_list/spec/spec.v
-lazy_list/client/rw_spec.v
-lazy_list/client/rw_example.v
+lazy_list/rw_client/spec.v
+lazy_list/rw_client/example.v
 
 jelly_fish/code.v
 jelly_fish/inv.v
 jelly_fish/spec/new.v
 jelly_fish/spec/find.v
 jelly_fish/spec/get.v
+jelly_fish/spec/insert.v
+jelly_fish/spec/put.v
+jelly_fish/rw_client/spec.v
+jelly_fish/rw_client/example.v

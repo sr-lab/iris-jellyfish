@@ -1,10 +1,10 @@
-From iris.algebra Require Import gset frac_auth.
-From iris.base_logic.lib Require Import invariants.
-From iris.program_logic Require Import atomic.
-From iris.heap_lang Require Import proofmode.
-
+From SkipList.atomic Require Import proofmode weakestpre.
 From SkipList.lazy_list Require Import code inv.
 From SkipList.lazy_list.spec Require Import spec.
+
+From iris.algebra Require Import frac_auth gset.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation.
 
 
 Class rwG Σ := RWG { 
@@ -53,17 +53,19 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Qed.
 
     (* Invariant concealing the abstract state of the full set *)
-    Definition rw_inv (Γ: rw_gname) (Γs: set_gname) : iProp Σ :=
+    Definition set_inv (p: loc) (Γl: lazy_gname) (Γ: rw_gname) : iProp Σ :=
       ∃ (s: gset Z),
-        set s Γs
+        set p s Γl
         ∗
         own Γ.(mut_gname) (●F s)
         ∗
         own Γ.(agr_gname) (●F (to_agree s))
         ∗
         (own Γ.(mut_gname) (◯F s) ∨ own Γ.(agr_gname) (◯F (to_agree s))).
-    Lemma rw_inv_alloc_mut (s: gset Z) (Γs: set_gname) :
-      set s Γs ={⊤}=∗ ∃ (Γ: rw_gname), inv rw_lazyN (rw_inv Γ Γs) ∗ mut_set s 1 Γ.
+    Definition is_set (p: loc) (Γ: rw_gname) : iProp Σ :=
+      ∃ (Γl: lazy_gname), inv rw_lazyN (set_inv p Γl Γ).
+    Lemma rw_inv_alloc_mut (p: loc) (s: gset Z) (Γl: lazy_gname) :
+      set p s Γl ={⊤}=∗ ∃ (Γ: rw_gname), is_set p Γ ∗ mut_set s 1 Γ.
     Proof.
       iIntros "Hset".
       iMod (own_alloc (●F s ⋅ ◯F s)) as (γmut) "[Hmut● Hmut◯]"; 
@@ -71,13 +73,13 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree s) ⋅ ◯F (to_agree s))) as (γagr) "[Hagr● Hagr◯]"; 
         first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_lazyN ⊤ (rw_inv Γ Γs) 
+      iMod (inv_alloc rw_lazyN ⊤ (set_inv p Γl Γ)
         with "[Hset Hmut● Hagr● Hagr◯]") as "#Hinv".
       { iNext; iExists s; iFrame. }
-      iModIntro; iExists Γ; iFrame "# ∗".
+      iModIntro; iExists Γ; iFrame "# ∗"; by iExists Γl.
     Qed.
-    Lemma rw_inv_alloc_const (s: gset Z) (Γs: set_gname) :
-      set s Γs ={⊤}=∗ ∃ (Γ: rw_gname), inv rw_lazyN (rw_inv Γ Γs) ∗ const_set s 1 Γ.
+    Lemma rw_inv_alloc_const (p: loc) (s: gset Z) (Γl: lazy_gname) :
+      set p s Γl ={⊤}=∗ ∃ (Γ: rw_gname), is_set p Γ ∗ const_set s 1 Γ.
     Proof.
       iIntros "Hset".
       iMod (own_alloc (●F s ⋅ ◯F s)) as (γmut) "[Hmut● Hmut◯]"; 
@@ -85,17 +87,17 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree s) ⋅ ◯F (to_agree s))) as (γagr) "[Hagr● Hagr◯]"; 
         first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_lazyN ⊤ (rw_inv Γ Γs) 
+      iMod (inv_alloc rw_lazyN ⊤ (set_inv p Γl Γ)
         with "[Hset Hmut● Hmut◯ Hagr●]") as "#Hinv".
       { iNext; iExists s; iFrame. }
-      iModIntro; iExists Γ; iFrame "# ∗".
+      iModIntro; iExists Γ; iFrame "# ∗"; by iExists Γl.
     Qed.
 
     (* Helper lemmas for switching between concurrent writes and concurrent reads *)
-    Lemma mut_to_const (s: gset Z) (Γ: rw_gname) (Γs: set_gname) :
-      inv rw_lazyN (rw_inv Γ Γs) -∗ mut_set s 1 Γ ={⊤}=∗ const_set s 1 Γ.
+    Lemma mut_to_const (p: loc) (s: gset Z) (Γ: rw_gname) :
+      is_set p Γ -∗ mut_set s 1 Γ ={⊤}=∗ const_set s 1 Γ.
     Proof.
-      rewrite /mut_set/const_set; iIntros "#Hinv Hmut◯".
+      rewrite /mut_set/const_set; iIntros "[%Γl #Hinv] Hmut◯".
       iInv "Hinv" as (s') ">(Hset & Hmut● & Hagr● & Hagr◯)".
       iDestruct (own_valid_2 with "Hmut● Hmut◯") as %->%frac_auth_agree_L.
       iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
@@ -103,10 +105,10 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. iSplitR "Hagr◯"; last (iModIntro; iFrame).
       iNext; iExists s; iFrame.
     Qed.
-    Lemma const_to_mut (s: gset Z) (Γ: rw_gname) (Γs: set_gname) :
-      inv rw_lazyN (rw_inv Γ Γs) -∗ const_set s 1 Γ ={⊤}=∗ mut_set s 1 Γ.
+    Lemma const_to_mut (p: loc) (s: gset Z) (Γ: rw_gname) :
+      is_set p Γ -∗ const_set s 1 Γ ={⊤}=∗ mut_set s 1 Γ.
     Proof.
-      rewrite /mut_set/const_set; iIntros "#Hinv Hagr◯".
+      rewrite /mut_set/const_set; iIntros "[%Γl #Hinv] Hagr◯".
       iInv "Hinv" as (s') ">(Hset & Hmut● & Hagr● & Hmut◯)".
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_agree.
       replace s' with s by rewrite -to_agree_op_valid_L Heq agree_idemp //.
@@ -121,50 +123,53 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Context `{!heapGS Σ, !rwG Σ} (N: namespace).
     Local Open Scope Z.
 
-    Theorem read_spec (p: loc) (Γ: rw_gname) (Γs: set_gname)
+    Theorem read_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      inv (rw_lazyN N) (rw_inv Γ Γs) -∗
-      set_inv N p Γs -∗
+      is_set N p Γ -∗
       <<< ∀∀ (s: gset Z) (q: frac), const_set s q Γ >>>
         contains #p #k @ ↑N
-      <<< ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>.
+      <<< ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
+      {{{ True }}}.
     Proof.
-      iIntros "#Hinv #Hset_inv %Φ AU"; rewrite /const_set.
+      iIntros "[%Γl #Hinv] %Φ AU".
 
-      awp_apply (contains_spec with "Hset_inv"); first done.
+      awp_apply contains_spec; first done.
       iInv "Hinv" as (s) ">(Hset & Hmut● & Hagr● & Hmut◯)".
-      iApply (aacc_aupd with "AU"). 
-      { rewrite difference_difference_l; apply difference_mono_l, union_least; apply nclose_subseteq. }
-      iIntros (s' q) "Hagr◯"; iAaccIntro with "Hset".
-      { do 2 (iIntros "?"; iModIntro; iFrame); iNext; iExists s; iFrame. }
+      iAaccIntro with "Hset".
+      { iIntros "?"; iModIntro; iFrame; iNext; iExists s; iFrame. }
       iIntros (b) "(Hset & Hif)".
 
+      iMod "AU" as (s' q) "[Hagr◯ [_ Hclose]]".
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
-      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; rewrite Heq.
+      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; subst.
+      iMod ("Hclose" with "[$]") as "AP".
+      iMod (atomic_post_commit with "AP") as "HΦ".
 
-      iModIntro; iRight; iExists b; iFrame.
-      iIntros "?"; iModIntro; iFrame.
-      iNext; iExists s; iFrame.
+      iModIntro. iExists s. iFrame "Hset". iIntros "Hset".
+      iSplitR "HΦ"; first (iNext; iExists s; iFrame).
+      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
+      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
+      clear s; iIntros "!> [%s [Hset ?]]". iExists s.
+      iFrame "Hset". iIntros "Hset". iExists s. iFrame.
     Qed.
 
-    Theorem write_spec (p: loc) (Γ: rw_gname) (Γs: set_gname)
+    Theorem write_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      inv (rw_lazyN N) (rw_inv Γ Γs) -∗
-      set_inv N p Γs -∗
+      is_set N p Γ -∗
       <<< ∀∀ (s: gset Z) (q: frac), mut_set s q Γ >>>
         add #p #k @ ↑N
-      <<< mut_set (s ⋅ {[ k ]}) q Γ, RET #() >>>.
+      <<< mut_set (s ⋅ {[ k ]}) q Γ, RET #() >>>
+      {{{ True }}}.
     Proof.
-      iIntros "#Hinv #Hset_inv %Φ AU"; rewrite /const_set.
+      iIntros "[%Γl #Hinv] %Φ AU".
 
-      awp_apply (add_spec with "Hset_inv"); first done.
+      awp_apply add_spec; first done.
       iInv "Hinv" as (s) ">(Hset & Hmut● & Hagr● & Hagr◯)".
-      iApply (aacc_aupd with "AU"). 
-      { rewrite difference_difference_l; apply difference_mono_l, union_least; apply nclose_subseteq. }
-      iIntros (s' q) "Hmut◯"; iAaccIntro with "Hset".
-      { do 2 (iIntros "?"; iModIntro; iFrame); iNext; iExists s; iFrame. }
+      iAaccIntro with "Hset".
+      { iIntros "?"; iModIntro; iFrame; iNext; iExists s; iFrame. }
       iIntros "Hset".
 
+      iMod "AU" as (s' q) "[Hmut◯ [_ Hclose]]".
       iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
       { by apply frac_auth_update, (op_local_update_discrete _ _ {[k]}). }
       do 2 rewrite (comm _ {[k]} _) gset_op.
@@ -172,10 +177,15 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
       iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
       { by apply (frac_auth_update_1 _ _ (to_agree (s ∪ {[k]}))). }
+      iMod ("Hclose" with "[$]") as "AP".
+      iMod (atomic_post_commit with "AP") as "HΦ".
 
-      iModIntro; iRight; iFrame.
-      iIntros "?"; iModIntro; iFrame.
-      iNext; iExists (s ∪ {[k]}); iFrame.
+      iModIntro. iExists (s ∪ {[k]}). iFrame "Hset". iIntros "Hset".
+      iSplitR "HΦ"; first (iNext; iExists (s ∪ {[k]}); iFrame).
+      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
+      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
+      clear s; iIntros "!> [%s [Hset ?]]". iExists s.
+      iFrame "Hset". iIntros "Hset". iExists s. iFrame.
     Qed.
   End proofs.
 End RWSpec.

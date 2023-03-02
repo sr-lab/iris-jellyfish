@@ -1,10 +1,10 @@
-From iris.algebra Require Import gset excl_auth.
-From iris.base_logic.lib Require Import invariants.
-From iris.program_logic Require Import atomic.
-From iris.heap_lang Require Import proofmode.
-
+From SkipList.atomic Require Import proofmode lock weakestpre.
 From SkipList.lib Require Import zrange.
 From SkipList.lazy_list Require Import code inv.
+
+From iris.algebra Require Import auth gset.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation.
 
 
 Module FindSpec (Params: LAZY_LIST_PARAMS).
@@ -13,187 +13,157 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
   Export Invariant.
 
   Section proofs.
-    Context `{!heapGS Σ, !lazyG Σ} (N: namespace).
+    Context `{!heapGS Σ, !lazyG Σ}.
     Local Open Scope Z.
-    
-    Theorem find_spec (k: Z) (head curr: node_rep) (Γi: inv_gname) (Γs: set_gname) :
+
+    Theorem find_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname) :
       node_key curr < k < INT_MAX →
-      (⌜ curr = head ⌝ ∨ own Γi.(auth_gname) (◯ {[curr]})) -∗
-      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
-      <<< ∀∀ (s: gset Z), own Γs.(excl_gname) (◯E s) >>>
-        find (rep_to_node curr) #k @ ↑(lazyN N)
+      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]})) -∗
+      <<< ∀∀ (S: gset node_rep), lazy_list head S Γ >>>
+        find (rep_to_node curr) #k @ ∅
+      <<< ∃∃ pred succ, 
+        lazy_list head S Γ
+        ∗
+        ⌜ k = node_key succ ↔ k ∈ (set_map node_key S : gset Z) ⌝, 
+      RET ((rep_to_node pred), (rep_to_node succ)) >>>
+      {{{ 
+        (⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}))
+        ∗
+        (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
+        ∗
+        ⌜ node_key pred < k ≤ node_key succ ⌝
+      }}}.
+    Proof.
+      iIntros "%Hk Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
+      rewrite difference_empty_L.
+      wp_lam. wp_let. wp_lam. wp_pures.
+
+      wp_bind (Load _). iMod "AU" as (S) "[Hlazy Hclose]".
+      iDestruct (singleton_frag_in with "Hcurr Hlazy") as %Hcurr.
+      iDestruct (node_has_next with "Hcurr Hlazy")
+        as (succ) "(Hnext & #Hsucc & %Hdisj & Hlazy)".
+      destruct (decide (k ≤ node_key succ)) as [|Hcase].
+      + wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
+        iDestruct "Hclose" as "[_ Hclose]".
+        iDestruct ("Hclose" $! curr succ with "[-]") as ">AP".
+        {
+          iDestruct (singleton_frag_in with "Hsucc Hlazy") as %Hsucc.
+          rewrite elem_of_union elem_of_singleton in Hsucc.
+          iFrame "Hlazy"; iPureIntro. split.
+          + intros ->; destruct Hsucc as [->|Hsucc]; last set_solver.
+            exfalso. rewrite /node_key/= in Hk. lia.
+          + intros Hin. destruct (decide (node_key succ = k)); first done.
+            exfalso. by apply (Hdisj k); last (rewrite zrange_spec; lia).
+        }
+        iMod (atomic_post_commit with "AP") as "HΦ".
+        iModIntro; wp_let; wp_lam; wp_pures.
+        case_bool_decide; last lia; wp_if.
+        wp_pure. iApply "HΦ".
+        iFrame "#". iPureIntro; lia.
+      + wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
+        iDestruct "Hclose" as "[Hclose _]"; iDestruct ("Hclose" with "Hlazy") as ">AU".
+        iModIntro; wp_let; wp_lam; wp_pures.
+        case_bool_decide; first lia; wp_if.
+
+        iDestruct "Hsucc" as "[->|Hsucc]"; first (rewrite /node_key/= in Hcase; lia).
+        iApply ("IH" with "[%] [$] AU"); lia.
+    Qed.
+
+    Theorem findLock_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname) :
+      node_key curr < k < INT_MAX →
+      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]})) -∗
+      <<< ∀∀ (S: gset node_rep), lazy_list head S Γ >>>
+        findLock (rep_to_node curr) #k @ ∅
       <<< ∃∃ pred succ,
-        own Γs.(excl_gname) (◯E s)
+        lazy_list head S Γ
         ∗
-        ⌜ k = node_key succ ↔ k ∈ s ⌝
+        ⌜ k = node_key succ ↔ k ∈ (set_map node_key S : gset Z) ⌝,
+      RET ((rep_to_node pred), (rep_to_node succ)) >>>
+      {{{
+        (⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}))
         ∗
-        (⌜ pred = head ⌝ ∨ own Γi.(auth_gname) (◯ {[pred]}))
-        ∗
-        (⌜ succ = tail ⌝ ∨ own Γi.(auth_gname) (◯ {[succ]}))
+        (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
         ∗
         ⌜ node_key pred < k ≤ node_key succ ⌝
         ∗
-        ∃ (γl: gname), is_lock γl (node_lock pred) (in_lock (node_next pred)),
-      RET ((rep_to_node pred), (rep_to_node succ)) >>>.
+        node_next pred ↦{#1 / 2} rep_to_node succ
+        ∗
+        lock.locked #(node_lock pred)
+      }}}.
     Proof.
-      iIntros "%Hk Hcurr #Hinv %Φ"; iRevert (curr Hk) "Hcurr".
-      iLöb as "IH"; iIntros "%curr %Hk #Hcurr AU".
-      wp_lam. wp_let. wp_lam. wp_pures.
+      iIntros "%Hk Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
+      rewrite difference_empty_L.
+      wp_lam. wp_let.
 
-      wp_bind (Load _).
-      iInv "Hinv" as (S) "(>Hauth & >Hdisj & Hlocks & Hnexts & >Hexcl●)".
+      awp_apply (find_spec with "Hcurr"); first done.
+      iApply (aacc_aupd_eq with "AU"); try done.
+      iIntros (S) "Hlazy"; iAaccIntro with "Hlazy".
+      { do 2 (iIntros; iModIntro; iFrame). }
+      iIntros (pred succ') "[Hlazy _]".
+      iModIntro. iExists S. iFrame "Hlazy". iIntros "Hlazy".
+      iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
+      iModIntro. iIntros "(#Hpred & _ & [%Hk' _])".
+      iModIntro. wp_pures; wp_lam; wp_pures.
 
-      iDestruct (singleton_frag_in with "Hauth Hcurr") as %Hcurr.
-      rewrite (big_sepS_delete has_lock _ curr) // (big_sepS_delete (has_next _) _ curr) //.
-      iDestruct "Hlocks" as "(Hlock & Hlocks)"; iDestruct "Hnexts" as "(Hnext & Hnexts)".
-      iDestruct "Hlock" as (γl) "#His_lock"; iDestruct "Hnext" as (succ) ">(Hnext & #Hsucc & Hkeys)".
+      awp_apply acquire_spec.
+      iApply (aacc_aupd_sub with "[] AU"); try done.
+      { iIntros "!> %S H"; iDestruct (lazy_node_has_lock with "Hpred H") as "$". }
+      iIntros (S) "Hlazy".
+      iDestruct (lazy_node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
+      iAaccIntro with "Hlock".
+      { iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy"; iModIntro; iFrame; by iIntros. }
+      iIntros "Hlock". iModIntro. iFrame "Hlock".
+      iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy".
+      iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
+      iModIntro. iIntros "[Hlocked Hin_lock]".
+      iModIntro. wp_pures; wp_lam; wp_pures.
 
+      wp_bind (Load _). iMod "AU" as (S) "[Hlazy Hclose]".
+      iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
+      iDestruct (node_has_next with "Hpred Hlazy")
+        as (succ) "(Hnext & #Hsucc & %Hdisj & Hlazy)".
       destruct (decide (k ≤ node_key succ)) as [|Hcase].
-      + iMod "AU" as (?) "[Hexcl◯ [_ Hclose]]".
-        iDestruct (own_valid_2 with "Hexcl● Hexcl◯") as %<-%excl_auth_agree_L.
-        iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
-        iDestruct (singleton_frag_in with "Hauth Hsucc") as %Hsucc%elem_of_union.
-        rewrite elem_of_singleton in Hsucc.
+      + iDestruct "Hin_lock" as (?) "Hnext'".
+        iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
 
-        wp_load.
-        iAssert (has_lock curr) as "Hlock".
-        { iExists γl; iFrame "#". }
-        iAssert (has_next _ curr) with "[Hnext Hkeys]" as "Hnext".
-        { iExists succ; by iFrame. }
-        iCombine "Hlock Hlocks" as "Hlocks"; iCombine "Hnext Hnexts" as "Hnexts".
-        do 2 rewrite -big_sepS_delete //.
-
-        iDestruct ("Hclose" with "[Hexcl◯]") as ">HΦ"; last iModIntro.
+        wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
+        iDestruct "Hclose" as "[_ Hclose]".
+        iDestruct ("Hclose" $! pred succ with "[Hlazy]") as ">AP".
         {
-          iFrame "# ∗"; iPureIntro.
-          split; last lia; split.
+          iDestruct (singleton_frag_in with "Hsucc Hlazy") as %Hsucc.
+          rewrite elem_of_union elem_of_singleton in Hsucc.
+          iFrame "Hlazy"; iPureIntro. split.
           + intros ->; destruct Hsucc as [->|Hsucc]; last set_solver.
             exfalso. rewrite /node_key/= in Hk; lia.
           + intros Hin. destruct (decide (node_key succ = k)); first done.
             exfalso. by apply (Hdisj k); last (rewrite zrange_spec; lia).
         }
-
-        iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".
-        { iNext; iExists S; by iFrame. }
-        wp_let; wp_lam; wp_pures.
-
+        iMod (atomic_post_commit with "AP") as "HΦ".
+        iModIntro. wp_let; wp_lam; wp_pures.
         case_bool_decide; last lia; wp_if.
-        by wp_pure.
-      + wp_load.
-        iAssert (has_lock curr) as "Hlock".
-        { iExists γl; iFrame "#". }
-        iAssert (has_next _ curr) with "[Hnext Hkeys]" as "Hnext".
-        { iExists succ; by iFrame. }
-        iCombine "Hlock Hlocks" as "Hlocks"; iCombine "Hnext Hnexts" as "Hnexts".
-        do 2 rewrite -big_sepS_delete //.
-
-        iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".
-        { iNext; iExists S; by iFrame. }
-        wp_let; wp_lam; wp_pures.
-
+        wp_pure. iApply "HΦ".
+        iFrame "# ∗". iPureIntro; lia.
+      + wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
+        iDestruct "Hclose" as "[Hclose _]"; iDestruct ("Hclose" with "Hlazy") as ">AU".
+        iModIntro. wp_let; wp_lam; wp_pures.
         case_bool_decide; first lia; wp_if.
-        iDestruct "Hsucc" as "[->|Hsucc]"; first (rewrite /node_key/= in Hcase; lia).
-        iApply ("IH" with "[%] [$] AU"); lia.
-    Qed.
 
-    Theorem findLock_spec (k: Z) (head curr: node_rep) (Γi: inv_gname) (Γs: set_gname) :
-      node_key curr < k < INT_MAX →
-      (⌜ curr = head ⌝ ∨ own Γi.(auth_gname) (◯ {[curr]})) -∗
-      inv (lazyN N) (lazy_list_inv head Γi Γs) -∗
-      <<< ∀∀ (s: gset Z), own Γs.(excl_gname) (◯E s) >>>
-        findLock (rep_to_node curr) #k @ ↑(lazyN N)
-      <<< ∃∃ pred succ,
-        own Γs.(excl_gname) (◯E s)
-        ∗
-        ⌜ k = node_key succ ↔ k ∈ s ⌝
-        ∗
-        (⌜ pred = head ⌝ ∨ own Γi.(auth_gname) (◯ {[pred]}))
-        ∗
-        (⌜ succ = tail ⌝ ∨ own Γi.(auth_gname) (◯ {[succ]}))
-        ∗
-        ⌜ node_key pred < k ≤ node_key succ ⌝
-        ∗
-        ∃ (γl: gname), is_lock γl (node_lock pred) (in_lock (node_next pred))
-                      ∗
-                      node_next pred ↦{#1 / 2} rep_to_node succ
-                      ∗
-                      locked γl,
-      RET ((rep_to_node pred), (rep_to_node succ)) >>>.
-    Proof.
-      iIntros "%Hk Hcurr #Hinv %Φ"; iRevert (curr Hk) "Hcurr".
-      iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
-      wp_lam. wp_let.
-      
-      awp_apply (find_spec with "Hcurr Hinv"); first done.
-      iApply (aacc_aupd with "AU"); first done.
-      iIntros (s) "Hexcl◯"; iAaccIntro with "Hexcl◯".
-      { do 2 (iIntros "?"; iModIntro; iFrame). }
-      iIntros (pred succ') "(Hexcl◯ & _ & #Hpred & _ & (%Hk' & _) & His_lock)".
-      iDestruct "His_lock" as (γl) "#His_lock".
+        clear dependent S.
+        awp_apply (release_spec with "Hlocked Hin_lock").
+        iApply (aacc_aupd_sub with "[] AU"); try done.
+        { iIntros "!> %S H"; iDestruct (lazy_node_has_lock with "Hpred H") as "$". }
+        iIntros (S) "Hlazy". 
+        iDestruct (lazy_node_has_lock with "Hpred Hlazy") as "(Hlock & Hlazy)".
+        iAaccIntro with "Hlock".
+        { iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy"; iModIntro; iFrame; by iIntros. }
+        iIntros "Hlock". iModIntro. iFrame "Hlock".
+        iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
+        iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
+        iModIntro. iIntros "_".
+        iModIntro. wp_pures.
 
-      iModIntro; iLeft; iFrame. 
-      iIntros "AU"; iModIntro.
-      wp_pures; wp_lam; wp_pures.
-
-      wp_bind (acquire _).
-      iApply (acquire_spec with "His_lock").
-      iNext; iIntros "(Hlocked & Hin_lock)".
-      iDestruct "Hin_lock" as (succ) "Hnext'".
-      wp_pures; wp_lam; wp_pures.
-
-      wp_bind (Load _). 
-      iInv "Hinv" as (S) "(>Hauth & >Hdisj & Hlocks & Hnexts & >Hexcl●)".
-
-      iDestruct (singleton_frag_in with "Hauth Hpred") as %Hpred.
-      rewrite (big_sepS_delete (has_next _) _ pred) //.
-      iDestruct "Hnexts" as "(Hnext & Hnexts)".
-      iDestruct "Hnext" as (?) ">(Hnext & #Hsucc & Hkeys)".
-      iDestruct (mapsto_agree with "Hnext Hnext'") as %->%rep_to_node_inj.
-
-      destruct (decide (k ≤ node_key succ)) as [|Hcase].
-      + iMod "AU" as (?) "[Hexcl◯ [_ Hclose]]".
-        iDestruct (own_valid_2 with "Hexcl● Hexcl◯") as %<-%excl_auth_agree_L.
-        iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
-        iDestruct (singleton_frag_in with "Hauth Hsucc") as %Hsucc%elem_of_union.
-        rewrite elem_of_singleton in Hsucc.
-
-        wp_load.
-        iAssert (has_next _ pred) with "[Hnext Hkeys]" as "Hnext".
-        { iExists succ; by iFrame. }
-        iCombine "Hnext Hnexts" as "Hnexts".
-        rewrite -big_sepS_delete //.
-
-        iDestruct ("Hclose" with "[Hexcl◯ Hlocked Hnext']") as ">HΦ"; last iModIntro.
-        {
-          iFrame "# ∗". iSplit; first last.
-          { iSplit; first (iPureIntro; lia). iExists γl; iFrame "# ∗". }
-          iPureIntro; split.
-          + intros ->; destruct Hsucc as [->|Hsucc]; last set_solver.
-            exfalso. rewrite /node_key/= in Hk; lia.
-          + intros Hin; destruct (decide (node_key succ = k)); first done.
-            exfalso. rewrite zrange_disj in Hdisj; apply (Hdisj k); first lia; done.
-        }
-
-        iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".
-        { iNext; iExists S; by iFrame. }
-        wp_let; wp_lam; wp_pures.
-
-        case_bool_decide; last lia; wp_if.
-        by wp_pure.
-      + wp_load.
-        iAssert (has_next _ pred) with "[Hnext Hkeys]" as "Hnext".
-        { iExists succ; by iFrame. }
-        iCombine "Hnext Hnexts" as "Hnexts".
-        rewrite -big_sepS_delete //.
-
-        iModIntro; iSplitL "Hauth Hdisj Hlocks Hnexts Hexcl●".
-        { iNext; iExists S; by iFrame. }
-        wp_let; wp_lam; wp_pures.
-
-        case_bool_decide; first lia; wp_if.
-        wp_apply (release_spec with "[Hlocked Hnext']").
-        { iFrame "# ∗"; iExists succ; iFrame. }
-        iIntros "_"; wp_pures.
         iDestruct "Hsucc" as "[->|Hsucc]"; first (rewrite /node_key/= in Hcase; lia).
         iApply ("IH" with "[%] [$] AU"); lia.
     Qed.
