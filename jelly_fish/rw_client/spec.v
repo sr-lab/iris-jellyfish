@@ -151,33 +151,39 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
       {{{ True }}}.
     Proof.
-      iIntros "[%mΓ #Hinv] %Φ AU".
+      iIntros "[%Γl #Hinv]".
+      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+      iIntros (Φ) "AU".
 
       awp_apply get_spec; first done.
-      iInv "Hinv" as (m) ">(Hmap & Hmut● & Hagr● & Hmut◯)".
+      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+      { 
+        iIntros "!> %m %q [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iExists m'. iFrame. iIntros. iExists m'. iFrame.
+      }
+      iIntros (m q) "[Hmap Hagr◯]".
+      iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
       iAaccIntro with "Hmap".
-      { iIntros; iModIntro; iFrame; iNext; iExists m; iFrame. }
+      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
       iIntros "Hmap".
 
-      iMod "AU" as (m' q) "[Hagr◯ [_ Hclose]]".
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
-      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; subst.
-      iMod ("Hclose" $! (opt_to_val (m !! k)) with "[Hagr◯]") as "AP".
-      { 
-        iFrame "Hagr◯". rewrite lookup_fmap. 
-        destruct (m !! k) as [[[v t] vl]|]; last done.
+      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq;
+        rewrite Heq; clear Heq.
+
+      iModIntro. iExists m'. iFrame. iIntros "Hmap".
+      iRight. iExists (opt_to_val (m' !! k)). 
+      iSplitR ""; first iSplitR ""; first (iExists m'; iFrame).
+      {
+        rewrite lookup_fmap. 
+        destruct (m' !! k) as [[[v t] vl]|]; last done.
         simpl. iExists ({[v]} ∪ vs_to_set vl t), v, t.
         iSplit; first done. iSplit; last done.
         iPureIntro; set_solver.
       }
-      iMod (atomic_post_commit with "AP") as "HΦ".
-
-      iModIntro. iExists m. iFrame "Hmap". iIntros "Hmap".
-      iSplitR "HΦ"; first (iNext; iExists m; iFrame).
-      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
-      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
-      clear m; iIntros "!> [%m [Hmap ?]]". iExists m.
-      iFrame "Hmap". iIntros "Hmap". iExists m. iFrame.
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro. iIntros "_".
+      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
     Qed.
 
     Theorem write_spec (p: loc) (Γ: rw_gname)
@@ -188,19 +194,26 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
       {{{ True }}}.
     Proof.
-      iIntros "[%mΓ #Hinv] %Φ AU".
+      iIntros "[%Γl #Hinv]".
+      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+      iIntros (Φ) "AU".
 
       awp_apply put_spec; first done.
-      iInv "Hinv" as (m) ">(Hmap & Hmut● & Hagr● & Hagr◯)".
+      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+      { 
+        iIntros "!> %m %q [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iExists m'. iFrame. iIntros. iExists m'. iFrame.
+      }
+      iIntros (m q) "[Hmap Hmut◯]".
+      iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
       iAaccIntro with "Hmap".
-      { iIntros; iModIntro; iFrame; iNext; iExists m; iFrame. }
+      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
       iIntros "Hmap".
 
-      iMod "AU" as (m' q) "[Hmut◯ [_ Hclose]]".
       iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
       { 
         apply frac_auth_update, (op_local_update_discrete _ _ {[ k := prodZ {[v]} t]}). 
-        destruct ((f_vs <$> m) !! k) eqn:Hopt.
+        destruct ((f_vs <$> m') !! k) eqn:Hopt.
         + rewrite -(insert_singleton_op_Some_L _ _ _ _ Hopt).
           by apply insert_valid.
         + rewrite -(insert_singleton_op _ _ _ Hopt).
@@ -210,14 +223,13 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
       { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
       iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
-      { by apply (frac_auth_update_1 _ _ (to_agree ((f_vs <$> m) ⋅ {[k := prodZ {[v]} t]}))). }
-      iMod ("Hclose" with "[$]") as "AP".
-      iMod (atomic_post_commit with "AP") as "HΦ".
+      { by apply (frac_auth_update_1 _ _ (to_agree ((f_vs <$> m') ⋅ {[k := prodZ {[v]} t]}))). }
 
-      iModIntro. iExists (case_map m k v t). iFrame "Hmap". iIntros "Hmap".
-      assert ((f_vs <$> m) ⋅ {[k := prodZ {[v]} t]} = f_vs <$> case_map m k v t) as Heq.
+      iModIntro. iExists (case_map m' k v t). iFrame "Hmap". iIntros "Hmap".
+      assert ((f_vs <$> m') ⋅ {[k := prodZ {[v]} t]} = f_vs <$> case_map m' k v t) 
+        as Heq; last (rewrite Heq; clear Heq).
       { 
-        destruct ((f_vs <$> m) !! k) eqn:Hopt.
+        destruct ((f_vs <$> m') !! k) eqn:Hopt.
         + rewrite comm_L -(insert_singleton_op_Some_L _ _ _ _ Hopt).
           rewrite lookup_fmap fmap_Some in Hopt; destruct Hopt as [[vt vl] [Hopt Hf]].
           rewrite /case_map Hopt Hf.
@@ -235,12 +247,10 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           rewrite /case_map Hopt fmap_insert.
           rewrite {2}/f_vs //= right_id_L //.
       }
-      rewrite Heq.
-      iSplitR "HΦ"; first (iNext; iExists (case_map m k v t); iFrame).
-      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
-      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
-      clear dependent m; iIntros "!> [%m [Hmap ?]]". iExists m.
-      iFrame "Hmap". iIntros "Hmap". iExists m. iFrame.
+      iRight. iFrame. iSplitR ""; first (iExists (case_map m' k v t); iFrame).
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro. iIntros "_".
+      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
     Qed.
   End proofs.
 End RWSpec.

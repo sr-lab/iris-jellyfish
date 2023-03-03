@@ -131,26 +131,31 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<< ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
       {{{ True }}}.
     Proof.
-      iIntros "[%Γl #Hinv] %Φ AU".
+      iIntros "[%Γl #Hinv]".
+      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+      iIntros (Φ) "AU".
 
       awp_apply contains_spec; first done.
-      iInv "Hinv" as (s) ">(Hset & Hmut● & Hagr● & Hmut◯)".
+      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+      { 
+        iIntros "!> %s %q [Hset ?]". iDestruct "Hset" as (s') "[? ?]". 
+        iExists s'. iFrame. iIntros. iExists s'. iFrame.
+      }
+      iIntros (s q) "[Hset Hagr◯]".
+      iDestruct "Hset" as (s') "(Hset & Hmut● & Hagr● & Hmut◯)".
       iAaccIntro with "Hset".
-      { iIntros "?"; iModIntro; iFrame; iNext; iExists s; iFrame. }
+      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists s'; iFrame. }
       iIntros (b) "(Hset & Hif)".
 
-      iMod "AU" as (s' q) "[Hagr◯ [_ Hclose]]".
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
-      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; subst.
-      iMod ("Hclose" with "[$]") as "AP".
-      iMod (atomic_post_commit with "AP") as "HΦ".
+      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; 
+        rewrite -Heq; clear Heq.
 
-      iModIntro. iExists s. iFrame "Hset". iIntros "Hset".
-      iSplitR "HΦ"; first (iNext; iExists s; iFrame).
-      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
-      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
-      clear s; iIntros "!> [%s [Hset ?]]". iExists s.
-      iFrame "Hset". iIntros "Hset". iExists s. iFrame.
+      iModIntro. iExists s. iFrame. iIntros "Hset".
+      iRight. iExists b. iFrame. iSplitR ""; first (iExists s; iFrame).
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro. iIntros "_".
+      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
     Qed.
 
     Theorem write_spec (p: loc) (Γ: rw_gname)
@@ -161,31 +166,35 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<< mut_set (s ⋅ {[ k ]}) q Γ, RET #() >>>
       {{{ True }}}.
     Proof.
-      iIntros "[%Γl #Hinv] %Φ AU".
+      iIntros "[%Γl #Hinv]".
+      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+      iIntros (Φ) "AU".
 
       awp_apply add_spec; first done.
-      iInv "Hinv" as (s) ">(Hset & Hmut● & Hagr● & Hagr◯)".
+      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+      { 
+        iIntros "!> %s %q [Hset ?]". iDestruct "Hset" as (s') "[? ?]". 
+        iExists s'. iFrame. iIntros. iExists s'. iFrame.
+      }
+      iIntros (s q) "[Hset Hmut◯]".
+      iDestruct "Hset" as (s') "(Hset & Hmut● & Hagr● & Hagr◯)".
       iAaccIntro with "Hset".
-      { iIntros "?"; iModIntro; iFrame; iNext; iExists s; iFrame. }
+      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists s'; iFrame. }
       iIntros "Hset".
-
-      iMod "AU" as (s' q) "[Hmut◯ [_ Hclose]]".
+      
       iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
       { by apply frac_auth_update, (op_local_update_discrete _ _ {[k]}). }
       do 2 rewrite (comm _ {[k]} _) gset_op.
       iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
       { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
       iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
-      { by apply (frac_auth_update_1 _ _ (to_agree (s ∪ {[k]}))). }
-      iMod ("Hclose" with "[$]") as "AP".
-      iMod (atomic_post_commit with "AP") as "HΦ".
+      { by apply (frac_auth_update_1 _ _ (to_agree (s' ∪ {[k]}))). }
 
-      iModIntro. iExists (s ∪ {[k]}). iFrame "Hset". iIntros "Hset".
-      iSplitR "HΦ"; first (iNext; iExists (s ∪ {[k]}); iFrame).
-      iApply (apst_inv with "Hinv [HΦ]"); first solve_ndisj.
-      { iIntros. iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj. }
-      clear s; iIntros "!> [%s [Hset ?]]". iExists s.
-      iFrame "Hset". iIntros "Hset". iExists s. iFrame.
+      iModIntro. iExists (s' ∪ {[k]}). iFrame. iIntros "Hset".
+      iRight. iFrame. iSplitR ""; first (iExists (s' ∪ {[k]}); iFrame).
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro. iIntros "_".
+      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
     Qed.
   End proofs.
 End RWSpec.

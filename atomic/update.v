@@ -185,26 +185,32 @@ Section post_lemmas.
       iSplit; iIntros "HΨ"; iMod "Hclose" as "_"; iModIntro; iFrame.
   Qed.
 
-  (* 
-    Not sure how handle things between PROP and iProp...
-    Proof needs to be in this file tho, because of atomic_post_unseal
-  *)
-  Lemma apst_inv `{!irisGS_gen hlc Λ Σ} {TC : tele} Eo (Ψ : TC → iProp Σ) Φ I N `{!Timeless I} :
-    ↑N ⊆ Eo →
-    inv N I -∗ Φ -∗
-    □ (I -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ I)) -∗
-    atomic_post Eo ∅ Ψ Φ.
+  Lemma apst_apst_sup {TC TC' : tele} E1 E1' E2 E3
+        (Ψ : TC → PROP) (Φ : PROP)
+        (Ψ' : TC' → PROP) (Φ' : PROP) 
+        (R : PROP):
+    E1' ⊆ E1 → E3 ⊆ E2 →
+    R -∗
+    □ (∀.. z, R ∗ Ψ z -∗ ∃.. z', (Ψ' z' ∗ (Ψ' z' -∗ R ∗ Ψ z))) -∗
+    atomic_post E1' E2 Ψ Φ -∗
+    (R ∗ atomic_post E1' E2 Ψ Φ ={E1}=∗ Φ') -∗
+    atomic_post E1 E3 Ψ' Φ'.
   Proof.
-    iIntros (HN) "#Hinv HΦ #HIΨ".
-    rewrite atomic_post_unseal /atomic_post_def /=.
-    iApply (greatest_fixpoint_coiter _ (λ _, Φ)); last iFrame.
-    iIntros "!> * HΦ". iInv N as ">HI" "Hclose".
-    iDestruct ("HIΨ" with "HI") as (z) "[HΨ HΨI]".
-    iApply fupd_mask_intro; first solve_ndisj.
-    iIntros "Hclose'". iExists z. iFrame "HΨ".
-    iSplit; iIntros "HΨ"; iMod "Hclose'" as "_";
-      iDestruct ("HΨI" with "HΨ") as "HI";
-      iMod ("Hclose" with "[HI]") as "_"; try iNext; done.
+    iIntros (??) "HR #HRΨΨ' AP Hstep".
+    rewrite {3} atomic_post_unseal /atomic_post_def /=.
+    iApply (greatest_fixpoint_coiter _ (λ _, (R ∗ atomic_post E1' E2 Ψ Φ ∗
+      (R ∗ atomic_post E1' E2 Ψ Φ ={E1}=∗ Φ')
+    )%I)); last iFrame.
+    iIntros "!> * [HR [AP Hstep]]".
+    iMod (atomic_post_mask_weaken with "AP") as (z) "[HΨ [Hclose _]]"; first done.
+    iApply fupd_mask_intro; first done. iIntros "Hclose'".
+    iDestruct ("HRΨΨ'" with "[$]") as (z') "[HΨ' HRΨ]".
+    iExists z'. iFrame "HΨ'".
+    iSplit; iIntros "HΨ'"; iMod "Hclose'" as "_";
+      iDestruct ("HRΨ" with "HΨ'") as "[HR HΨ]";
+      iMod ("Hclose" with "HΨ") as "HΦ".
+    + iModIntro. iFrame.
+    + iApply "Hstep". iFrame. 
   Qed.
 
   Lemma apst_apst_sub {TC TC' : tele} E1 E1' E2 E3
@@ -704,6 +710,32 @@ Section lemmas.
     iSplit; first by eauto. iIntros (??) "?". rewrite ->!tele_app_bind. by iLeft.
   Qed.
 
+  Lemma apst_aupd_sup {TA TB TC TC' : tele} E1 E1' E2 E3
+      (α : TA → PROP) (Ψ : TC → PROP) (β Φ : TA → TB → PROP)
+      (Ψ' : TC' → PROP) (Φ' : PROP)
+      (R : PROP) :
+    E1' ⊆ E1 → E3 ⊆ E2 →
+    R -∗
+    □ (∀.. x, R ∗ α x -∗ ∃.. z', (Ψ' z' ∗ (Ψ' z' -∗ R ∗ α x))) -∗
+    atomic_update E1' E2 α Ψ β Φ -∗
+    (R ∗ atomic_update E1' E2 α Ψ β Φ ={E1}=∗ Φ') -∗
+    atomic_post E1 E3 Ψ' Φ'.
+  Proof.
+    iIntros (??) "HR #HRαΨ' AU Hstep".
+    rewrite atomic_post_unseal /atomic_post_def /=.
+    iApply (greatest_fixpoint_coiter _ (λ _, (R ∗ atomic_update E1' E2 α Ψ β Φ ∗
+      (R ∗ atomic_update E1' E2 α Ψ β Φ ={E1}=∗ Φ')
+    )%I)); last iFrame.
+    iIntros "!> * [HR [AU Hstep]]".
+    iMod (atomic_update_mask_weaken with "AU") as (x) "[Hα [Hclose _]]"; first done.
+    iApply fupd_mask_intro; first done. iIntros "Hclose'".
+    iDestruct ("HRαΨ'" with "[$]") as (z') "[HΨ' HRα]".
+    iExists z'. iFrame "HΨ'". 
+    iSplit; iIntros "HΨ'"; iMod "Hclose'" as "_";
+      iDestruct ("HRα" with "HΨ'") as "[HR Hα]"; iMod ("Hclose" with "Hα");
+      last iApply "Hstep"; by iFrame.
+  Qed.
+
   Lemma apst_aupd_sub {TA TB TC TC' : tele} E1 E1' E2 E3
       (α : TA → PROP) (Ψ : TC → PROP) (β Φ : TA → TB → PROP)
       (Ψ' : TC' → PROP) (Φ' : PROP) :
@@ -726,6 +758,44 @@ Section lemmas.
     iSplit; iIntros "HΨ'"; iMod "Hclose'" as "_";
       iDestruct ("Hα" with "HΨ'") as "Hα"; iMod ("Hclose" with "Hα");
       last iApply "Hstep"; by iFrame.
+  Qed.
+
+  Lemma aacc_aupd_sup {TA TB TA' TB' TC' : tele} E1 E1' E2 E3
+      (α : TA → PROP) (β Φ : TA → TB → PROP)
+      (α' : TA' → PROP) P' (Ψ' : TC' → PROP) (β' Φ' : TA' → TB' → PROP)
+      (R : PROP) :
+    E1' ⊆ E1 → E3 ⊆ E2 →
+    R -∗
+    □ (∀.. x, R ∗ α x -∗ ∃.. z', (Ψ' z' ∗ (Ψ' z' -∗ R ∗ α x))) -∗
+    atomic_update E1' E2 α α β Φ -∗
+    (∀.. x, R ∗ α x -∗ atomic_acc E2 E3 α' (α x ∗ (atomic_update E1' E2 α α β Φ ={E1}=∗ P')) Ψ' β'
+      (λ.. x' y', 
+        (R ∗ α x ∗ (R ∗ atomic_update E1' E2 α α β Φ ={E1}=∗ Φ' x' y'))
+        ∨ 
+        ∃.. y, R ∗ β x y ∗ (R ∗ atomic_post E1 E2 α (Φ x y) ={E1}=∗ Φ' x' y')
+      )) -∗
+    atomic_acc E1 E3 α' P' Ψ' β' Φ'.
+  Proof.
+    iIntros (??) "HR #HRαΨ' Hupd Hstep".
+    iMod (atomic_update_mask_weaken with "Hupd") as (x) "[Hα Hclose]"; first done.
+    iMod ("Hstep" with "[$]") as (x') "[Hα' Hclose']".
+    iModIntro. iExists x'. iFrame "Hα'". iSplitWith "Hclose'".
+    - iIntros "Hα'". 
+      iMod ("Hclose'" with "Hα'") as "[Hα Hupd]".
+      iDestruct "Hclose" as "[Hclose _]".
+      iMod ("Hclose" with "Hα"). iApply "Hupd". iFrame.
+    - iIntros (y') "Hβ'".
+      iMod ("Hclose'" with "Hβ'") as "HAP". rewrite ->!tele_app_bind. 
+      iMod "HAP" as (z') "[HΨ' [_ HAP]]".
+      iMod ("HAP" with "HΨ'") as "[[HR [Hα HAP']]|Hcont]".
+      + (* Abort the step we are eliminating *)
+        iDestruct "Hclose" as "[Hclose _]".
+        iMod ("Hclose" with "Hα") as "HAP". iModIntro.
+        iApply (apst_aupd_sup with "HR [] HAP"); try done.
+      + (* Complete the step we are eliminating *)
+        iDestruct "Hclose" as "[_ Hclose]". iDestruct "Hcont" as (y) "[HR [Hβ HAP']]".
+        iMod ("Hclose" with "Hβ") as "HAP". iModIntro.
+        iApply (apst_apst_sup with "HR [] HAP"); try done.
   Qed.
 
   Lemma aacc_aupd_sub {TA TB TA' TB' TC' : tele} E1 E1' E2 E3
@@ -865,3 +935,95 @@ Tactic Notation "iAaccIntro" "with" constr(sel) :=
     first try solve_ndisj; last iSplit
   | _ => fail "iAaccIntro: Goal is not an atomic accessor"
   end.
+
+Lemma aupd_inv `{!irisGS_gen hlc Λ Σ} {TA TB : tele} E
+  (α : TA → iProp Σ) (β Q Φ : TA → TB → iProp Σ) 
+  I N :
+  ↑N ⊆ E →
+  inv N I -∗
+  atomic_update (E ∖ ↑N) ∅ 
+    α 
+    α 
+    β 
+    (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y) -∗
+  atomic_update E ∅ 
+    (λ.. x, ▷I ∗ α x)
+    (λ.. x, ▷I ∗ α x)
+    (λ.. x y, ▷I ∗ β x y) 
+    (λ.. x y, Q x y ={E}=∗ Φ x y).
+Proof.
+  iIntros (HN) "#Hinv AU".
+  rewrite {2}atomic_update_unseal /atomic_update_def /=.
+  iApply (greatest_fixpoint_coiter _ (
+    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+  )); last iFrame.
+  iIntros "!> * AU". iInv N as "HI" "Hclose'".
+  iMod "AU" as (x) "[Hα Hclose]".
+  iModIntro. iExists x. rewrite ->!tele_app_bind.
+  iFrame. iSplitWith "Hclose".
+  + iIntros "[HI Hα]". iMod ("Hclose" with "Hα") as "AU".
+    by iMod ("Hclose'" with "HI") as "_".
+  + clear y; iIntros (y). rewrite ->!tele_app_bind.
+    iIntros "[HI Hβ]". iMod ("Hclose" with "Hβ") as "AP".
+    rewrite ->!tele_app_bind.
+    iMod ("Hclose'" with "HI") as "_". iModIntro.
+
+    rewrite {2}atomic_post_unseal /atomic_post_def /=.
+    iApply (greatest_fixpoint_coiter _ (
+      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+    )); last iFrame.
+    iIntros "!> * AP". iInv N as "HI" "Hclose'".
+    iMod "AP" as (z) "[Hα Hclose]".
+    iModIntro. iExists z. rewrite ->!tele_app_bind.
+    iFrame. iSplitWith "Hclose"; iIntros "[HI Hα]";
+      iMod ("Hclose" with "Hα") as "HΦ";
+      iMod ("Hclose'" with "HI") as "_"; first done.
+    iModIntro. iIntros "HQ".
+    iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+Qed.
+
+Lemma aupd_inv_timeless `{!irisGS_gen hlc Λ Σ} {TA TB : tele} E
+  (α : TA → iProp Σ) (β Q Φ : TA → TB → iProp Σ) 
+  I N `{!Timeless I} :
+  ↑N ⊆ E →
+  inv N I -∗
+  atomic_update (E ∖ ↑N) ∅ 
+    α 
+    α 
+    β 
+    (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y) -∗
+  atomic_update E ∅ 
+    (λ.. x, I ∗ α x)
+    (λ.. x, I ∗ α x)
+    (λ.. x y, I ∗ β x y) 
+    (λ.. x y, Q x y ={E}=∗ Φ x y).
+Proof.
+  iIntros (HN) "#Hinv AU".
+  rewrite {2}atomic_update_unseal /atomic_update_def /=.
+  iApply (greatest_fixpoint_coiter _ (
+    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+  )); last iFrame.
+  iIntros "!> * AU". iInv N as ">HI" "Hclose'".
+  iMod "AU" as (x) "[Hα Hclose]".
+  iModIntro. iExists x. rewrite ->!tele_app_bind.
+  iFrame. iSplitWith "Hclose".
+  + iIntros "[HI Hα]". iMod ("Hclose" with "Hα") as "AU".
+    by iMod ("Hclose'" with "HI") as "_".
+  + clear y; iIntros (y). rewrite ->!tele_app_bind.
+    iIntros "[HI Hβ]". iMod ("Hclose" with "Hβ") as "AP".
+    rewrite ->!tele_app_bind.
+    iMod ("Hclose'" with "HI") as "_". iModIntro.
+
+    rewrite {2}atomic_post_unseal /atomic_post_def /=.
+    iApply (greatest_fixpoint_coiter _ (
+      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+    )); last iFrame.
+    iIntros "!> * AP". iInv N as ">HI" "Hclose'".
+    iMod "AP" as (z) "[Hα Hclose]".
+    iModIntro. iExists z. rewrite ->!tele_app_bind.
+    iFrame. iSplitWith "Hclose"; iIntros "[HI Hα]";
+      iMod ("Hclose" with "Hα") as "HΦ";
+      iMod ("Hclose'" with "HI") as "_"; first done.
+    iModIntro. iIntros "HQ".
+    iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+Qed.

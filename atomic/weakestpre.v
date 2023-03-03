@@ -190,32 +190,24 @@ Section lemmas.
 
   (** We can open invariants around atomic triples.
       (Just for demonstration purposes; we always use [iInv] in proofs.) *)
-  Lemma atomic_wp_inv e E α β Q Ψ f N I :
+  Lemma atomic_wp_inv e E α β Q f N I :
     ↑N ⊆ E →
-    (∀.. x y, β x y -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ β x y)) -∗
-    atomic_wp e (E ∖ ↑N) (λ.. x, ▷ I ∗ α x) (λ.. x y, ▷ I ∗ β x y) Q Ψ f -∗
-    inv N I -∗ atomic_wp e E α β Q Ψ f.
+    atomic_wp e (E ∖ ↑N) (λ.. x, ▷ I ∗ α x) (λ.. x y, ▷ I ∗ β x y) Q (λ.. x, ▷ I ∗ α x) f -∗
+    inv N I -∗ atomic_wp e E α β Q α f.
   Proof.
-    intros ?. iIntros "HβΨ Hwp #Hinv" (Φ) "AU". iApply "Hwp". 
-    iAuIntro. iInv N as "HI".
-    iApply (aacc_aupd with "AU"); first solve_ndisj. iIntros (x) "Hα".
-    iAaccIntro with "[HI Hα]"; rewrite ->!tele_app_bind; first by iFrame.
-    - (* abort *)
-      iIntros "[HI $]". by eauto with iFrame.
-    - (* commit *)
-      iIntros (y). rewrite ->!tele_app_bind. iIntros "[HI Hβ]".
-      iModIntro. iDestruct ("HβΨ" with "Hβ") as (z) "[HΨ Hβ]".
-      iExists z. iFrame "HΨ". iIntros "HΨ".
-      iRight. iExists y. rewrite ->!tele_app_bind.
-      iDestruct ("Hβ" with "HΨ") as "Hβ"; clear z.
-      iFrame "Hβ". iIntros "AP". iModIntro.
-      iApply (apst_apst_eq with "AP"); try done.
-      iIntros "AP". iModIntro. iFrame "HI".
-      iApply (atomic_post_mask_weaken (⊤ ∖ (E ∖ ↑N) ∖ ↑N)); first solve_ndisj.
-      iApply (atomic_post_wand with "[] AP").
-      iIntros "HΦ HQ". iDestruct ("HΦ" with "HQ") as "HΦ".
-      iApply fupd_mask_mono; last by iFrame.
-      solve_ndisj.
+    iIntros "%HE Hwp #Hinv" (Φ) "AU". iApply "Hwp".
+    replace (⊤ ∖ E) with (⊤ ∖ (E ∖ ↑N) ∖ ↑N) by set_solver.
+    iApply (aupd_inv with "Hinv AU"); solve_ndisj.
+  Qed.
+
+  Lemma atomic_wp_inv_timeless e E α β Q f N I `{!Timeless I} :
+    ↑N ⊆ E →
+    atomic_wp e (E ∖ ↑N) (λ.. x, I ∗ α x) (λ.. x y, I ∗ β x y) Q (λ.. x, I ∗ α x) f -∗
+    inv N I -∗ atomic_wp e E α β Q α f.
+  Proof.
+    iIntros "%HE Hwp #Hinv" (Φ) "AU". iApply "Hwp".
+    replace (⊤ ∖ E) with (⊤ ∖ (E ∖ ↑N) ∖ ↑N) by set_solver.
+    iApply (aupd_inv_timeless with "Hinv AU"); solve_ndisj.
   Qed.
 
 End lemmas.
