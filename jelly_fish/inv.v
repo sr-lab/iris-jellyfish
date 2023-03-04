@@ -108,7 +108,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Definition is_lazy_list (head: node_rep) (Γ: lazy_gname)
       (γ: lazy_gname) (lvl: Z) : iProp Σ :=
       ∃ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl.
-    Definition skip_list (head: node_rep) (S: gset node_rep)
+    Definition jelly_fish (head: node_rep) (S: gset node_rep)
       (m: gmap Z (tval * list tval)) (mΓ: gmap Z lazy_gname) : iProp Σ :=
       jf_map head S m (mΓ !!! 0)
       ∗
@@ -123,7 +123,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         ∗
         ⌜ node_key head = INT_MIN ⌝
         ∗
-        skip_list head S m mΓ.
+        jelly_fish head S m mΓ.
 
     (* Needed for [vc_map] to be timeless *)
     Global Instance vl_timeless vl p : Timeless (vertical_list vl p).
@@ -201,13 +201,13 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       0 ≤ lvl ≤ MAX_HEIGHT →
-      skip_list head S m mΓ ⊢
+      jelly_fish head S m mΓ ⊢
         ∃ (S': gset node_rep),
           lazy_list head S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl
           ∗ (
             lazy_list head S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl 
             -∗ 
-            skip_list head S m mΓ
+            jelly_fish head S m mΓ
           )
           ∗
           ⌜ lvl = 0 → dom m = set_map node_key S' ⌝.
@@ -230,7 +230,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       1 ≤ lvl ≤ MAX_HEIGHT → 
-      skip_list h S m mΓ -∗
+      jelly_fish h S m mΓ -∗
       own (mΓ !!! lvl).(auth_gname) (◯ {[n]}) -∗
       own (mΓ !!! (lvl - 1)).(auth_gname) (◯ {[n]}).
     Proof.
@@ -248,7 +248,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       1 ≤ lvl ≤ MAX_HEIGHT → 
-      skip_list h S m mΓ -∗
+      jelly_fish h S m mΓ -∗
       ⌜ n = s ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[n]}) -∗
       ⌜ n = s ⌝ ∨ own (mΓ !!! (lvl - 1)).(auth_gname) (◯ {[n]}).
     Proof.
@@ -261,7 +261,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       0 ≤ lvl ≤ MAX_HEIGHT →
-      skip_list h S m mΓ -∗
+      jelly_fish h S m mΓ -∗
       own (mΓ !!! lvl).(auth_gname) (◯ {[n]}) -∗
       own (mΓ !!! 0).(auth_gname) (◯ {[n]}).
     Proof.
@@ -279,14 +279,14 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       0 ≤ lvl ≤ MAX_HEIGHT →
-      skip_list h S m mΓ -∗
+      jelly_fish h S m mΓ -∗
       own (mΓ !!! lvl).(auth_gname) (◯ {[n]}) -∗
       ∃ (val: val_rep) (vl: list tval),
         node_val n ↦{#1 / 2} rep_to_val val
         ∗
         ⌜ m !! node_key n = Some (val_vt val, vl) ⌝
         ∗
-        (node_val n ↦{#1 / 2} rep_to_val val -∗ skip_list h S m mΓ).
+        (node_val n ↦{#1 / 2} rep_to_val val -∗ jelly_fish h S m mΓ).
     Proof.
       iIntros "%Hlvl Hskip #Hnode".
       iDestruct (node_in_bot with "Hskip Hnode") as "#Hnode'"; first done.
@@ -312,9 +312,9 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       p ↦□ rep_to_node head -∗
       vc_map p m mΓ -∗
         ∃ (S : gset node_rep), 
-          (skip_list head S m mΓ)
+          (jelly_fish head S m mΓ)
           ∗ 
-          (skip_list head S m mΓ -∗ vc_map p m mΓ).
+          (jelly_fish head S m mΓ -∗ vc_map p m mΓ).
     Proof.
       iIntros "Hhead Hmap". iDestruct "Hmap" as (h' S) "(#H & %Hmin & Hskip)".
       iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".

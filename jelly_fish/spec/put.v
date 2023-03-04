@@ -20,9 +20,9 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       lvl ≤ MAX_HEIGHT →
       0 ≤ h ≤ lvl →
       (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]})) -∗
-      <<< ∀∀ S m, skip_list head S m mΓ >>>
+      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
         findLevel (rep_to_node curr) #k #lvl #h @ ∅
-      <<< ∃∃ pred, skip_list head S m mΓ, RET (rep_to_node pred) >>>
+      <<< ∃∃ pred, jelly_fish head S m mΓ, RET (rep_to_node pred) >>>
       {{{ 
         (⌜ pred = head ⌝ ∨ own (mΓ !!! h).(auth_gname) (◯ {[ pred ]}))
         ∗
@@ -74,9 +74,9 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       lvl ≤ MAX_HEIGHT →
       0 ≤ lvl ≤ h →
       (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]})) -∗
-      <<< ∀∀ S m, skip_list head S m mΓ >>>
+      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
         insertAll (rep_to_node curr) #k #v #t #h #lvl @ ∅
-      <<< ∃∃ opt node, skip_list head (case_set S node m k) (case_map m k v t) mΓ, RET opt >>>
+      <<< ∃∃ opt node, jelly_fish head (case_set S node m k) (case_map m k v t) mΓ, RET opt >>>
       {{{
         match m !! k with 
         | None => ∃ (n: loc),

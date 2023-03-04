@@ -25,9 +25,9 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       node_key curr < k < INT_MAX →
       0 ≤ lvl ≤ MAX_HEIGHT →
       (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[curr]})) -∗
-      <<< ∀∀ S m, skip_list head S m mΓ >>>
+      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
         findAll (rep_to_node curr) #k #lvl @ ∅
-      <<< skip_list head S m mΓ, RET opt_to_val (m !! k) >>>
+      <<< jelly_fish head S m mΓ, RET opt_to_val (m !! k) >>>
       {{{ True }}}.
     Proof.
       iIntros "%Hk %Hlvl Hcurr %Φ"; iRevert (lvl curr Hk Hlvl) "Hcurr".

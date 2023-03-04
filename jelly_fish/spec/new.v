@@ -66,7 +66,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         replace (Z.of_nat (Z.to_nat (lvl + 1))) with (Z.of_nat (Z.to_nat lvl) + 1) by lia.
         replace (Z.of_nat (Z.to_nat lvl)) with lvl by lia.
         rewrite (zrange_split_r _ lvl); last lia.
-        rewrite comm_L big_sepS_insert; last (rewrite zrange_spec; lia).
+        rewrite (comm_L _ _ {[lvl]}) big_sepS_insert; last (rewrite zrange_spec; lia).
         iSplitR "Hskip".
         - iExists ∅. rewrite /lazy_list ?lookup_total_insert ?set_map_empty 
             right_id_L ?big_sepS_singleton big_sepS_empty; iFrame "# ∗".

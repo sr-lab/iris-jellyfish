@@ -21,7 +21,7 @@ Module Import Spec := RWSpec Params.
 
 Definition exampleN := nroot .@ "example".
 
-Definition skip_list_client : expr := 
+Definition example_client : expr := 
   let: "p" := new #() in
     ((put "p" #10 #1 #0;; put "p" #20 #5 #1;; put "p" #10 #3 #2)
     |||
@@ -32,12 +32,12 @@ Section Proofs.
   Context `{!heapGS Σ, !rwG Σ, !spawnG Σ}.
   Local Open Scope Z.
 
-  Lemma skip_list_client_spec :
+  Lemma example_client_spec :
     {{{ True }}}
-      skip_list_client
+      example_client
     {{{ (v: Z), RET (SOMEV (#v, #2), SOMEV (#5, #1)); ⌜ v = 3 ∨ v = 4 ⌝ }}}.
   Proof.
-    iIntros (Φ) "_ HΦ"; unfold skip_list_client.
+    iIntros (Φ) "_ HΦ"; unfold example_client.
     wp_apply new_spec; first done. iIntros (p mΓ) "Hmap".
     iDestruct (rw_inv_alloc_mut exampleN with "Hmap") as "Hinv".
     iMod (fupd_mask_mono with "Hinv") as "Hinv"; first solve_ndisj.

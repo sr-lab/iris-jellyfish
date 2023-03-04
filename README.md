@@ -7,7 +7,7 @@ Artifact containing mechanized proofs of the lazy JellyFish skip list. We also p
 ### Prerequisites
 This development is known to compile with
 
-- Coq 8.16.0
+- Coq 8.16.1
 - A development version of Iris
 
 

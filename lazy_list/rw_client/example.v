@@ -17,7 +17,7 @@ Module Import Spec := RWSpec Params.
 
 Definition exampleN := nroot .@ "example".
 
-Definition lazy_list_client : expr := 
+Definition example_client : expr := 
   let: "p" := new #() in
     ((add "p" #0;; add "p" #1) ||| (add "p" #1;; add "p" #2));;
     (contains "p" #2 ||| contains "p" #0).
@@ -25,14 +25,14 @@ Definition lazy_list_client : expr :=
 Section Proofs.
   Context `{!heapGS Σ, !rwG Σ, !spawnG Σ}.
 
-  Lemma lazy_list_client_spec :
+  Lemma example_client_spec :
     {{{ True }}}
-      lazy_list_client
+      example_client
     {{{ RET (#true, #true); True }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
 
-    unfold lazy_list_client.
+    unfold example_client.
     wp_apply new_spec; first done.
     iIntros (p Γl) "Hset".
     iDestruct (rw_inv_alloc_mut exampleN with "Hset") as ">Hinv".
