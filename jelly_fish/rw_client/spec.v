@@ -1,4 +1,4 @@
-From SkipList.lib Require Import arg_max gmap_extra.
+From SkipList.lib Require Import argmax gmap.
 From SkipList.atomic Require Import proofmode weakestpre.
 From SkipList.jelly_fish Require Import code inv.
 From SkipList.jelly_fish.spec Require Import new get put.
@@ -236,12 +236,12 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           case_decide.
           - rewrite insert_id // lookup_fmap Hopt fmap_Some.
             exists (vt, vl). split; first done.
-            rewrite /f_vs arg_max_lt //.
+            rewrite /f_vs argmax_lt //.
           - rewrite fmap_insert {1 3}/f_vs /=.
             case_decide.
-            * rewrite right_id_L comm_L arg_max_lt //. 
+            * rewrite right_id_L comm_L argmax_lt //. 
             * replace t with vt.2 by lia.
-              rewrite arg_max_eq //.
+              rewrite argmax_eq //.
         + rewrite comm_L -(insert_singleton_op _ _ _ Hopt).
           rewrite lookup_fmap fmap_None in Hopt.
           rewrite /case_map Hopt fmap_insert.

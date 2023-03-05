@@ -1,7 +1,7 @@
 -Q . SkipList
 
-lib/arg_max.v
-lib/gmap_extra.v
+lib/argmax.v
+lib/gmap.v
 lib/zrange.v
 
 atomic/update.v

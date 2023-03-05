@@ -1,5 +1,5 @@
 From SkipList.atomic Require Import proofmode weakestpre.
-From SkipList.lib Require Import arg_max.
+From SkipList.lib Require Import argmax.
 From SkipList.jelly_fish Require Import code.
 From SkipList.jelly_fish.rw_client Require Import spec.
 
@@ -95,7 +95,7 @@ Section Proofs.
       iIntros (opt) "[Hconst1 %Hopt]". iModIntro. iExists _, _. iFrame "Hconst1".
       iIntros "_ _"; iPureIntro.
       destruct Hopt as (vs & v & t & Hprod & Hin & Hopt).
-      rewrite arg_max_eq in Hprod; inversion Hprod; subst.
+      rewrite argmax_eq in Hprod; inversion Hprod; subst.
       rewrite elem_of_union ?elem_of_singleton in Hin.
       destruct Hin; subst; first (by left); last (by right).
     }
@@ -105,7 +105,7 @@ Section Proofs.
       iIntros (opt) "[Hconst2 %Hopt]". iModIntro. iExists _, _. iFrame "Hconst2".
       iIntros "_ _"; iPureIntro.
       destruct Hopt as (vs & v & t & Hprod & Hin & Hopt).
-      rewrite comm_L arg_max_lt // in Hprod; inversion Hprod; subst.
+      rewrite comm_L argmax_lt // in Hprod; inversion Hprod; subst.
       rewrite elem_of_singleton in Hin; by subst.
     }
     iIntros (? ?) "[[->|->] ->]"; iNext; iApply "HΦ"; 

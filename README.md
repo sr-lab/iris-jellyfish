@@ -14,9 +14,9 @@ This development is known to compile with
 ### Directory Structure
 The `lib/` directory contains definitions and lemmas required for all structures.
 
+- `argmax.v`: Definition of and facts about the `argmax` resource algebra.
+- `gmap.v`: Additional facts about the `gmap` resource algebra.
 - `zrange.v`: Definition of and facts about sets containing a range of integers.
-- `arg_max.v`: Definition of and facts about the `argmax` resource algebra.
-- `gmap_extra.v`: Additional facts about the `gmap` resource algebra.
 
 The `atomic/` directory contains an alternative definition of logical atomicity in Iris.
 
