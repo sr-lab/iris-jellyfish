@@ -27,10 +27,22 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
   Export New Get Put.
 
   Section invariant.
-    Context `{!heapGS Σ, !rwG Σ} (N: namespace).
+    Context `{!heapGS Σ, !rwG Σ}.
     Local Open Scope Z.
 
-    Definition rw_mapN := N .@ "rw_map".
+    (* Representation predicate for argmax updates on a map *)
+    Fixpoint tset (vl: list tval) (t: Z) : gset Z :=
+      match vl with
+      | nil => ∅
+      | vt :: vl => if (decide (vt.2 < t)) then ∅
+                   else {[vt.1]} ∪ tset vl t
+      end.
+    Definition f_vs (vt: tval * list tval) : argmax Z := 
+      prodZ ({[vt.1.1]} ∪ tset vt.2 vt.1.2) vt.1.2.
+    Definition ts_map (p: loc) (m: gmap Z (argmax Z)) (mΓ: gmap Z lazy_gname) : iProp Σ := 
+      ∃ (m': gmap Z (tval * list tval)), vc_map p m' mΓ ∗ ⌜ m = f_vs <$> m' ⌝.
+
+    Definition mapN := nroot .@ "rw_map".
 
     (* Public state for concurrent writes *)
     Definition mut_map (m: gmap Z (argmax Z)) (q: frac) (Γ: rw_gname) : iProp Σ := 
@@ -52,31 +64,20 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       const_map m q1 Γ ∗ const_map m q2 Γ -∗ const_map m (q1 + q2) Γ.
     Proof. iIntros "(Hmut1 & Hmut2)"; by iCombine "Hmut1 Hmut2" as "Hmut". Qed.
 
-    (* Definitions to construct the abstract map from the physical map*)
-    Fixpoint tset (vl: list tval) (t: Z) : gset Z :=
-      match vl with
-      | nil => ∅
-      | vt :: vl => if (decide (vt.2 < t)) then ∅
-                   else {[vt.1]} ∪ tset vl t
-      end.
-    Definition f_vs (vt: tval * list tval) : argmax Z := 
-      prodZ ({[vt.1.1]} ∪ tset vt.2 vt.1.2) vt.1.2.
-
     (* Invariant concealing the abstract state of the full map *)
     Definition map_inv (p: loc) (mΓ: gmap Z lazy_gname) (Γ: rw_gname) : iProp Σ :=
-      ∃ (m: gmap Z (tval * list tval)),
-        vc_map p m mΓ
+      ∃ (m: gmap Z (argmax Z)),
+        ts_map p m mΓ
         ∗
-        own Γ.(mut_gname) (●F (f_vs <$> m : gmap Z (argmax Z)))
+        own Γ.(mut_gname) (●F m)
         ∗
-        own Γ.(agr_gname) (●F (to_agree (f_vs <$> m : gmap Z (argmax Z))))
+        own Γ.(agr_gname) (●F (to_agree m))
         ∗
-        (own Γ.(mut_gname) (◯F (f_vs <$> m : gmap Z (argmax Z))) ∨ 
-        own Γ.(agr_gname) (◯F (to_agree (f_vs <$> m : gmap Z (argmax Z))))).
+        (own Γ.(mut_gname) (◯F m) ∨ own Γ.(agr_gname) (◯F (to_agree m))).
     Definition is_map (p: loc) (Γ: rw_gname) : iProp Σ :=
-      ∃ (mΓ: gmap Z lazy_gname), inv rw_mapN (map_inv p mΓ Γ).
+      ∃ (mΓ: gmap Z lazy_gname), inv mapN (map_inv p mΓ Γ).
     Lemma rw_inv_alloc_mut (p: loc) (mΓ: gmap Z lazy_gname) :
-      vc_map p ∅ mΓ ={↑rw_mapN}=∗
+      ts_map p ∅ mΓ ={↑mapN}=∗
         ∃ (Γ: rw_gname), is_map p Γ ∗ mut_map ∅ 1 Γ.
     Proof.
       iIntros "Hmap".
@@ -85,13 +86,13 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree ∅) ⋅ ◯F (to_agree ∅)))
         as (γagr) "[Hagr● Hagr◯]"; first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_mapN (↑rw_mapN) (map_inv p mΓ Γ)
+      iMod (inv_alloc mapN (↑mapN) (map_inv p mΓ Γ)
         with "[Hmap Hmut● Hagr● Hagr◯]") as "#Hinv".
-      { iNext; iExists ∅; rewrite fmap_empty; iFrame. }
+      { iNext; iExists ∅; iFrame. }
       iModIntro; iExists Γ; iFrame "# ∗"; by iExists mΓ.
     Qed.
     Lemma rw_inv_alloc_const (p: loc) (mΓ: gmap Z lazy_gname) :
-      vc_map p ∅ mΓ ={↑rw_mapN}=∗
+      ts_map p ∅ mΓ ={↑mapN}=∗
         ∃ (Γ: rw_gname), is_map p Γ ∗ const_map ∅ 1 Γ.
     Proof.
       iIntros "Hmap".
@@ -100,15 +101,15 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (●F (to_agree ∅) ⋅ ◯F (to_agree ∅)))
         as (γagr) "[Hagr● Hagr◯]"; first by apply auth_both_valid.
       set (Γ := mk_rw_gname γmut γagr).
-      iMod (inv_alloc rw_mapN (↑rw_mapN) (map_inv p mΓ Γ)
+      iMod (inv_alloc mapN (↑mapN) (map_inv p mΓ Γ)
         with "[Hmap Hmut● Hagr● Hmut◯]") as "#Hinv".
-      { iNext; iExists ∅; rewrite fmap_empty; iFrame. }
+      { iNext; iExists ∅; iFrame. }
       iModIntro; iExists Γ; iFrame "# ∗"; by iExists mΓ.
     Qed.
 
     (* Helper lemmas for switching between concurrent writes and concurrent reads *)
     Lemma mut_to_const (p: loc) (m: gmap Z (argmax Z)) (Γ: rw_gname) :
-      is_map p Γ -∗ mut_map m 1 Γ ={↑rw_mapN}=∗ const_map m 1 Γ.
+      is_map p Γ -∗ mut_map m 1 Γ ={↑mapN}=∗ const_map m 1 Γ.
     Proof.
       rewrite /mut_map/const_map; iIntros "[%mΓ #Hinv] Hmut◯".
       iInv "Hinv" as (m') ">(Hmap & Hmut● & Hagr● & Hagr◯)".
@@ -119,12 +120,12 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iNext; iExists m'; iFrame.
     Qed.
     Lemma const_to_mut (p: loc) (m: gmap Z (argmax Z)) (Γ: rw_gname) :
-      is_map p Γ -∗ const_map m 1 Γ ={↑rw_mapN}=∗ mut_map m 1 Γ.
+      is_map p Γ -∗ const_map m 1 Γ ={↑mapN}=∗ mut_map m 1 Γ.
     Proof.
       rewrite /mut_map/const_map; iIntros "[%mΓ #Hinv] Hagr◯".
       iInv "Hinv" as (m') ">(Hmap & Hmut● & Hagr● & Hmut◯)".
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_agree.
-      replace m with (f_vs <$> m') by rewrite -to_agree_op_valid_L Heq agree_idemp //.
+      replace m with m' by rewrite -to_agree_op_valid_L Heq agree_idemp //.
       iDestruct "Hmut◯" as "[Hmut◯|Hfalse]"; last first.
       { by iDestruct (own_valid_2 with "Hagr◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
       iModIntro. iSplitR "Hmut◯"; last (iModIntro; iFrame).
@@ -133,7 +134,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
   End invariant.
 
   Section proofs.
-    Context `{!heapGS Σ, !rwG Σ} (N: namespace).
+    Context `{!heapGS Σ, !rwG Σ}.
     Local Open Scope Z.
 
     Definition opt_equiv ret opt : iProp Σ :=
@@ -143,88 +144,68 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
                      ⌜ vt = prodZ vs t ⌝ ∗ ⌜ v ∈ vs ⌝ ∗ ⌜ ret = SOMEV (#v, #t) ⌝
       end.
 
-    Theorem read_spec (p: loc) (Γ: rw_gname) (q: frac)
+    Theorem ts_new_spec : 
+      {{{ True }}}
+        new #()
+      {{{ p mΓ, RET #p; ts_map p ∅ mΓ }}}.
+    Proof.
+      iIntros (Φ) "_ HΦ". wp_apply new_spec; first done.
+      iIntros. iApply "HΦ". iExists ∅.
+      rewrite fmap_empty //; by iFrame.
+    Qed.
+
+    Theorem ts_get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_map N p Γ -∗
-      <<< ∀∀ m, const_map m q Γ >>>
-        get #p #k @ ↑(rw_mapN N)
-      <<< ∃∃ opt, const_map m q Γ, RET opt >>>
+      ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
+        get #p #k @ ∅
+      <<< ∃∃ opt, ts_map p m mΓ, RET opt >>>
       {{{ opt_equiv opt (m !! k) }}}.
     Proof.
-      iIntros "[%Γl #Hinv]".
-      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-      iIntros (Φ) "AU".
-
-      awp_apply get_spec; first done.
+      iIntros (Φ) "AU". awp_apply get_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
-        iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
         iExists m'. iFrame. iIntros. iExists m'. iFrame.
       }
-      iIntros (m) "[Hmap Hagr◯]".
-      iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
+      iIntros (m) "Hmap".
+      iDestruct "Hmap" as (m') "[Hmap %Hfmap]".
       iAaccIntro with "Hmap".
-      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+      { iIntros "?"; iSplitR ""; last by (iModIntro; iIntros). iExists m'; by iFrame. }
       iIntros "Hmap".
-
-      iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
-      rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq;
-        rewrite Heq; clear Heq.
 
       iModIntro. iExists m'. iFrame. iIntros "Hmap".
       iRight. iExists (opt_to_val (m' !! k)). 
-      iSplitR ""; first (iExists m'; iFrame).
+      iSplitR ""; first by (iExists m'; iFrame).
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last iApply "HΦ"; first solve_ndisj.
-      rewrite lookup_fmap. destruct (m' !! k) as [[[v t] vl]|]; last done.
+      iModIntro. iIntros "_". iApply "HΦ".
+      rewrite Hfmap lookup_fmap. destruct (m' !! k) as [[[v t] vl]|]; last done.
       iPureIntro; exists ({[v]} ∪ tset vl t), v, t; set_solver.
     Qed.
 
-    Theorem write_spec (p: loc) (Γ: rw_gname) (q: frac)
-      (k v t: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_map N p Γ -∗
-      <<< ∀∀ m, mut_map m q Γ >>>
-        put #p #k #v #t @ ↑(rw_mapN N)
-      <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
+    Theorem ts_put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
+      (Hrange: INT_MIN < k < INT_MAX) :
+      ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
+        put #p #k #v #t @ ∅
+      <<< ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ, RET #() >>>
       {{{ True }}}.
     Proof.
-      iIntros "[%Γl #Hinv]".
-      iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-      iIntros (Φ) "AU".
-
-      awp_apply put_spec; first done.
+      iIntros (Φ) "AU". awp_apply put_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
-        iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
         iExists m'. iFrame. iIntros. iExists m'. iFrame.
       }
-      iIntros (m) "[Hmap Hmut◯]".
-      iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
+      iIntros (m) "Hmap".
+      iDestruct "Hmap" as (m') "[Hmap %Hfmap]".
       iAaccIntro with "Hmap".
-      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+      { iIntros "?"; iSplitR ""; last by (iModIntro; iIntros). iExists m'; by iFrame. }
       iIntros "Hmap".
 
-      iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
-      { 
-        apply frac_auth_update, (op_local_update_discrete _ _ {[ k := prodZ {[v]} t]}). 
-        destruct ((f_vs <$> m') !! k) eqn:Hopt.
-        + rewrite -(insert_singleton_op_Some_L _ _ _ _ Hopt).
-          by apply insert_valid.
-        + rewrite -(insert_singleton_op _ _ _ Hopt).
-          by apply insert_valid.
-      }
-      do 2 rewrite (comm _ {[k := prodZ {[v]} t]} _).
-      iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
-      { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
-      iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
-      { by apply (frac_auth_update_1 _ _ (to_agree ((f_vs <$> m') ⋅ {[k := prodZ {[v]} t]}))). }
-
-      iModIntro. iExists (case_map m' k v t). iFrame "Hmap". iIntros "Hmap".
-      assert ((f_vs <$> m') ⋅ {[k := prodZ {[v]} t]} = f_vs <$> case_map m' k v t) 
+      iModIntro. iExists (case_map m' k v t). iFrame. iIntros "Hmap".
+      assert (m ⋅ {[k := prodZ {[v]} t]} = f_vs <$> case_map m' k v t) 
         as Heq; last (rewrite Heq; clear Heq).
       { 
-        destruct ((f_vs <$> m') !! k) eqn:Hopt.
+        rewrite Hfmap. destruct ((f_vs <$> m') !! k) eqn:Hopt.
         + rewrite comm_L -(insert_singleton_op_Some_L _ _ _ _ Hopt).
           rewrite lookup_fmap fmap_Some in Hopt; destruct Hopt as [[vt vl] [Hopt Hf]].
           rewrite /case_map Hopt Hf.
@@ -242,10 +223,112 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           rewrite /case_map Hopt fmap_insert.
           rewrite {2}/f_vs //= right_id_L //.
       }
-      iRight. iFrame. iSplitR ""; first (iExists (case_map m' k v t); iFrame).
-      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
+      iRight. iFrame. iSplitR ""; first by (iExists (case_map m' k v t); iFrame).
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ". done.
+    Qed.
+
+    Theorem const_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
+      (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
+      is_map p Γ -∗
+      {{{ const_map m q Γ }}}
+        get #p #k
+      {{{ opt, RET opt; const_map m q Γ ∗ opt_equiv opt (m !! k) }}}.
+    Proof.
+      iIntros "[%Γl #Hinv] %Φ !> Hconst HΦ".
+      iAssert (
+      <<< ∀∀ m, const_map m q Γ >>>
+        get #p #k @ ↑mapN
+      <<< ∃∃ opt, const_map m q Γ, RET opt >>>
+      {{{ opt_equiv opt (m !! k) }}}
+      )%I as "Hread".
+      { 
+        iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+        clear m Φ; iIntros (Φ) "AU".
+
+        awp_apply ts_get_spec; first done.
+        iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+        { 
+          iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+          iExists m'. iFrame. iIntros. iExists m'. iFrame.
+        }
+        iIntros (m) "[Hmap Hagr◯]".
+        iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
+        iAaccIntro with "Hmap".
+        { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+        iIntros (opt) "Hmap".
+
+        iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
+        rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq;
+          rewrite Heq; clear Heq.
+
+        iModIntro. iExists m'. iFrame. iIntros "Hmap".
+        iRight. iExists opt. 
+        iSplitR ""; first (iExists m'; iFrame).
+        iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+        iModIntro. iIntros "?".
+        iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
+      }
+      iDestruct (atomic_wp_seq_step with "Hread") as "Hwp".
+      iApply ("Hwp" with "Hconst [HΦ]").
+      + iNext; iIntros; iApply "HΦ"; by iFrame.
+      + iIntros; iExists m; iFrame; by iIntros.
+    Qed.
+
+    Theorem mut_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
+      (k v t: Z) (Hrange: INT_MIN < k < INT_MAX) :
+      is_map p Γ -∗
+      {{{ mut_map m q Γ }}}
+        put #p #k #v #t
+      {{{ RET #(); mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ }}}.
+    Proof.
+      iIntros "[%Γl #Hinv] %Φ !> Hmut HΦ".
+      iAssert (
+      <<< ∀∀ m, mut_map m q Γ >>>
+        put #p #k #v #t @ ↑mapN
+      <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
+      {{{ True }}}
+      )%I as "Hwrite".
+      {
+        iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
+        clear m Φ; iIntros (Φ) "AU".
+
+        awp_apply ts_put_spec; first done.
+        iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
+        { 
+          iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+          iExists m'. iFrame. iIntros. iExists m'. iFrame.
+        }
+        iIntros (m) "[Hmap Hmut◯]".
+        iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
+        iAaccIntro with "Hmap".
+        { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+        iIntros "Hmap".
+
+        iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
+        { 
+          apply frac_auth_update, (op_local_update_discrete _ _ {[ k := prodZ {[v]} t]}). 
+          destruct (m' !! k) eqn:Hopt.
+          + rewrite -(insert_singleton_op_Some_L _ _ _ _ Hopt).
+            by apply insert_valid.
+          + rewrite -(insert_singleton_op _ _ _ Hopt).
+            by apply insert_valid.
+        }
+        do 2 rewrite (comm _ {[k := prodZ {[v]} t]} _).
+        iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
+        { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
+        iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
+        { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := prodZ {[v]} t]}))). }
+
+        iModIntro. iExists (m' ⋅ {[k := prodZ {[v]} t]}). iFrame. iIntros "Hmap".
+        iRight. iFrame. iSplitR ""; first (iExists (m' ⋅ {[k := prodZ {[v]} t]}); iFrame).
+        iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+        iModIntro. iIntros "_".
+        iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
+      }
+      iDestruct (atomic_wp_seq_step with "Hwrite") as "Hwp".
+      iApply ("Hwp" with "Hmut [HΦ]").
+      + iNext; iIntros; iApply "HΦ"; by iFrame.
+      + iIntros; iExists _; iFrame; by iIntros.
     Qed.
   End proofs.
 End RWSpec.
