@@ -1,6 +1,6 @@
-From SkipList.atomic Require Import proofmode lock.
-
 From iris.heap_lang Require Import notation.
+
+From SkipList.atomic Require Import proofmode lock.
 
 
 Section node_rep.

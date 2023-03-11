@@ -16,11 +16,11 @@ Section proof.
   Definition locked (lk: val) : iProp Σ :=
     ∃ (l: loc), ⌜ lk = #l ⌝ ∗ l ↦{#3 / 4} #true.
 
-  Definition is_lock (lk: val) (R: iProp Σ) : iProp Σ := 
+  Definition lock (lk: val) (R: iProp Σ) : iProp Σ := 
     ∃ (l: loc) (b: bool), ⌜ lk = #l ⌝ ∗ l ↦{#1 / 4} #b ∗ 
       if b then True else l ↦{#3 / 4} #false ∗ R.
 
-  Global Instance is_lock_timeless lk R `{!Timeless R} : Timeless (is_lock lk R).
+  Global Instance lock_timeless lk R `{!Timeless R} : Timeless (lock lk R).
   Proof.
     do 2 (apply exist_timeless; intros ?).
     do 2 (apply sep_timeless; first apply _).
@@ -28,7 +28,7 @@ Section proof.
   Qed.
 
   Lemma newlock_spec (R : iProp Σ) :
-    {{{ R }}} newlock #() {{{ lk, RET lk; is_lock lk R }}}.
+    {{{ R }}} newlock #() {{{ lk, RET lk; lock lk R }}}.
   Proof.
     iIntros (Φ) "HR HΦ". wp_lam. wp_alloc l as "Hl".
     rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl1 & Hl2)".
@@ -36,8 +36,8 @@ Section proof.
   Qed.
 
   Lemma try_acquire_spec (lk: val) (R : iProp Σ) :
-    ⊢ <<< is_lock lk R >>> try_acquire lk @ ∅
-    <<< ∃∃ b, is_lock lk R, RET #b >>>
+    ⊢ <<< lock lk R >>> try_acquire lk @ ∅
+    <<< ∃∃ b, lock lk R, RET #b >>>
     {{{ if b is true then locked lk ∗ R else True }}}.
   Proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
@@ -60,8 +60,8 @@ Section proof.
   Qed.
 
   Lemma acquire_spec (lk: val) (R : iProp Σ) :
-    ⊢ <<< is_lock lk R >>> acquire lk @ ∅ 
-    <<< is_lock lk R, RET #() >>>
+    ⊢ <<< lock lk R >>> acquire lk @ ∅ 
+    <<< lock lk R, RET #() >>>
     {{{ locked lk ∗ R }}}.
   Proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
@@ -82,8 +82,8 @@ Section proof.
 
   Lemma release_spec (lk: val) (R : iProp Σ) :
     locked lk -∗ R -∗
-    <<< is_lock lk R >>> release lk @ ∅
-    <<< is_lock lk R, RET #() >>>
+    <<< lock lk R >>> release lk @ ∅
+    <<< lock lk R, RET #() >>>
     {{{ True }}}.
   Proof.
     iIntros "Hlocked HR" (Φ) "AU"; rewrite difference_empty_L.

@@ -49,33 +49,33 @@ Section Proofs.
     {
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
+      iIntros "Hmut1". iModIntro. iExists _. iFrame "Hmut1".
       iIntros "Hmut1 _". iModIntro. wp_pures.
 
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
+      iIntros "Hmut1". iModIntro. iExists _. iFrame "Hmut1".
       iIntros "Hmut1 _". iModIntro. wp_pures.
 
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
+      iIntros "Hmut1". iModIntro. iExists _. iFrame "Hmut1".
       by iIntros.
     }
     {
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
+      iIntros "Hmut2". iModIntro. iExists _. iFrame "Hmut2".
       iIntros "Hmut2 _". iModIntro. wp_pures.
 
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
+      iIntros "Hmut2". iModIntro. iExists _. iFrame "Hmut2".
       iIntros "Hmut2 _". iModIntro. wp_pures.
 
       awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
+      iIntros "Hmut2". iModIntro. iExists _. iFrame "Hmut2".
       by iIntros.
     }
     iIntros (? ?) "Hmut". rewrite ?left_id_L.
@@ -92,9 +92,8 @@ Section Proofs.
     {
       awp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hconst1"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros (opt) "[Hconst1 %Hopt]". iModIntro. iExists _, _. iFrame "Hconst1".
-      iIntros "_ _"; iPureIntro.
-      destruct Hopt as (vs & v & t & Hprod & Hin & Hopt).
+      iIntros (opt) "Hconst1". iModIntro. iExists _. iFrame "Hconst1". iIntros "_ Hopt".
+      iDestruct "Hopt" as (vs v t) "(%Hprod & %Hin & %Hopt)". iPureIntro.
       rewrite argmax_eq in Hprod; inversion Hprod; subst.
       rewrite elem_of_union ?elem_of_singleton in Hin.
       destruct Hin; subst; first (by left); last (by right).
@@ -102,9 +101,8 @@ Section Proofs.
     {
       awp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hconst2"; first (iIntros "?"; iModIntro; iFrame).
-      iIntros (opt) "[Hconst2 %Hopt]". iModIntro. iExists _, _. iFrame "Hconst2".
-      iIntros "_ _"; iPureIntro.
-      destruct Hopt as (vs & v & t & Hprod & Hin & Hopt).
+      iIntros (opt) "Hconst2". iModIntro. iExists _. iFrame "Hconst2". iIntros "_ Hopt".
+      iDestruct "Hopt" as (vs v t) "(%Hprod & %Hin & %Hopt)". iPureIntro.
       rewrite comm_L argmax_lt // in Hprod; inversion Hprod; subst.
       rewrite elem_of_singleton in Hin; by subst.
     }

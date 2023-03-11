@@ -51,13 +51,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         iMod (own_alloc (● ∅ ⋅ ◯ ∅))
           as (γauth) "[Hauth _]";
           first by apply auth_both_valid.
-        iMod (own_alloc (GSet ∅ ⋅ ZRange (node_key head) (node_key tail)))
-          as (γdisj) "[Hdisj Hkeys]";
-          first by (pose HMIN_MAX; rewrite Hmin ZRange_disj).
         iMod (own_alloc (● GSet ∅ ⋅ ◯ GSet ∅))
           as (γtoks) "[Htoks _]"; 
           first by apply auth_both_valid.
-        set (Γ := mk_lazy_gname γauth γdisj γtoks).
+        iMod (own_alloc (GSet ∅ ⋅ ZRange (node_key head) (node_key tail)))
+          as (γsort) "[Hsort Hkeys]";
+          first by (pose HMIN_MAX; rewrite Hmin ZRange_disj).
+        set (Γ := mk_lazy_gname γauth γsort γtoks).
 
         iDestruct ("Himp" $! (lvl + 1) (<[lvl := Γ]>mΓ) with "[] [] Hnexts Hlocks [-]")
           as "Hskip'"; first (iPureIntro; lia); first (iPureIntro; lia);
@@ -103,14 +103,13 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iMod (own_alloc (● ∅ ⋅ ◯ ∅))
         as (γauth) "[Hauth _]";
         first by apply auth_both_valid.
-      iMod (own_alloc (GSet ∅ ⋅ ZRange (node_key head) (node_key tail)))
-        as (γdisj) "[Hdisj Hkeys]";
-          
-        first by (pose HMIN_MAX; rewrite ZRange_disj).
       iMod (own_alloc (● GSet ∅ ⋅ ◯ GSet ∅))
         as (γtoks) "[Htoks _]"; 
         first by apply auth_both_valid.
-      set (Γ := mk_lazy_gname γauth γdisj γtoks).
+      iMod (own_alloc (GSet ∅ ⋅ ZRange (node_key head) (node_key tail)))
+        as (γsort) "[Hsort Hkeys]";
+        first by (pose HMIN_MAX; rewrite ZRange_disj).
+      set (Γ := mk_lazy_gname γauth γsort γtoks).
 
       replace MAX_HEIGHT with (MAX_HEIGHT + 1 - 1) by lia.
       iMod (alloc_levels 1 head t {[ 0 := Γ ]} with "Ht Hnexts Hlocks []") 

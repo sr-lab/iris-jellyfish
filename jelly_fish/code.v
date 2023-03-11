@@ -110,15 +110,21 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition get : val :=
     λ: "p" "k", findAll !"p" "k" #MAX_HEIGHT.
 
-  Definition insert : val :=
-    λ: "pred" "lvl" "n",
-      let: "k" := nodeKey !"n" in
-      let: "pair" := findLock "pred" "k" "lvl" in
-      let: "pred" := Fst "pair" in
-      let: "lock" := nodeLock "pred" +ₗ "lvl" in
-        nodeNext !"n" +ₗ "lvl" <- !(nodeNext "pred" +ₗ "lvl");;
-        nodeNext "pred" +ₗ "lvl" <- "n";;
-        release "lock".
+  Definition createAndLink : val :=
+    λ: "pred" "k" "v" "t" "h",
+      let: "nexts" := AllocN ("h" + #1) #() in
+      let: "locks" := AllocN ("h" + #1) #false in
+      let: "val" := ref ("v", "t", #dummy_null) in
+      let: "n" := ref ("k", "val", "nexts", "locks") in
+        nodeNext !"n" <- !(nodeNext "pred");;
+        nodeNext "pred" <- "n";;
+        "n".
+  
+  Definition update : val :=
+    λ: "node" "v" "t",
+      let: "val" := !(nodeVal "node") in
+        if: "t" < valT "val" then #()
+        else nodeVal "node" <- ("v", "t", ref "val").
 
   Definition tryInsert : val :=
     λ: "pred" "k" "v" "t" "h",
@@ -128,22 +134,23 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "lock" := nodeLock "pred" in
         if: "k" = nodeKey "succ"
         (* Update existing node *)
-        then let: "val" := !(nodeVal "succ") in
-               if: "t" < valT "val"
-               then release "lock";;
-                    NONEV
-               else nodeVal "succ" <- ("v", "t", ref "val");;
-                    release "lock";;
-                    NONEV
+        then update "succ" "v" "t";;
+             release "lock";;
+             NONEV
         (* Allocate and insert new node *)
-        else let: "nexts" := AllocN ("h" + #1) #() in
-             let: "locks" := AllocN ("h" + #1) #false in
-             let: "val" := ref ("v", "t", #dummy_null) in
-             let: "n" := ref ("k", "val", "nexts", "locks") in
-               nodeNext !"n" <- !(nodeNext "pred");;
-               nodeNext "pred" <- "n";;
+        else let: "n" := createAndLink "pred" "k" "v" "t" "h" in
                release "lock";;
                SOME "n".
+
+  Definition insert : val :=
+    λ: "pred" "lvl" "n",
+      let: "k" := nodeKey !"n" in
+      let: "pair" := findLock "pred" "k" "lvl" in
+      let: "pred" := Fst "pair" in
+      let: "lock" := nodeLock "pred" +ₗ "lvl" in
+        nodeNext !"n" +ₗ "lvl" <- !(nodeNext "pred" +ₗ "lvl");;
+        nodeNext "pred" +ₗ "lvl" <- "n";;
+        release "lock".
 
   Definition findLevel : val :=
     rec: "find" "pred" "k" "lvl" "h" :=
@@ -167,7 +174,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition putH : val :=
     λ: "p" "k" "v" "t" "h",
       let: "pred" := findLevel !"p" "k" #MAX_HEIGHT "h" in
-        insertAll "pred" "k" "v" "t" "h" "h".
+      let: "_" := insertAll "pred" "k" "v" "t" "h" "h" in #().
 
   (* Base HeapLang does not support randomness... *)
   Definition randomLevel : val :=
@@ -176,7 +183,6 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
   Definition put : val :=
     λ: "p" "k" "v" "t",
       let: "h" := randomLevel #() in
-      let: "_" := putH "p" "k" "v" "t" "h" in
-        #().
+        putH "p" "k" "v" "t" "h".
 
 End SkipList.

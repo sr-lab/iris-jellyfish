@@ -1,11 +1,10 @@
-From SkipList.atomic Require Import proofmode lock weakestpre.
+From iris.algebra Require Import auth gset.
+From iris.heap_lang Require Import notation.
+
 From SkipList.lib Require Import zrange.
+From SkipList.atomic Require Import weakestpre proofmode lock.
 From SkipList.lazy_list Require Import code inv.
 From SkipList.lazy_list.spec Require Import find.
-
-From iris.algebra Require Import auth gset.
-From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import notation.
 
 
 Module LASpec (Params: LAZY_LIST_PARAMS).

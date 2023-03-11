@@ -1,10 +1,10 @@
-From SkipList.atomic Require Import proofmode weakestpre.
-From SkipList.lazy_list Require Import code inv.
-From SkipList.lazy_list.spec Require Import spec.
-
 From iris.algebra Require Import frac_auth gset.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation.
+
+From SkipList.atomic Require Import proofmode weakestpre.
+From SkipList.lazy_list Require Import code inv.
+From SkipList.lazy_list.spec Require Import spec.
 
 
 Class rwG Σ := RWG { 

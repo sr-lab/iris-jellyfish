@@ -89,7 +89,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ (m: gmap Z (tval * list tval)), vc_map p m mΓ >>>
+      ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
         get #p #k @ ∅
       <<< vc_map p m mΓ, RET opt_to_val (m !! k) >>>
       {{{ True }}}.

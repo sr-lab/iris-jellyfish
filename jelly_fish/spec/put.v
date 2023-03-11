@@ -202,18 +202,14 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
       ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
         putH #p #k #v #t #h @ ∅
-      <<< ∃∃ opt, vc_map p (case_map m k v t) mΓ, RET opt >>>
+      <<< vc_map p (case_map m k v t) mΓ, RET #() >>>
       {{{
         match m !! k with
-        | None => ∃ (n: loc) (node: node_rep),
-                    ⌜ opt = SOMEV #n ⌝
-                    ∗
-                    n ↦□ rep_to_node node
-                    ∗ 
+        | None => ∃ (node: node_rep),
                     ⌜ node_key node = k ⌝
                     ∗
                     has_sub (mΓ !!! h) node
-        | Some _ => ⌜ opt = NONEV ⌝
+        | Some _ => True
         end
       }}}.
     Proof.
@@ -263,14 +259,16 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iIntros (opt node) "Hskip". iModIntro.
       iExists (case_set S node m k), (case_map m k v t).
       iFrame "Hskip". iIntros "Hskip".
-      iRight. iExists opt. iSplitR "".
+      iRight. iSplitR "".
       { iExists head, (case_set S node m k); by iFrame "# ∗". }
       clear dependent S. iIntros "AP".
       iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "Hopt". iApply "HΦ".
+      iModIntro. iIntros "Hopt".
+      iModIntro. wp_pures.
+      rewrite difference_empty_L. iApply "HΦ".
       destruct (m !! k); first done.
-      iDestruct "Hopt" as (n) "(?&?&?&_&_&?)".
-      iExists n, node. iFrame.
+      iDestruct "Hopt" as (n) "(_&_&?&_&_&?)".
+      iExists node. iFrame.
     Qed.
 
     Theorem put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
@@ -281,20 +279,18 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       {{{ True }}}.
     Proof.
       iIntros (Φ) "AU". pose proof HMAX_HEIGHT.
-      wp_lam. wp_pures. wp_lam. wp_pures.
+      wp_lam; wp_pures; wp_lam; wp_pures.
       awp_apply (putH_spec); try lia.
       iApply (aacc_aupd_eq with "AU"); try done.
       iIntros (m) "Hmap"; iAaccIntro with "Hmap".
       { iIntros; iModIntro; iFrame; by iIntros. }
-      iIntros (opt) "Hmap". iModIntro.
+      iIntros "Hmap". iModIntro.
       iExists (case_map m k v t).
       iFrame "Hmap". iIntros "Hmap".
       iRight. iFrame "Hmap".
       iIntros "AP".
       iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro. iIntros "_".
-      iModIntro. wp_pures.
-      rewrite difference_empty_L.
       by iApply "HΦ".
     Qed.
   End Proofs.

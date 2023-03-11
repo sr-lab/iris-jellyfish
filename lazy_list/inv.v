@@ -1,10 +1,9 @@
-From SkipList.atomic Require Import proofmode lock.
-From SkipList.lib Require Import zrange.
-From SkipList.lazy_list Require Import code.
-
 From iris.algebra Require Import auth gset.
-From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation.
+
+From SkipList.lib Require Import zrange.
+From SkipList.atomic Require Import proofmode lock.
+From SkipList.lazy_list Require Import code.
 
 
 Class lazyG Σ := LazyG { 
@@ -38,7 +37,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     Definition in_lock (pred: node_rep) : iProp Σ := 
       ∃ (succ: node_rep), node_next pred ↦{#1 / 2} rep_to_node succ.
     Definition has_lock (pred: node_rep) : iProp Σ := 
-      is_lock #(node_lock pred) (in_lock pred).
+      lock #(node_lock pred) (in_lock pred).
 
     (* Lazy list resources *)
     Definition lazy_list (head: node_rep) (S: gset node_rep) (Γ: lazy_gname) : iProp Σ :=

@@ -1,11 +1,11 @@
+From iris.algebra Require Import frac_auth gmap.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation.
+
 From SkipList.lib Require Import argmax gmap.
 From SkipList.atomic Require Import proofmode weakestpre.
 From SkipList.jelly_fish Require Import code inv.
 From SkipList.jelly_fish.spec Require Import new get put.
-
-From iris.algebra Require Import frac_auth gmap.
-From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import notation.
 
 
 Class rwG Σ := RWG { 
@@ -53,14 +53,14 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Proof. iIntros "(Hmut1 & Hmut2)"; by iCombine "Hmut1 Hmut2" as "Hmut". Qed.
 
     (* Definitions to construct the abstract map from the physical map*)
-    Fixpoint vs_to_set (vl: list tval) (t: Z) : gset Z :=
+    Fixpoint tset (vl: list tval) (t: Z) : gset Z :=
       match vl with
       | nil => ∅
       | vt :: vl => if (decide (vt.2 < t)) then ∅
-                   else {[vt.1]} ∪ vs_to_set vl t
+                   else {[vt.1]} ∪ tset vl t
       end.
     Definition f_vs (vt: tval * list tval) : argmax Z := 
-      prodZ ({[vt.1.1]} ∪ vs_to_set vt.2 vt.1.2) vt.1.2.
+      prodZ ({[vt.1.1]} ∪ tset vt.2 vt.1.2) vt.1.2.
 
     (* Invariant concealing the abstract state of the full map *)
     Definition map_inv (p: loc) (mΓ: gmap Z lazy_gname) (Γ: rw_gname) : iProp Σ :=
@@ -136,20 +136,20 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Context `{!heapGS Σ, !rwG Σ} (N: namespace).
     Local Open Scope Z.
 
-    Definition opt_equiv (ret: val) (opt: option (argmax Z)) : iProp Σ :=
+    Definition opt_equiv ret opt : iProp Σ :=
       match opt with
       | None => ⌜ ret = NONEV ⌝
       | Some vt => ∃ (vs: gset Z) (v t: Z), 
                      ⌜ vt = prodZ vs t ⌝ ∗ ⌜ v ∈ vs ⌝ ∗ ⌜ ret = SOMEV (#v, #t) ⌝
       end.
 
-    Theorem read_spec (p: loc) (Γ: rw_gname)
+    Theorem read_spec (p: loc) (Γ: rw_gname) (q: frac)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_map N p Γ -∗
-      <<< ∀∀ m q, const_map m q Γ >>>
+      <<< ∀∀ m, const_map m q Γ >>>
         get #p #k @ ↑(rw_mapN N)
-      <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
-      {{{ True }}}.
+      <<< ∃∃ opt, const_map m q Γ, RET opt >>>
+      {{{ opt_equiv opt (m !! k) }}}.
     Proof.
       iIntros "[%Γl #Hinv]".
       iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
@@ -158,10 +158,10 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       awp_apply get_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
-        iIntros "!> %m %q [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
         iExists m'. iFrame. iIntros. iExists m'. iFrame.
       }
-      iIntros (m q) "[Hmap Hagr◯]".
+      iIntros (m) "[Hmap Hagr◯]".
       iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
       iAaccIntro with "Hmap".
       { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
@@ -173,23 +173,18 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
       iModIntro. iExists m'. iFrame. iIntros "Hmap".
       iRight. iExists (opt_to_val (m' !! k)). 
-      iSplitR ""; first iSplitR ""; first (iExists m'; iFrame).
-      {
-        rewrite lookup_fmap. 
-        destruct (m' !! k) as [[[v t] vl]|]; last done.
-        simpl. iExists ({[v]} ∪ vs_to_set vl t), v, t.
-        iSplit; first done. iSplit; last done.
-        iPureIntro; set_solver.
-      }
+      iSplitR ""; first (iExists m'; iFrame).
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+      iApply fupd_mask_mono; last iApply "HΦ"; first solve_ndisj.
+      rewrite lookup_fmap. destruct (m' !! k) as [[[v t] vl]|]; last done.
+      iPureIntro; exists ({[v]} ∪ tset vl t), v, t; set_solver.
     Qed.
 
-    Theorem write_spec (p: loc) (Γ: rw_gname)
+    Theorem write_spec (p: loc) (Γ: rw_gname) (q: frac)
       (k v t: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_map N p Γ -∗
-      <<< ∀∀ m q, mut_map m q Γ >>>
+      <<< ∀∀ m, mut_map m q Γ >>>
         put #p #k #v #t @ ↑(rw_mapN N)
       <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
       {{{ True }}}.
@@ -201,10 +196,10 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       awp_apply put_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
-        iIntros "!> %m %q [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
+        iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
         iExists m'. iFrame. iIntros. iExists m'. iFrame.
       }
-      iIntros (m q) "[Hmap Hmut◯]".
+      iIntros (m) "[Hmap Hmut◯]".
       iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
       iAaccIntro with "Hmap".
       { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
@@ -250,7 +245,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iRight. iFrame. iSplitR ""; first (iExists (case_map m' k v t); iFrame).
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+      iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
     Qed.
   End proofs.
 End RWSpec.

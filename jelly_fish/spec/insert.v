@@ -67,7 +67,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       wp_bind (Store _ _). iMod "AU" as (S) "[Hlazy [_ Hclose]]".
       iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
 
       iAssert ⌜ node_key new ≠ node_key succ ⌝%I as %Hneq.
       {
@@ -97,8 +97,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
       rewrite (ZRange_split (node_key new)); last lia.
       iDestruct "Hkeys" as "((Hkeys & Hkey) & Hkeys')".
-      iDestruct (own_valid_2 with "Hdisj Hkey") as %Hdisj%gset_disj_valid_op.
-      iCombine "Hdisj Hkey" as "Hdisj"; rewrite gset_disj_union //.
+      iDestruct (own_valid_2 with "Hsort Hkey") as %Hdisj%gset_disj_valid_op.
+      iCombine "Hsort Hkey" as "Hsort"; rewrite gset_disj_union //.
 
       iMod (own_update with "Htoks") as "[Htoks Htok]".
       { by apply auth_update_alloc, (gset_disj_alloc_op_local_update _ _ {[ node_key new ]}). }
@@ -196,14 +196,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hsucc'" as "[->|Hsucc']".
         { rewrite /node_key/tail/= in Heq; lia. }
         iDestruct "Hsucc'" as (val) "Hvpt".
-        wp_lam; wp_pures.
+        wp_lam; wp_pures; wp_lam; wp_pures.
 
         (* We start the case analysis here, since it's easier to use the load
         operation as the linearisation point for when no update occurs. *)
         destruct (decide (t < (val_vt val).2)) as [Ht|Ht].
         - (* The key already exists with a more recent timestamp*)
           wp_bind (Load _). iMod "AU" as (S m) "[[Hlazy Hmap] [_ Hclose]]".
-          iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & _)".
+          iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & _)".
           iDestruct (own_valid_2 with "Hauth Hsucc") 
             as %[?%gset_included]%auth_both_valid_discrete.
           iDestruct "Hmap" as (γ) "(%Hdom & Hgmap & Hvals)".
@@ -225,6 +225,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iModIntro. wp_pures; wp_lam; wp_pures.
           case_bool_decide as Ht'; wp_if; last first.
           { unfold val_vt in Ht; unfold val_t in Ht'; lia. }
+          wp_pures.
 
           clear dependent S m γ vl.
           iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
@@ -257,7 +258,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           rewrite (fold_rep_to_val val').
 
           wp_bind (Store _ _). iMod "AU" as (S m) "[[Hlazy Hmap] [_ Hclose]]".
-          iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & _)".
+          iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & _)".
           iDestruct (own_valid_2 with "Hauth Hsucc") 
             as %[?%gset_included]%auth_both_valid_discrete.
           iDestruct "Hmap" as (γ) "(%Hdom & Hgmap & Hvals)".
@@ -307,6 +308,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iModIntro. iIntros "_". iModIntro. wp_pures. by iApply "HΦ".
       + (* The key does not exists in the map *)
         assert (k ≠ node_key succ) by congruence.
+        wp_lam; wp_pures.
         
         wp_alloc next as "Hnexts"; first lia. wp_let.
         wp_alloc lock as "Hlocks"; first lia. wp_let.
@@ -316,7 +318,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hlocks" as "[Hlock Hls]".
 
         wp_alloc vpt as "[Hvpt Hvpt']". wp_let.
-        wp_alloc n as "Hn". iMod (mapsto_persist with "Hn") as "#Hn". wp_let.
+        wp_alloc n as "Hn". wp_let. iMod (mapsto_persist with "Hn") as "#Hn".
         set (val := (v, t, dummy_null)); set (new := (k, vpt, next, lock)).
         rewrite (fold_rep_to_val val) (fold_rep_to_node new).
 
@@ -326,7 +328,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
         wp_bind (Store _ _). iMod "AU" as (S m) "[[Hlazy Hmap] [_ Hclose]]".
         iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
-        iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & _)".
+        iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & _)".
 
         rewrite (big_sepS_delete (has_next _ _) _ pred) //.
         iDestruct "Hnexts" as "[Hpt' Hnexts]".
@@ -345,8 +347,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         rewrite (ZRange_split (node_key new)); last first.
         { replace (node_key new) with k by auto; lia. }
         iDestruct "Hkeys" as "((Hkeys & Hkey) & Hkeys')".
-        iDestruct (own_valid_2 with "Hdisj Hkey") as %Hdisj%gset_disj_valid_op.
-        iCombine "Hdisj Hkey" as "Hdisj"; rewrite gset_disj_union //.
+        iDestruct (own_valid_2 with "Hsort Hkey") as %Hdisj%gset_disj_valid_op.
+        iCombine "Hsort Hkey" as "Hsort"; rewrite gset_disj_union //.
 
         iMod (own_update with "Htoks") as "[Htoks Htok]".
         { by apply auth_update_alloc, (gset_disj_alloc_op_local_update _ _ {[ node_key new ]}). }

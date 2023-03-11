@@ -12,14 +12,14 @@ Definition tval : Type := Z * Z.
 
 Class skipG Σ := SkipG { 
   skip_authG :> inG Σ (authR (gset node_rep));
-  skip_disjG :> inG Σ (gset_disjR Z);
+  skip_sortG :> inG Σ (gset_disjR Z);
   skip_toksG :> inG Σ (authR (gset_disjR Z));
   skip_gmapG :> ghost_mapG Σ Z (tval * list tval)
 }.
 
 Record lazy_gname := mk_lazy_gname {
   auth_gname: gname;
-  disj_gname: gname;
+  sort_gname: gname;
   toks_gname: gname
 }.
 (* Necessary to support total lookup (m !!! k) *)
@@ -36,66 +36,66 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Local Open Scope Z.
 
     (* Successor chain *)
-    Definition has_next (lvl: Z) (Γ: lazy_gname) (pred: node_rep) : iProp Σ :=
-      ∃ (s: loc) (succ: node_rep), 
-        (node_next pred +ₗ lvl) ↦{#1 / 2} #s
+    Definition has_next (lvl: Z) (Γ: lazy_gname) (n: node_rep) : iProp Σ :=
+      ∃ (p: loc) (s: node_rep), 
+        (node_next n +ₗ lvl) ↦{#1 / 2} #p
         ∗
-        s ↦□ rep_to_node succ
+        p ↦□ rep_to_node s
         ∗
-        (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
+        (⌜ s = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[s]}))
         ∗
-        own Γ.(disj_gname) (ZRange (node_key pred) (node_key succ)).
+        own Γ.(sort_gname) (ZRange (node_key n) (node_key s)).
 
     (* Lock resources *)
-    Definition locked_val (lvl: Z) (s: loc) : iProp Σ := 
+    Definition locked_val (lvl: Z) (p: loc) : iProp Σ := 
       if decide (lvl = 0) then 
-        (∃ (succ: node_rep), s ↦□ rep_to_node succ ∗
-        (⌜ succ = tail ⌝ ∨ ∃ (val: val_rep), node_val succ ↦{#1 / 2} rep_to_val val))%I
+        (∃ (s: node_rep), p ↦□ rep_to_node s ∗
+        (⌜ s = tail ⌝ ∨ ∃ (v: val_rep), node_val s ↦{#1 / 2} rep_to_val v))%I
       else True%I.
-    Definition in_lock (lvl: Z) (pred: node_rep) : iProp Σ := 
-      ∃ (s: loc), (node_next pred +ₗ lvl) ↦{#1 / 2} #s ∗ locked_val lvl s.
-    Definition has_lock (lvl: Z) (pred: node_rep) : iProp Σ := 
-      is_lock #(node_lock pred +ₗ lvl) (in_lock lvl pred).
+    Definition in_lock (lvl: Z) (n: node_rep) : iProp Σ := 
+      ∃ (p: loc), (node_next n +ₗ lvl) ↦{#1 / 2} #p ∗ locked_val lvl p.
+    Definition has_lock (lvl: Z) (n: node_rep) : iProp Σ := 
+      lock #(node_lock n +ₗ lvl) (in_lock lvl n).
 
     (* Sublist resources *)
-    Definition has_sub (γ: lazy_gname) (node: node_rep) : iProp Σ :=
-      own γ.(auth_gname) (◯ {[ node ]})
+    Definition has_sub (γ: lazy_gname) (n: node_rep) : iProp Σ :=
+      own γ.(auth_gname) (◯ {[ n ]})
       ∗
-      own γ.(toks_gname) (◯ GSet {[ node_key node ]}).
+      own γ.(toks_gname) (◯ GSet {[ node_key n ]}).
 
     (* Lazy list resources for a given level *)
-    Definition lazy_list (head: node_rep) (S: gset node_rep)
+    Definition lazy_list (h: node_rep) (S: gset node_rep)
       (Γ: lazy_gname) (γ: option lazy_gname) (lvl: Z) : iProp Σ :=
       own Γ.(auth_gname) (● S)
       ∗
-      own Γ.(disj_gname) (GSet (set_map node_key S))
-      ∗
       own Γ.(toks_gname) (● GSet (set_map node_key S))
       ∗
-      ([∗ set] n ∈ {[head]} ∪ S, has_next lvl Γ n)
+      own Γ.(sort_gname) (GSet (set_map node_key S))
       ∗
-      ([∗ set] n ∈ {[head]} ∪ S, has_lock lvl n)
+      ([∗ set] n ∈ {[h]} ∪ S, has_next lvl Γ n)
+      ∗
+      ([∗ set] n ∈ {[h]} ∪ S, has_lock lvl n)
       ∗
       match γ with None => True | Some γ => [∗ set] n ∈ S, has_sub γ n end.
 
     (* Vertical list resources *)
-    Fixpoint vertical_list (vl: list tval) (p: loc) : iProp Σ := 
+    Fixpoint vertical_list (p: loc) (vl: list tval) : iProp Σ := 
       match vl with
       | nil => ⌜ p = dummy_null ⌝
-      | vt :: vl => ∃ (n: loc), p ↦□ rep_to_val (vt, n)%core ∗ vertical_list vl n
+      | vt :: vl => ∃ (n: loc), p ↦□ rep_to_val (vt, n)%core ∗ vertical_list n vl
       end.
-    Definition has_val (γ: gname) (node: node_rep) : iProp Σ :=
-      ∃ (val: val_rep) (vl: list tval),
-        node_val node ↦{#1 / 2} rep_to_val val
+    Definition has_val (γ: gname) (n: node_rep) : iProp Σ :=
+      ∃ (v: val_rep) (vl: list tval),
+        node_val n ↦{#1 / 2} rep_to_val v
         ∗
-        node_key node ↪[γ] (val_vt val, vl)
+        node_key n ↪[γ] (val_vt v, vl)
         ∗
-        vertical_list vl (val_p val).
+        vertical_list (val_p v) vl.
 
     (* JellyFish map resources *)
-    Definition jf_map (head: node_rep) (S: gset node_rep) 
+    Definition jf_map (h: node_rep) (S: gset node_rep) 
       (m: gmap Z (tval * list tval)) (Γ: lazy_gname) : iProp Σ :=
-      lazy_list head S Γ None 0
+      lazy_list h S Γ None 0
       ∗
       ∃ (γ: gname),
         ⌜ dom m = set_map node_key S ⌝
@@ -105,28 +105,28 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         [∗ set] n ∈ S, has_val γ n.
 
     (* Skip list resources *)
-    Definition is_lazy_list (head: node_rep) (Γ: lazy_gname)
+    Definition is_lazy_list (h: node_rep) (Γ: lazy_gname)
       (γ: lazy_gname) (lvl: Z) : iProp Σ :=
-      ∃ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl.
-    Definition jelly_fish (head: node_rep) (S: gset node_rep)
+      ∃ (S: gset node_rep), lazy_list h S Γ (Some γ) lvl.
+    Definition jelly_fish (h: node_rep) (S: gset node_rep)
       (m: gmap Z (tval * list tval)) (mΓ: gmap Z lazy_gname) : iProp Σ :=
-      jf_map head S m (mΓ !!! 0)
+      jf_map h S m (mΓ !!! 0)
       ∗
       [∗ set] i ∈ zrange 0 (MAX_HEIGHT + 1), 
-        is_lazy_list head (mΓ !!! i) (mΓ !!! (i - 1)) i.
+        is_lazy_list h (mΓ !!! i) (mΓ !!! (i - 1)) i.
 
     (* Representation predicate for maps with version control *)
     Definition vc_map (p: loc) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) : iProp Σ :=
-      ∃ (head: node_rep) (S: gset node_rep),
-        p ↦□ rep_to_node head
+      ∃ (h: node_rep) (S: gset node_rep),
+        p ↦□ rep_to_node h
         ∗
-        ⌜ node_key head = INT_MIN ⌝
+        ⌜ node_key h = INT_MIN ⌝
         ∗
-        jelly_fish head S m mΓ.
+        jelly_fish h S m mΓ.
 
     (* Needed for [vc_map] to be timeless *)
-    Global Instance vl_timeless vl p : Timeless (vertical_list vl p).
+    Global Instance vl_timeless vl p : Timeless (vertical_list p vl).
     Proof. revert p; induction vl; apply _. Qed.
     Global Instance locked_val_timeless i l : Timeless (locked_val i l).
     Proof. unfold locked_val; case_decide; apply _. Qed.
@@ -143,52 +143,52 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ⌜ n ∈ {[s]} ∪ S ⌝.
     Proof.
       iIntros "Hnode Hlazy".
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
       iDestruct "Hnode" as "[->|Hnode]"; first (iPureIntro; set_solver).
       iDestruct (own_valid_2 with "Hauth Hnode") 
         as %[?%gset_included]%auth_both_valid_discrete.
       iPureIntro; set_solver.
     Qed.
 
-    Lemma node_has_next (head pred: node_rep) (S: gset node_rep) (Γ: lazy_gname)
+    Lemma node_has_next (h n: node_rep) (S: gset node_rep) (Γ: lazy_gname)
       (γ: option lazy_gname) (lvl: Z) :
-      ⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}) -∗
-      lazy_list head S Γ γ lvl -∗
-        ∃ (s: loc) (succ: node_rep), 
-          (node_next pred +ₗ lvl) ↦{#1 / 2} #s
+      ⌜ n = h ⌝ ∨ own Γ.(auth_gname) (◯ {[n]}) -∗
+      lazy_list h S Γ γ lvl -∗
+        ∃ (p: loc) (s: node_rep), 
+          (node_next n +ₗ lvl) ↦{#1 / 2} #p
           ∗
-          s ↦□ rep_to_node succ
+          p ↦□ rep_to_node s
           ∗
-          (⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}))
+          (⌜ s = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[s]}))
           ∗
-          ⌜ set_map node_key S ## zrange (node_key pred) (node_key succ) ⌝
+          ⌜ set_map node_key S ## zrange (node_key n) (node_key s) ⌝
           ∗
-          ((node_next pred +ₗ lvl) ↦{#1 / 2} #s -∗ lazy_list head S Γ γ lvl).
+          ((node_next n +ₗ lvl) ↦{#1 / 2} #p -∗ lazy_list h S Γ γ lvl).
     Proof.
-      iIntros "#Hpred Hlazy".
-      iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
-      rewrite (big_sepS_delete (has_next lvl Γ) _ pred) //.
+      iIntros "#Hn Hlazy".
+      iDestruct (singleton_frag_in with "Hn Hlazy") as %Hn.
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
+      rewrite (big_sepS_delete (has_next lvl Γ) _ n) //.
       iDestruct "Hnexts" as "(Hnext & Hnexts)".
-      iDestruct "Hnext" as (s succ) "(Hnext & #Hs & #Hsucc & Hkeys)".
-      iDestruct (own_valid_2 with "Hdisj Hkeys") as %[Hdisj _]%ZRange_disj.
+      iDestruct "Hnext" as (p s) "(Hnext & #Hp & #Hs & Hkeys)".
+      iDestruct (own_valid_2 with "Hsort Hkeys") as %[Hdisj _]%ZRange_disj.
 
-      iExists s, succ; iFrame "# ∗"; iSplit; first done. iIntros "Hnext". 
-      iAssert (has_next lvl Γ pred) with "[Hnext Hkeys]" as "Hnext".
-      { iExists s, succ; iFrame "# ∗". }
+      iExists p, s; iFrame "# ∗"; iSplit; first done. iIntros "Hnext". 
+      iAssert (has_next lvl Γ n) with "[Hnext Hkeys]" as "Hnext".
+      { iExists p, s; iFrame "# ∗". }
       iCombine "Hnext Hnexts" as "Hnexts"; rewrite -big_sepS_delete //.
     Qed.
 
-    Lemma node_has_lock (head node: node_rep) (S: gset node_rep) (Γ: lazy_gname)
+    Lemma node_has_lock (h n: node_rep) (S: gset node_rep) (Γ: lazy_gname)
       (γ: option lazy_gname) (lvl: Z) :
-      ⌜ node = head ⌝ ∨ own Γ.(auth_gname) (◯ {[node]}) -∗
-      lazy_list head S Γ γ lvl -∗
-        has_lock lvl node ∗ (has_lock lvl node -∗ lazy_list head S Γ γ lvl).
+      ⌜ n = h ⌝ ∨ own Γ.(auth_gname) (◯ {[n]}) -∗
+      lazy_list h S Γ γ lvl -∗
+        has_lock lvl n ∗ (has_lock lvl n -∗ lazy_list h S Γ γ lvl).
     Proof.
-      iIntros "#Hnode Hlazy".
-      iDestruct (singleton_frag_in with "Hnode Hlazy") as %Hnode.
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
-      rewrite (big_sepS_delete (has_lock lvl) _ node) //.
+      iIntros "#Hn Hlazy".
+      iDestruct (singleton_frag_in with "Hn Hlazy") as %Hn.
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
+      rewrite (big_sepS_delete (has_lock lvl) _ n) //.
       iDestruct "Hlocks" as "(Hlock & Hlocks)".
       iFrame; iIntros "Hlock".
       iCombine "Hlock Hlocks" as "Hlocks"; rewrite -big_sepS_delete //.
@@ -197,17 +197,17 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Definition opt_sub (mΓ: gmap Z lazy_gname) (lvl: Z) : option lazy_gname :=
       if decide (lvl = 0) then None
       else Some (mΓ !!! (lvl - 1)).
-    Lemma skip_has_lazy (lvl: Z) (head: node_rep) 
+    Lemma skip_has_lazy (lvl: Z) (h: node_rep) 
       (S: gset node_rep) (m: gmap Z (tval * list tval))
       (mΓ: gmap Z lazy_gname) :
       0 ≤ lvl ≤ MAX_HEIGHT →
-      jelly_fish head S m mΓ ⊢
+      jelly_fish h S m mΓ ⊢
         ∃ (S': gset node_rep),
-          lazy_list head S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl
+          lazy_list h S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl
           ∗ (
-            lazy_list head S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl 
+            lazy_list h S' (mΓ !!! lvl) (opt_sub mΓ lvl) lvl 
             -∗ 
-            jelly_fish head S m mΓ
+            jelly_fish h S m mΓ
           )
           ∗
           ⌜ lvl = 0 → dom m = set_map node_key S' ⌝.
@@ -237,7 +237,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       iIntros (Hlvl) "[[Hbot Hmap] Hskip] #Hnode".
       rewrite (big_sepS_delete _ _ lvl); last (rewrite zrange_spec; lia).
       iDestruct "Hskip" as "[[%S' Hlazy] Hskip]".
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
       iDestruct (own_valid_2 with "Hauth Hnode") 
         as %[?%gset_included]%auth_both_valid_discrete.
       rewrite (big_sepS_delete (has_sub _) _ n); last set_solver.
@@ -291,7 +291,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       iIntros "%Hlvl Hskip #Hnode".
       iDestruct (node_in_bot with "Hskip Hnode") as "#Hnode'"; first done.
       iDestruct "Hskip" as "[[Hlazy Hmap] Hskip]".
-      iDestruct "Hlazy" as "(Hauth & Hdisj & Htoks & Hnexts & Hlocks & Hsubs)".
+      iDestruct "Hlazy" as "(Hauth & Htoks & Hsort & Hnexts & Hlocks & Hsubs)".
       iDestruct (own_valid_2 with "Hauth Hnode'") 
         as %[?%gset_included]%auth_both_valid_discrete.
 
@@ -307,18 +307,18 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       iFrame "Hvals". iExists val, vl. iFrame.
     Qed.
 
-    Lemma map_has_skip (p: loc) (head: node_rep) (m: gmap Z (tval * list tval)) 
+    Lemma map_has_skip (p: loc) (h: node_rep) (m: gmap Z (tval * list tval)) 
       (mΓ: gmap Z lazy_gname) :
-      p ↦□ rep_to_node head -∗
+      p ↦□ rep_to_node h -∗
       vc_map p m mΓ -∗
         ∃ (S : gset node_rep), 
-          (jelly_fish head S m mΓ)
+          (jelly_fish h S m mΓ)
           ∗ 
-          (jelly_fish head S m mΓ -∗ vc_map p m mΓ).
+          (jelly_fish h S m mΓ -∗ vc_map p m mΓ).
     Proof.
-      iIntros "Hhead Hmap". iDestruct "Hmap" as (h' S) "(#H & %Hmin & Hskip)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
-      iExists S. iFrame "Hskip". iIntros "Hskip". iExists head, S. by iFrame.
+      iIntros "Hh Hmap". iDestruct "Hmap" as (h' S) "(#H & %Hmin & Hskip)".
+      iDestruct (mapsto_agree with "Hh H") as %<-%rep_to_node_inj; iClear "H".
+      iExists S. iFrame "Hskip". iIntros "Hskip". iExists h, S. by iFrame.
     Qed. 
   End proofs.
 End SkipListInv.
