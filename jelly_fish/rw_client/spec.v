@@ -146,7 +146,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem ts_new_spec : 
       {{{ True }}}
-        new #()
+        newMap #()
       {{{ p mΓ, RET #p; ts_map p ∅ mΓ }}}.
     Proof.
       iIntros (Φ) "_ HΦ". wp_apply new_spec; first done.

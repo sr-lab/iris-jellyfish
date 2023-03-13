@@ -20,7 +20,7 @@ End Params.
 Module Import Spec := RWSpec Params.
 
 Definition example_client : expr := 
-  let: "p" := new #() in
+  let: "p" := newMap #() in
     ((put "p" #10 #1 #0;; put "p" #20 #5 #1;; put "p" #10 #3 #2)
     |||
     (put "p" #20 #2 #0;; put "p" #10 #6 #1;; put "p" #10 #4 #2));;

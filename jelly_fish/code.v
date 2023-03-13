@@ -74,7 +74,7 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
 
   Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, dummy_null).
 
-  Definition new : val :=
+  Definition newMap : val :=
     λ: "_",
       let: "nexts" := AllocN #(MAX_HEIGHT + 1) (ref (rep_to_node tail)) in
       let: "locks" := AllocN #(MAX_HEIGHT + 1) #false in

@@ -84,7 +84,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem new_spec : 
       {{{ True }}}
-        new #()
+        newMap #()
       {{{ p mΓ, RET #p; vc_map p ∅ mΓ }}}.
     Proof.
       iIntros (Φ) "_ HΦ"; wp_lam; pose proof HMAX_HEIGHT. 
