@@ -13,13 +13,6 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
   Module Find := FindSpec Params.
   Export Find.
 
-  Definition case_set (S: gset node_rep) (node: node_rep)
-    (m: gmap Z (tval * list tval)) (k: Z) : gset node_rep :=
-    match m !! k with
-    | None => S ∪ {[ node ]}
-    | Some _ => S
-    end.
-
   Definition case_map (m: gmap Z (tval * list tval)) (k v t: Z) : gmap Z (tval * list tval) :=
     match m !! k with
     | None => <[k := (v, t, nil)]> m
@@ -151,25 +144,22 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[ curr ]})) -∗
       <<< ∀∀ S m, jf_map head S m Γ >>>
         tryInsert (rep_to_node curr) #k #v #t #h @ ∅
-      <<< ∃∃ opt node,
-        jf_map head (case_set S node m k) (case_map m k v t) Γ,
+      <<< ∃∃ opt S',
+        jf_map head S' (case_map m k v t) Γ
+        ∗
+        match m !! k with 
+        | None => ∃ (n: loc) (new: node_rep),
+                    ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
+        | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
+        end,
       RET opt >>>
       {{{
-        match m !! k with 
-        | None => ∃ (n: loc),
-                    ⌜ opt = SOMEV #n ⌝
-                    ∗
-                    n ↦□ rep_to_node node
-                    ∗ 
-                    ⌜ node_key node = k ⌝
-                    ∗
-                    (node_next node +ₗ 1) ↦∗ replicate (Z.to_nat h) #()
-                    ∗
-                    (node_lock node +ₗ 1) ↦∗ replicate (Z.to_nat h) #false
-                    ∗
-                    has_sub Γ node
-        | Some _ => ⌜ opt = NONEV ⌝
-        end
+        ∀ (n: loc), ⌜ opt = SOMEV #n ⌝ -∗ ∃ (new: node_rep),
+          n ↦□ rep_to_node new ∗ ⌜ node_key new = k ⌝ ∗ has_sub Γ new
+          ∗
+          (node_next new +ₗ 1) ↦∗ replicate (Z.to_nat h) #()
+          ∗
+          (node_lock new +ₗ 1) ↦∗ replicate (Z.to_nat h) #false
       }}}.
     Proof.
       iIntros "%Hk %Hk' %Hh #Hcurr %Φ AU".
@@ -214,11 +204,12 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             rewrite -Heq in Hsome.
           iDestruct (mapsto_agree with "Hvpt Hvpt'") as %<-%rep_to_val_inj.
 
-          wp_load. rewrite /case_set /case_map Hsome.
+          wp_load. rewrite /case_map Hsome.
           case_decide as Hcase'; simpl in Hcase'; last lia.
-          iMod ("Hclose" $! NONEV succ with "[- Hpt Hvpt Hlocked]") as "AP".
+          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hlocked]") as "AP".
           {
-            iFrame. iExists γ. iFrame "Hgmap". iSplit; first done.
+            iSplit; last done. iFrame. iExists γ.
+            iFrame "Hgmap". iSplit; first done.
             iApply (big_sepS_delete _ _ succ); first set_solver.
             iFrame "Hvals". iExists val, vl. iFrame.
           }
@@ -246,7 +237,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          iModIntro. iIntros "_". iModIntro. wp_pures. by iApply "HΦ".
+          iModIntro. iIntros "_". iModIntro. wp_pures.
+          iApply "HΦ". iIntros. congruence.
         - (* The key already exists but with an outdated timestamp *)
           wp_load. wp_pures; wp_lam; wp_pures.
           case_bool_decide as Ht'; wp_if.
@@ -274,12 +266,12 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iMod (ghost_map_update (v, t, val_vt val :: vl) with "Hgmap Hkey")
             as "[Hgmap Hkey]".
 
-          rewrite /case_set /case_map Hsome Heq.
+          rewrite /case_map Hsome Heq.
           case_decide as Hcase'; simpl in Hcase'; first lia.
-          iMod ("Hclose" $! NONEV succ with "[- Hpt Hvpt Hlocked]") as "AP".
+          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hlocked]") as "AP".
           {
-            iFrame. iExists γ. iFrame "Hgmap". iSplit; 
-              first rewrite -Heq -Hdom dom_insert_lookup_L //.
+            iSplit; last done. iFrame. iExists γ.
+            iFrame "Hgmap". iSplit; first rewrite -Heq -Hdom dom_insert_lookup_L //.
             iApply (big_sepS_delete _ _ succ); first set_solver.
             iFrame "Hvals". iExists val', (val_vt val :: vl). iFrame.
             iExists (val_p val); iFrame "# ∗".
@@ -305,7 +297,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          iModIntro. iIntros "_". iModIntro. wp_pures. by iApply "HΦ".
+          iModIntro. iIntros "_". iModIntro. wp_pures.
+          iApply "HΦ". iIntros. congruence.
       + (* The key does not exists in the map *)
         assert (k ≠ node_key succ) by congruence.
         wp_lam; wp_pures.
@@ -357,11 +350,12 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hmap" as (γ) "(%Hdom & Hgmap & Hvals)".
         assert (m !! k = None) as Heq by (rewrite -not_elem_of_dom; set_solver).
         iMod (ghost_map_insert k (v, t, nil) with "Hgmap") as "[Hgmap Hval]"; 
-          first done; rewrite /case_set /case_map Heq; clear Heq.
+          first done; rewrite /case_map Heq; clear Heq.
 
         rewrite -(loc_add_0 (node_next pred)) -(loc_add_0 (node_next new)).
-        iMod ("Hclose" $! (SOMEV #n) new with "[- Hpt Hvpt Hlocked Hns Hls Htok]") as "AP".
+        iMod ("Hclose" $! (SOMEV #n) (S ∪ {[ new ]}) with "[- Hpt Hvpt Hlocked Hns Hls Htok]") as "AP".
         {
+          iSplit; last (iExists n, new; by iFrame "Hn").
           iSplitR "Hvals Hvpt' Hgmap Hval".
           + rewrite /lazy_list set_map_union_L set_map_singleton_L; iFrame.
             assert (k ≠ node_key head) by lia.
@@ -405,7 +399,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
         iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "_". iModIntro. wp_pures.
-        iApply "HΦ". iExists n. by iFrame "# ∗".
+        iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
+        iExists new.  by iFrame "# ∗".
     Qed.
   End Proofs.
 End InsertSpec.

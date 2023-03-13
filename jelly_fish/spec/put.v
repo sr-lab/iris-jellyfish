@@ -76,23 +76,22 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]})) -∗
       <<< ∀∀ S m, jelly_fish head S m mΓ >>>
         insertAll (rep_to_node curr) #k #v #t #h #lvl @ ∅
-      <<< ∃∃ opt node, jelly_fish head (case_set S node m k) (case_map m k v t) mΓ, RET opt >>>
-      {{{
+      <<< ∃∃ opt S',
+        jelly_fish head S' (case_map m k v t) mΓ
+        ∗
         match m !! k with 
-        | None => ∃ (n: loc),
-                    ⌜ opt = SOMEV #n ⌝
-                    ∗
-                    n ↦□ rep_to_node node
-                    ∗ 
-                    ⌜ node_key node = k ⌝
-                    ∗
-                    (node_next node +ₗ lvl +ₗ 1) ↦∗ replicate (Z.to_nat (h - lvl)) #()
-                    ∗
-                    (node_lock node +ₗ lvl +ₗ 1) ↦∗ replicate (Z.to_nat (h - lvl)) #false
-                    ∗
-                    has_sub (mΓ !!! lvl) node
-        | Some _ => ⌜ opt = NONEV ⌝
-        end
+        | None => ∃ (n: loc) (new: node_rep),
+                    ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
+        | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
+        end,
+      RET opt >>>
+      {{{
+        ∀ (n: loc), ⌜ opt = SOMEV #n ⌝ -∗ ∃ (new: node_rep),
+          n ↦□ rep_to_node new ∗ ⌜ node_key new = k ⌝ ∗ has_sub (mΓ !!! lvl) new
+          ∗
+          (node_next new +ₗ lvl +ₗ 1) ↦∗ replicate (Z.to_nat (h - lvl)) #()
+          ∗
+          (node_lock new +ₗ lvl +ₗ 1) ↦∗ replicate (Z.to_nat (h - lvl)) #false
       }}}.
     Proof.
       iIntros "%Hk %Hk' %Hlvl %Hh Hcurr %Φ"; iRevert (lvl curr Φ Hk Hk' Hlvl Hh) "Hcurr".
@@ -106,13 +105,15 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         { iIntros "!> %S %m [Hmap Hskip]"; iExists S, m; iFrame; iIntros; iFrame. }
         iIntros (S m) "[Hmap Hskip]"; iAaccIntro with "Hmap".
         { iIntros; iFrame; iModIntro; by iIntros. }
-        iIntros (opt node) "Hmap". iModIntro.
-        iExists (case_set S node m k), (case_map m k v t).
+        iIntros (opt S') "[Hmap Hmatch]". iModIntro.
+        iExists S', (case_map m k v t).
         iFrame "Hmap". iIntros "Hmap".
-        iRight. iExists opt, node. iFrame "Hmap Hskip".
+        iRight. iExists opt, S'. iFrame "Hmap Hmatch Hskip".
         clear dependent S. iIntros "AP".
         iMod (atomic_post_commit with "AP") as "HΦ".
-        iModIntro. replace (h - 0) with h by lia; rewrite ?loc_add_0 //.
+        iModIntro. iIntros "H". iApply "HΦ". iIntros (n) "#Hopt".
+        iDestruct ("H" with "Hopt") as (new) "H"; iExists new.
+        replace (h - 0) with h by lia; rewrite ?loc_add_0 //.
       + assert (lvl ≠ 0) as Hneq by congruence.
         wp_bind (BinOp _ _ _). iMod "AU" as (S m) "[Hskip [Hclose _]]".
         iDestruct (sent_or_node_in_lower with "Hskip Hcurr") as "#Hcurr'"; first lia.
@@ -135,7 +136,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iDestruct ("Hskip" with "Hlazy") as "Hskip".
 
         iLeft. iFrame "Hskip".
-        clear dependent S m. iIntros "AU".
+        clear dependent S S' m. iIntros "AU".
         iModIntro. iIntros "(Hpred & Hsucc & %Hk'')".
         iModIntro. wp_pures.
 
@@ -144,20 +145,23 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iAuIntro. iApply (aacc_aupd_eq with "AU"); try done.
         iIntros (S m) "Hskip"; iAaccIntro with "Hskip".
         { iIntros; iFrame; iModIntro; by iIntros. }
-        iIntros (opt node) "Hskip". iModIntro.
-        iExists (case_set S node m k), (case_map m k v t).
+        iIntros (opt S') "[Hskip #Hmatch]". iModIntro.
+        iExists S', (case_map m k v t).
         iFrame "Hskip". iIntros "Hskip".
-        iRight. iExists opt, node. iFrame "Hskip".
-        clear dependent S S'. iIntros "AP".
-        iModIntro. iIntros "Hopt".
+        iRight. iExists opt, S'. 
+        iFrame "Hskip Hmatch". iIntros "AP".
+        iModIntro. iIntros "Hres".
         iModIntro. wp_pures.
         
         destruct (m !! k); clear dependent m.
-        - iDestruct "Hopt" as %->. wp_pures.
+        - iDestruct "Hmatch" as "[-> _]". wp_pures.
           rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          by iApply "HΦ".
-        - iDestruct "Hopt" as (n) "(-> & #Hn & %Hnode & Hnexts & Hlocks & Hsub)". wp_pures.
+          iApply "HΦ". iIntros. congruence.
+        - iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
+          iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & Hnexts & Hlocks)".
+          iDestruct (mapsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
+          iDestruct "Hopt" as %->. wp_pures. clear dependent S S'.
           replace (Z.to_nat (h - (lvl - 1))) with (S (Z.to_nat (h - lvl))) by lia.
           rewrite ?(loc_add_assoc _ (lvl - 1)).
           replace (lvl - 1 + 1) with lvl by lia.
@@ -182,19 +186,20 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
             iApply (big_sepS_delete _ _ lvl); first (rewrite zrange_spec; lia).
             iFrame "Hskip". by iExists S'.
           }
-          iIntros "Hlazy". iModIntro. iExists (S' ∪ {[node]}).
+          iIntros "Hlazy". iModIntro. iExists (S' ∪ {[ new ]}).
           iFrame "Hlazy". iIntros "Hlazy". iFrame "Hmap".
           iSplitL "Hlazy Hskip".
           {
             iApply (big_sepS_delete _ _ lvl); first (rewrite zrange_spec; lia).
-            iFrame "Hskip". by iExists (S' ∪ {[node]}).
+            iFrame "Hskip". by iExists (S' ∪ {[ new ]}).
           }
           clear dependent S S' m. iIntros "AP".
           iMod (atomic_post_commit with "AP") as "HΦ".
           iModIntro. iIntros "Hsub".
           iModIntro. wp_pures.
           rewrite difference_empty_L.
-          iApply "HΦ". iExists n. by iFrame "# ∗".
+          iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
+          iExists new.  by iFrame "# ∗".
     Qed.
 
     Theorem putH_spec (p: loc) (k v t h: Z) (mΓ: gmap Z lazy_gname)
@@ -202,16 +207,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
       ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
         putH #p #k #v #t #h @ ∅
-      <<< vc_map p (case_map m k v t) mΓ, RET #() >>>
-      {{{
-        match m !! k with
-        | None => ∃ (node: node_rep),
-                    ⌜ node_key node = k ⌝
-                    ∗
-                    has_sub (mΓ !!! h) node
-        | Some _ => True
-        end
-      }}}.
+      <<< ∃∃ (b: bool), vc_map p (case_map m k v t) mΓ, RET #b >>>
+      {{{ if b then ∃ new, ⌜ node_key new = k ⌝ ∗ has_sub (mΓ !!! h) new else True }}}.
     Proof.
       iIntros (Φ) "AU".
       wp_lam; wp_pures. 
@@ -256,19 +253,22 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iIntros "Hskip". iModIntro. iSplitR ""; last (iIntros; iModIntro; iFrame).
         iExists head, S. by iFrame "# ∗".
       }
-      iIntros (opt node) "Hskip". iModIntro.
-      iExists (case_set S node m k), (case_map m k v t).
+      iIntros (opt S') "[Hskip #Hmatch]". iModIntro.
+      iExists S', (case_map m k v t).
       iFrame "Hskip". iIntros "Hskip".
-      iRight. iSplitR "".
-      { iExists head, (case_set S node m k); by iFrame "# ∗". }
-      clear dependent S. iIntros "AP".
-      iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "Hopt".
-      iModIntro. wp_pures.
-      rewrite difference_empty_L. iApply "HΦ".
-      destruct (m !! k); first done.
-      iDestruct "Hopt" as (n) "(_&_&?&_&_&?)".
-      iExists node. iFrame.
+      iRight. iExists (bool_decide (m !! k = None)). iSplitR "".
+      { iExists head, S'; by iFrame "# ∗". }
+      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro. iIntros "Hres". iModIntro. wp_pures.
+      case_match; case_bool_decide; try congruence.
+      + iDestruct "Hmatch" as "[-> _]". wp_pures.
+        rewrite difference_empty_L. by iApply "HΦ".
+      + iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
+        iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & _)".
+        iDestruct (mapsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
+        iDestruct "Hopt" as %->. wp_pures.
+        rewrite difference_empty_L. iApply "HΦ".
+        iExists new. by iFrame.
     Qed.
 
     Theorem put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
@@ -284,14 +284,13 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iApply (aacc_aupd_eq with "AU"); try done.
       iIntros (m) "Hmap"; iAaccIntro with "Hmap".
       { iIntros; iModIntro; iFrame; by iIntros. }
-      iIntros "Hmap". iModIntro.
+      iIntros (?) "Hmap". iModIntro.
       iExists (case_map m k v t).
       iFrame "Hmap". iIntros "Hmap".
-      iRight. iFrame "Hmap".
-      iIntros "AP".
+      iRight. iFrame "Hmap". iIntros "AP".
       iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      by iApply "HΦ".
+      iModIntro. iIntros "_". iModIntro. wp_pures.
+      rewrite difference_empty_L. by iApply "HΦ".
     Qed.
   End Proofs.
 End PutSpec.

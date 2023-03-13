@@ -158,8 +158,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
         get #p #k @ ∅
-      <<< ∃∃ opt, ts_map p m mΓ, RET opt >>>
-      {{{ opt_equiv opt (m !! k) }}}.
+      <<< ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k), RET opt >>>
+      {{{ True }}}.
     Proof.
       iIntros (Φ) "AU". awp_apply get_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
@@ -175,9 +175,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
       iModIntro. iExists m'. iFrame. iIntros "Hmap".
       iRight. iExists (opt_to_val (m' !! k)). 
-      iSplitR ""; first by (iExists m'; iFrame).
-      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_". iApply "HΦ".
+      iSplitR ""; first iSplit; first (by iExists m'; iFrame);
+        last by (iIntros "AP"; iMod (atomic_post_commit with "AP") as "HΦ").
       rewrite Hfmap lookup_fmap. destruct (m' !! k) as [[[v t] vl]|]; last done.
       iPureIntro; exists ({[v]} ∪ tset vl t), v, t; set_solver.
     Qed.
@@ -238,8 +237,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iAssert (
       <<< ∀∀ m, const_map m q Γ >>>
         get #p #k @ ↑mapN
-      <<< ∃∃ opt, const_map m q Γ, RET opt >>>
-      {{{ opt_equiv opt (m !! k) }}}
+      <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
+      {{{ True }}}
       )%I as "Hread".
       { 
         iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
@@ -255,7 +254,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
         iAaccIntro with "Hmap".
         { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
-        iIntros (opt) "Hmap".
+        iIntros (opt) "[Hmap Hopt]".
 
         iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
         rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq;
@@ -263,7 +262,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
         iModIntro. iExists m'. iFrame. iIntros "Hmap".
         iRight. iExists opt. 
-        iSplitR ""; first (iExists m'; iFrame).
+        iSplitR ""; first iSplit; first iExists m'; iFrame.
         iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "?".
         iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
@@ -271,7 +270,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iDestruct (atomic_wp_seq_step with "Hread") as "Hwp".
       iApply ("Hwp" with "Hconst [HΦ]").
       + iNext; iIntros; iApply "HΦ"; by iFrame.
-      + iIntros; iExists m; iFrame; by iIntros.
+      + iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
     Qed.
 
     Theorem mut_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
