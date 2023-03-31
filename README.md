@@ -1,5 +1,5 @@
-# Formal Verification of a Concurrent Map in Iris: the Lazy JellyFish Skip List
-## A Case Study on the Specification and Verification of Concurrent Data Structures
+# Formal Verification of a Concurrent Map in Iris
+## Resourceful Reasoning beyond Linearization Points for the Lazy JellyFish Skip List
 
 Artifact containing mechanized proofs of the lazy JellyFish skip list. We also present proofs for a simpler lazy set data structure which showcase how our arguments evolve from a simple linked list to a complex skip list. To compile this Coq development, simply run `make`.
 
