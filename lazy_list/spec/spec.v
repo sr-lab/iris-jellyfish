@@ -25,8 +25,6 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
 
       wp_alloc t as "(Ht & Ht')"; wp_let.
       wp_alloc l as "Hl"; wp_let.
-      rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl1 & Hl2)".
-      rewrite Qp.quarter_three_quarter.
 
       set (head := (INT_MIN, t, l)).
       wp_pures; rewrite (fold_rep_to_node head).
@@ -45,8 +43,8 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       rewrite /lazy_list set_map_empty right_id_L ?big_sepS_singleton.
       iFrame "# ∗"; do 2 (iSplit; first done).
       iSplitL "Ht Hkeys"; first (iExists tail; iFrame; by iLeft).
-      iExists l, false; iFrame; iSplit; first done.
-      iExists tail; iFrame.
+      iExists l. iSplit; first done. iRight.
+      iFrame. by iExists tail.
     Qed.
 
     Theorem contains_spec (p: loc) (Γ: lazy_gname)
@@ -144,8 +142,6 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
 
         wp_alloc n as "(Hn & Hn')"; wp_let.
         wp_alloc l as "Hl"; wp_let.
-        rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl1 & Hl2)".
-        rewrite Qp.quarter_three_quarter.
         wp_pures; set (new := (k, n, l)); rewrite (fold_rep_to_node new).
 
         wp_bind (Store _ _).
@@ -176,8 +172,8 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         iCombine "Hnext Hnexts" as "Hnexts".
         rewrite -big_sepS_delete //.
 
-        iAssert (has_lock new) with "[Hn' Hl1 Hl2]" as "Hlock".
-        { iExists l, false. iFrame. by iSplit; last iExists succ. }
+        iAssert (has_lock new) with "[Hn' Hl]" as "Hlock".
+        { iExists l. iSplit; first done. iRight. iFrame. by iExists succ. }
         iAssert (has_next _ new) with "[Hn Hkeys']" as "Hnext".
         { iExists succ; iFrame "# ∗". }
         iCombine "Hlock Hlocks" as "Hlocks"; iCombine "Hnext Hnexts" as "Hnexts".

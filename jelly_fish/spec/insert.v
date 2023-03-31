@@ -110,10 +110,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iFrame. iExists n, new; iFrame "# ∗".
         + rewrite assoc_L (comm_L _ _ {[new]}).
           iApply big_sepS_insert; first set_solver.
-          iFrame. iExists (node_lock new +ₗ lvl), false.
-          rewrite -Qp.quarter_three_quarter; iDestruct "Hlock" as "[? ?]".
-          rewrite Qp.quarter_three_quarter.
-          iFrame. iSplit; first done. iExists s; iFrame.
+          iFrame. iExists (node_lock new +ₗ lvl).
+          iSplit; first done. iRight. iFrame. iExists s; iFrame.
           by unfold locked_val; case_decide; first lia.
         + rewrite comm_L big_sepS_insert; last set_solver. iFrame.
       }
@@ -367,11 +365,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
               iFrame "Hnexts". iExists n, new; iFrame "# ∗".
             - rewrite assoc_L (comm_L _ ({[head]} ∪ S)).
               iApply big_sepS_insert; first set_solver.
-              iFrame "Hlocks". iExists (node_lock new), false.
-              rewrite -Qp.quarter_three_quarter; iDestruct "Hlock" as "[? ?]".
-              rewrite Qp.quarter_three_quarter.
-              iFrame. iSplitL ""; first rewrite loc_add_0 //. 
-              iExists s; iFrame. iExists succ; iFrame "# ∗".
+              iFrame "Hlocks". iExists (node_lock new).
+              iSplitL ""; first rewrite loc_add_0 //.
+              iRight. iFrame. iExists s; iFrame. iExists succ; iFrame "# ∗".
           + iExists γ. iFrame "Hgmap". iSplit; first iPureIntro.
             - rewrite set_map_union_L set_map_singleton_L -Hdom dom_insert_L comm_L //.
             - rewrite comm_L; iApply big_sepS_insert; first set_solver.

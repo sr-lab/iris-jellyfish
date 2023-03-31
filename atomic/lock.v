@@ -17,22 +17,17 @@ Section proof.
     ∃ (l: loc), ⌜ lk = #l ⌝ ∗ l ↦{#3 / 4} #true.
 
   Definition lock (lk: val) (R: iProp Σ) : iProp Σ := 
-    ∃ (l: loc) (b: bool), ⌜ lk = #l ⌝ ∗ l ↦{#1 / 4} #b ∗ 
-      if b then True else l ↦{#3 / 4} #false ∗ R.
+    ∃ (l: loc), ⌜ lk = #l ⌝ ∗ (l ↦{#1 / 4} #true ∨ l ↦ #false ∗ R).
 
   Global Instance lock_timeless lk R `{!Timeless R} : Timeless (lock lk R).
-  Proof.
-    do 2 (apply exist_timeless; intros ?).
-    do 2 (apply sep_timeless; first apply _).
-    case_match; last apply sep_timeless; apply _.
-  Qed.
+  Proof. apply _. Qed.
 
   Lemma newlock_spec (R : iProp Σ) :
     {{{ R }}} newlock #() {{{ lk, RET lk; lock lk R }}}.
   Proof.
     iIntros (Φ) "HR HΦ". wp_lam. wp_alloc l as "Hl".
-    rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl1 & Hl2)".
-    iModIntro; iApply "HΦ". iExists l, false. by iFrame.
+    iModIntro; iApply "HΦ". iExists l.
+    iSplit; first done. iRight. iFrame.
   Qed.
 
   Lemma try_acquire_spec (lk: val) (R : iProp Σ) :
@@ -43,17 +38,15 @@ Section proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
     wp_lam. wp_bind (CmpXchg _ _ _).
     iMod "AU" as "[Hlock [_ Hclose]]".
-    iDestruct "Hlock" as (l []) "(-> & Hl & Hif)".
+    iDestruct "Hlock" as (l) "[-> [Hl | [Hl HR]]]".
     + wp_cmpxchg_fail.
-      iDestruct ("Hclose" $! false with "[Hl Hif]") as ">AP".
-      { iFrame. iExists l, true. by iFrame. }
+      iDestruct ("Hclose" $! false with "[Hl]") as ">AP".
+      { iFrame. iExists l. by iFrame. }
       iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro; wp_pures. by iApply "HΦ".
-    + iDestruct "Hif" as "(Hl' & HR)"; iCombine "Hl Hl'" as "Hl".
-      rewrite Qp.quarter_three_quarter; wp_cmpxchg_suc.
-      rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl & Hl')".
+    + wp_cmpxchg_suc. rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl & Hl')".
       iDestruct ("Hclose" $! true with "[Hl]") as ">AP".
-      { iExists l, true. by iFrame. }
+      { iExists l. by iFrame. }
       iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro; wp_pures. iApply "HΦ". 
       iFrame "HR". iExists l. by iFrame.
@@ -88,16 +81,14 @@ Section proof.
   Proof.
     iIntros "Hlocked HR" (Φ) "AU"; rewrite difference_empty_L.
     wp_lam. iMod "AU" as "[Hlock [_ Hclose]]".
-    iDestruct "Hlock" as (l b) "(-> & Hl & _)".
+    iDestruct "Hlock" as (l) "[-> Hl]".
     iDestruct "Hlocked" as (l') "(%Heq & Hl')". 
     symmetry in Heq; inversion Heq; subst.
-    iDestruct (mapsto_agree with "Hl Hl'") as %<-.
+    iDestruct "Hl" as "[Hl|[Hl _]]"; last first.
+    { iDestruct (mapsto_agree with "Hl Hl'") as %?; congruence. }
     iCombine "Hl Hl'" as "Hl"; rewrite Qp.quarter_three_quarter.
     wp_store. iMod ("Hclose" with "[Hl HR]") as "AP".
-    {
-      rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(HlL & HlR)".
-      iExists l, false; by iFrame.
-    }
+    { iExists l. iSplit; first done. iRight; iFrame. }
     iMod "AP" as "[Hlock [_ HΦ]]". 
     iMod ("HΦ" with "Hlock") as "HΦ".
     by iApply "HΦ".
