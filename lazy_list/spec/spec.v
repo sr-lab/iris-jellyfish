@@ -43,8 +43,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       rewrite /lazy_list set_map_empty right_id_L ?big_sepS_singleton.
       iFrame "# ∗"; do 2 (iSplit; first done).
       iSplitL "Ht Hkeys"; first (iExists tail; iFrame; by iLeft).
-      iExists l. iSplit; first done. iRight.
-      iFrame. by iExists tail.
+      iExists Free, l. iSplit; first done. iFrame. by iExists tail.
     Qed.
 
     Theorem contains_spec (p: loc) (Γ: lazy_gname)
@@ -115,27 +114,32 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       + iRight. iSplitL "Hlazy".
         { iExists head, S; iFrame "# ∗"; iSplit; first done. iPureIntro; set_solver. }
         clear dependent S. iIntros "AP".
-        iModIntro. iIntros "(#Hpred & _ & _ & Hnext' & Hlocked)".
+        iModIntro. iIntros "(#Hpred & _ & _ & Hnext' & Hacq)".
         iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
         case_bool_decide; last congruence; wp_if.
 
-        iAssert (∃ succ : node_rep, node_next pred ↦{#1 / 2} rep_to_node succ)%I 
-          with "[Hnext']" as "Hnext'"; first by iExists succ.
-        awp_apply (release_spec with "Hlocked Hnext'").
+        iAssert (in_lock pred)%I with "[Hnext']" as "Hnext'"; first by iExists succ.
+        awp_apply (release_spec with "Hacq Hnext'").
         iApply (aacc_apst_sub with "[] AP"); try done.
-        { iIntros "!> %s"; by iApply set_node_has_lock. }
+        { 
+          iIntros "!> %s H". iDestruct (set_node_has_lock with "Hhead Hpred H") as "[Hlock Hset]".
+          iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+          iApply "Hset". by iExists st. 
+        }
         iIntros (s) "Hset".
         iDestruct (set_node_has_lock with "Hhead Hpred Hset") as "[Hlock Hset]".
-        iAaccIntro with "Hlock".
-        { iIntros "H"; iDestruct ("Hset" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-        iIntros "Hlock"; iModIntro; iFrame "Hlock".
-        iIntros "Hlock"; iDestruct ("Hset" with "Hlock") as "Hset".
-        iFrame "Hset". iIntros "AP".
-        rewrite difference_empty_L.
+        iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+        { 
+          iIntros "H"; iDestruct ("Hset" with "[H]") as "Hset"; first by iExists st.
+          iModIntro; iFrame; by iIntros.
+        }
+        iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+        iIntros "H"; iDestruct ("Hset" with "[H]") as "Hset"; first by iExists Free.
+        iFrame "Hset". iIntros "AP". rewrite difference_empty_L.
         by iMod (atomic_post_commit with "AP").
       + iLeft. iSplitL "Hlazy"; first (iExists head, S; by iFrame "# ∗").
         clear dependent S; iIntros "AU".
-        iModIntro. iIntros "(#Hpred & #Hsucc & %Hk & Hnext' & Hlocked)".
+        iModIntro. iIntros "(#Hpred & #Hsucc & %Hk & Hnext' & Hacq)".
         iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
         case_bool_decide; first congruence; wp_if.
         wp_lam; wp_pures; wp_load.
@@ -173,7 +177,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         rewrite -big_sepS_delete //.
 
         iAssert (has_lock new) with "[Hn' Hl]" as "Hlock".
-        { iExists l. iSplit; first done. iRight. iFrame. by iExists succ. }
+        { iExists Free, l. iSplit; first done. iFrame. by iExists succ. }
         iAssert (has_next _ new) with "[Hn Hkeys']" as "Hnext".
         { iExists succ; iFrame "# ∗". }
         iCombine "Hlock Hlocks" as "Hlocks"; iCombine "Hnext Hnexts" as "Hnexts".
@@ -189,19 +193,24 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         }
         clear dependent s S; iModIntro; wp_pures.
 
-        iAssert (∃ succ : node_rep, node_next pred ↦{#1 / 2} rep_to_node succ)%I 
-          with "[Hnext']" as "Hnext'"; first by iExists new.
-        awp_apply (release_spec with "Hlocked Hnext'").
+        iAssert (in_lock pred)%I with "[Hnext']" as "Hnext'"; first by iExists new.
+        awp_apply (release_spec with "Hacq Hnext'").
         iApply (aacc_apst_sub with "[] AP"); try done.
-        { iIntros "!> %s"; by iApply set_node_has_lock. }
+        { 
+          iIntros "!> %s H". iDestruct (set_node_has_lock with "Hhead Hpred H") as "[Hlock Hset]".
+          iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+          iApply "Hset". by iExists st. 
+        }
         iIntros (s) "Hset".
         iDestruct (set_node_has_lock with "Hhead Hpred Hset") as "[Hlock Hset]".
-        iAaccIntro with "Hlock".
-        { iIntros "H"; iDestruct ("Hset" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-        iIntros "Hlock"; iModIntro; iFrame "Hlock".
-        iIntros "Hlock"; iDestruct ("Hset" with "Hlock") as "Hset".
-        iFrame "Hset". iIntros "AP".
-        rewrite difference_empty_L.
+        iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+        { 
+          iIntros "H"; iDestruct ("Hset" with "[H]") as "Hset"; first by iExists st.
+          iModIntro; iFrame; by iIntros.
+        }
+        iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+        iIntros "H"; iDestruct ("Hset" with "[H]") as "Hset"; first by iExists Free.
+        iFrame "Hset". iIntros "AP". rewrite difference_empty_L.
         by iMod (atomic_post_commit with "AP").
     Qed.
   End proofs.

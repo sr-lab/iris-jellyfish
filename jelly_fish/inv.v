@@ -55,7 +55,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Definition in_lock (lvl: Z) (n: node_rep) : iProp Σ := 
       ∃ (p: loc), (node_next n +ₗ lvl) ↦{#1 / 2} #p ∗ locked_val lvl p.
     Definition has_lock (lvl: Z) (n: node_rep) : iProp Σ := 
-      lock #(node_lock n +ₗ lvl) (in_lock lvl n).
+      ∃ (st: state), lock #(node_lock n +ₗ lvl) st (in_lock lvl n).
 
     (* Sublist resources *)
     Definition has_sub (γ: lazy_gname) (n: node_rep) : iProp Σ :=

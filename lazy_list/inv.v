@@ -37,7 +37,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     Definition in_lock (pred: node_rep) : iProp Σ := 
       ∃ (succ: node_rep), node_next pred ↦{#1 / 2} rep_to_node succ.
     Definition has_lock (pred: node_rep) : iProp Σ := 
-      lock #(node_lock pred) (in_lock pred).
+      ∃ (st: state), lock #(node_lock pred) st (in_lock pred).
 
     (* Lazy list resources *)
     Definition lazy_list (head: node_rep) (S: gset node_rep) (Γ: lazy_gname) : iProp Σ :=

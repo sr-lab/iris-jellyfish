@@ -92,7 +92,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           ∗
           locked_val lvl s
           ∗
-          locked #(node_lock pred +ₗ lvl)
+          acquired #(node_lock pred +ₗ lvl)
       }}}.
     Proof.
       iIntros "%Hk Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
@@ -112,15 +112,22 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
 
       awp_apply acquire_spec.
       iApply (aacc_aupd_sub with "[] AU"); try done.
-      { iIntros "!> %S H"; iDestruct (node_has_lock with "Hpred H") as "$". }
+      { 
+        iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+        iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+        iApply "Hlazy". by iExists st. 
+      }
       iIntros (S) "Hlazy".
       iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-      iAaccIntro with "Hlock".
-      { iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy"; iModIntro; iFrame; by iIntros. }
-      iIntros "Hlock". iModIntro. iFrame "Hlock".
-      iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy".
+      iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+      { 
+        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+        iModIntro; iFrame; by iIntros.
+      }
+      iIntros "[Hlock ->]"; iModIntro; iExists Locked; iFrame "Hlock".
+      iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Locked.
       iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
-      iModIntro. iIntros "[Hlocked Hin_lock]".
+      iModIntro. iIntros "[Hacq Hin_lock]".
       iModIntro. wp_pures; wp_lam; wp_pures.
 
       wp_bind (Load #(_)). iMod "AU" as (S) "[Hlazy Hclose]".
@@ -153,15 +160,22 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         case_bool_decide; first lia; wp_if.
 
         clear dependent S.
-        awp_apply (release_spec with "Hlocked Hin_lock").
+        awp_apply (release_spec with "Hacq Hin_lock").
         iApply (aacc_aupd_sub with "[] AU"); try done.
-        { iIntros "!> %S H"; iDestruct (node_has_lock with "Hpred H") as "$". }
-        iIntros (S) "Hlazy". 
-        iDestruct (node_has_lock with "Hpred Hlazy") as "(Hlock & Hlazy)".
-        iAaccIntro with "Hlock".
-        { iIntros "H"; iDestruct ("Hlazy" with "H") as "Hlazy"; iModIntro; iFrame; by iIntros. }
-        iIntros "Hlock". iModIntro. iFrame "Hlock".
-        iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
+        { 
+          iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+          iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+          iApply "Hlazy". by iExists st. 
+        }
+        iIntros (S) "Hlazy".
+        iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
+        iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+        { 
+          iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+          iModIntro; iFrame; by iIntros.
+        }
+        iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
         iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
         iModIntro. iIntros "_".
         iModIntro. wp_pures.

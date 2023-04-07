@@ -10,86 +10,89 @@ Definition acquire : val :=
   rec: "acquire" "l" := if: try_acquire "l" then #() else "acquire" "l".
 Definition release : val := λ: "l", "l" <- #false.
 
+Inductive state := Free | Locked.
+
 Section proof.
   Context `{!heapGS Σ}.
 
-  Definition locked (lk: val) : iProp Σ :=
+  Definition acquired (lk: val) : iProp Σ :=
     ∃ (l: loc), ⌜ lk = #l ⌝ ∗ l ↦{#3 / 4} #true.
 
-  Definition lock (lk: val) (R: iProp Σ) : iProp Σ := 
-    ∃ (l: loc), ⌜ lk = #l ⌝ ∗ (l ↦{#1 / 4} #true ∨ l ↦ #false ∗ R).
+  Definition lock (lk: val) (st: state) (R: iProp Σ) : iProp Σ := 
+    ∃ (l: loc), ⌜ lk = #l ⌝ ∗ 
+    match st with
+    | Free => l ↦ #false ∗ R
+    | Locked => l ↦{#1 / 4} #true
+    end.
 
-  Global Instance lock_timeless lk R `{!Timeless R} : Timeless (lock lk R).
-  Proof. apply _. Qed.
+  Global Instance lock_timeless lk st R `{!Timeless R} : Timeless (lock lk st R).
+  Proof. destruct st; apply _. Qed.
 
   Lemma newlock_spec (R : iProp Σ) :
-    {{{ R }}} newlock #() {{{ lk, RET lk; lock lk R }}}.
+    {{{ R }}} newlock #() {{{ lk, RET lk; lock lk Free R }}}.
   Proof.
     iIntros (Φ) "HR HΦ". wp_lam. wp_alloc l as "Hl".
-    iModIntro; iApply "HΦ". iExists l.
-    iSplit; first done. iRight. iFrame.
+    iModIntro; iApply "HΦ". iExists l. by iFrame.
   Qed.
 
   Lemma try_acquire_spec (lk: val) (R : iProp Σ) :
-    ⊢ <<< lock lk R >>> try_acquire lk @ ∅
-    <<< ∃∃ b, lock lk R, RET #b >>>
-    {{{ if b is true then locked lk ∗ R else True }}}.
+    ⊢ <<< ∀∀ st, lock lk st R >>> try_acquire lk @ ∅
+    <<< ∃∃ b, lock lk Locked R ∗ ⌜ if b is true then st = Free else st = Locked ⌝, RET #b >>>
+    {{{ if b is true then acquired lk ∗ R else True }}}.
   Proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
     wp_lam. wp_bind (CmpXchg _ _ _).
-    iMod "AU" as "[Hlock [_ Hclose]]".
-    iDestruct "Hlock" as (l) "[-> [Hl | [Hl HR]]]".
-    + wp_cmpxchg_fail.
-      iDestruct ("Hclose" $! false with "[Hl]") as ">AP".
-      { iFrame. iExists l. by iFrame. }
-      iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro; wp_pures. by iApply "HΦ".
-    + wp_cmpxchg_suc. rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl & Hl')".
+    iMod "AU" as ([]) "[Hlock [_ Hclose]]".
+    + iDestruct "Hlock" as (l) "[-> [Hl HR]]". wp_cmpxchg_suc.
+      rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl & Hl')".
       iDestruct ("Hclose" $! true with "[Hl]") as ">AP".
-      { iExists l. by iFrame. }
+      { iSplit; last done. iExists l. by iFrame. }
       iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro; wp_pures. iApply "HΦ". 
       iFrame "HR". iExists l. by iFrame.
+    + iDestruct "Hlock" as (l) "[-> Hl]". wp_cmpxchg_fail.
+      iDestruct ("Hclose" $! false with "[Hl]") as ">AP".
+      { iSplit; last done. iExists l. by iFrame. }
+      iMod (atomic_post_commit with "AP") as "HΦ".
+      iModIntro; wp_pures. by iApply "HΦ".
   Qed.
 
   Lemma acquire_spec (lk: val) (R : iProp Σ) :
-    ⊢ <<< lock lk R >>> acquire lk @ ∅ 
-    <<< lock lk R, RET #() >>>
-    {{{ locked lk ∗ R }}}.
+    ⊢ <<< ∀∀ st, lock lk st R >>> acquire lk @ ∅ 
+    <<< lock lk Locked R ∗ ⌜ st = Free ⌝, RET #() >>>
+    {{{ acquired lk ∗ R }}}.
   Proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
     iLöb as "IH". wp_lam.
     awp_apply try_acquire_spec.
     iApply (aacc_aupd_eq with "AU"); try done.
-    iIntros "Hlock"; iAaccIntro with "Hlock".
+    iIntros (st) "Hlock"; iAaccIntro with "Hlock".
     { do 2 (iIntros; iModIntro; iFrame). }
-    iIntros ([]) "Hlock".
-    + iModIntro. iFrame "Hlock". iIntros "Hlock". 
-      iRight. iFrame. iIntros "AP".
+    iIntros ([]) "[Hlock ->]".
+    + iModIntro. iExists Locked. iFrame "Hlock". iIntros "Hlock". 
+      iRight. iFrame. iSplit; first done. iIntros "AP".
       iMod (atomic_post_commit with "AP") as "HΦ".
       by iModIntro; iIntros; iModIntro; wp_pures; iApply "HΦ".
-    + iModIntro. iFrame "Hlock". iIntros "Hlock". 
+    + iModIntro. iExists Locked. iFrame "Hlock". iIntros "Hlock". 
       iLeft. iFrame. iIntros "AP". 
       by iModIntro; iIntros; iModIntro; wp_pures; iApply "IH".
   Qed.
 
   Lemma release_spec (lk: val) (R : iProp Σ) :
-    locked lk -∗ R -∗
-    <<< lock lk R >>> release lk @ ∅
-    <<< lock lk R, RET #() >>>
+    acquired lk -∗ R -∗
+    <<< ∀∀ st, lock lk st R >>> release lk @ ∅
+    <<< lock lk Free R, RET #() >>>
     {{{ True }}}.
   Proof.
-    iIntros "Hlocked HR" (Φ) "AU"; rewrite difference_empty_L.
-    wp_lam. iMod "AU" as "[Hlock [_ Hclose]]".
-    iDestruct "Hlock" as (l) "[-> Hl]".
-    iDestruct "Hlocked" as (l') "(%Heq & Hl')". 
-    symmetry in Heq; inversion Heq; subst.
-    iDestruct "Hl" as "[Hl|[Hl _]]"; last first.
+    iIntros "Hacq HR" (Φ) "AU"; rewrite difference_empty_L.
+    iDestruct "Hacq" as (l) "[-> Hl]".
+    wp_lam. iMod "AU" as ([]) "[Hlock [_ Hclose]]";
+      iDestruct "Hlock" as (l') "[%Heq [Hl' HR']]"; replace l' with l by congruence.
     { iDestruct (mapsto_agree with "Hl Hl'") as %?; congruence. }
-    iCombine "Hl Hl'" as "Hl"; rewrite Qp.quarter_three_quarter.
+    iCombine "Hl Hl' HR'" as "Hl"; rewrite Qp.three_quarter_quarter.
     wp_store. iMod ("Hclose" with "[Hl HR]") as "AP".
-    { iExists l. iSplit; first done. iRight; iFrame. }
-    iMod "AP" as "[Hlock [_ HΦ]]". 
+    { iExists l. by iFrame. }
+    iMod "AP" as (st) "[Hlock [_ HΦ]]". 
     iMod ("HΦ" with "Hlock") as "HΦ".
     by iApply "HΦ".
   Qed.

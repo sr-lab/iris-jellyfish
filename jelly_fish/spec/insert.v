@@ -51,8 +51,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iIntros (pred succ) "[Hlazy %Hnin]".
       iModIntro. iExists S. iFrame "Hlazy". iIntros "Hlazy".
       iLeft. iFrame "Hlazy". iIntros "AU". clear dependent S.
-      iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hlocked)".
-      iDestruct "Hlocked" as (s) "(Hpt & #Hs & _ & Hlocked)".
+      iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hacq)".
+      iDestruct "Hacq" as (s) "(Hpt & #Hs & _ & Hacq)".
       iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
       wp_load. wp_load. wp_lam; wp_pures.
       wp_store. iDestruct "Hnew" as "[Hnew Hnew']".
@@ -97,7 +97,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       { by apply auth_update_alloc, (gset_disj_alloc_op_local_update _ _ {[ node_key new ]}). }
       rewrite ?gset_disj_union // right_id_L (comm_L _ {[ node_key new ]}).
 
-      iMod ("Hclose" with "[- Hpt Htok Hlocked]") as "AP".
+      iMod ("Hclose" with "[- Hpt Htok Hacq]") as "AP".
       { 
         rewrite /lazy_list set_map_union_L set_map_singleton_L; iFrame.
         assert (node_key new ≠ node_key head) by lia.
@@ -110,8 +110,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iFrame. iExists n, new; iFrame "# ∗".
         + rewrite assoc_L (comm_L _ _ {[new]}).
           iApply big_sepS_insert; first set_solver.
-          iFrame. iExists (node_lock new +ₗ lvl).
-          iSplit; first done. iRight. iFrame. iExists s; iFrame.
+          iFrame. iExists Free, (node_lock new +ₗ lvl).
+          iSplit; first done. iFrame. iExists s; iFrame.
           by unfold locked_val; case_decide; first lia.
         + rewrite comm_L big_sepS_insert; last set_solver. iFrame.
       }
@@ -120,19 +120,25 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       clear dependent S.
       iAssert (in_lock lvl pred)%I with "[Hpt]" as "Hin_lock". 
       { iExists n; iFrame "Hpt". by unfold locked_val; case_decide; first lia. }
-      awp_apply (release_spec with "Hlocked Hin_lock").
+      awp_apply (release_spec with "Hacq Hin_lock").
       iApply (aacc_apst_sub with "[] AP"); try done.
-      { iIntros "!> %S"; by iApply node_has_lock. }
+      { 
+        iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+        iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+        iApply "Hlazy". by iExists st. 
+      }
       iIntros (S) "Hlazy".
       iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-      iAaccIntro with "Hlock".
-      { iIntros "H"; iDestruct ("Hlazy" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-      iIntros "Hlock"; iModIntro; iFrame "Hlock".
-      iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
-      iFrame "Hlazy". iIntros "AP". rewrite difference_empty_L.
+      iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+      { 
+        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+        iModIntro; iFrame; by iIntros.
+      }
+      iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+      iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
+      iFrame "Hlazy". clear dependent S. iIntros "AP". rewrite difference_empty_L.
       iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      iApply "HΦ". iFrame "# ∗".
+      iModIntro. iIntros "_". iApply "HΦ". iFrame "# ∗".
     Qed.
 
     Theorem tryInsert_spec (k v t h: Z) (head curr: node_rep) (Γ: lazy_gname) :
@@ -171,8 +177,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iIntros (pred succ) "[Hlazy %Hnin]".
       iModIntro. iExists S. iFrame "Hlazy". iIntros "Hlazy".
       iLeft. iFrame "Hlazy Hmap". iIntros "AU". clear dependent S m.
-      iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hlocked)".
-      iDestruct "Hlocked" as (s) "(Hpt & #Hs & Hval & Hlocked)".
+      iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hacq)".
+      iDestruct "Hacq" as (s) "(Hpt & #Hs & Hval & Hacq)".
       iDestruct "Hval" as (?) "[Hs' Hsucc']".
       iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
       iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
@@ -204,7 +210,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
           wp_load. rewrite /case_map Hsome.
           case_decide as Hcase'; simpl in Hcase'; last lia.
-          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hlocked]") as "AP".
+          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hacq]") as "AP".
           {
             iSplit; last done. iFrame. iExists γ.
             iFrame "Hgmap". iSplit; first done.
@@ -219,20 +225,23 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S m γ vl.
           iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val. }
-          rewrite loc_add_0; awp_apply (release_spec with "Hlocked Hin_lock").
+          rewrite -{2}(loc_add_0 (node_lock pred)).
+          awp_apply (release_spec with "Hacq Hin_lock").
           iApply (aacc_apst_sub with "[] AP"); try done.
           { 
-            iIntros "!> %S %m [Hlazy Hmap]". 
-            iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-            unfold has_lock; rewrite loc_add_0. by iFrame.
+            iIntros "!> %S %m [H ?]". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+            iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+            iApply "Hlazy". by iExists st. 
           }
           iIntros (S m) "[Hlazy Hmap]".
           iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-          unfold has_lock; rewrite loc_add_0.
-          iAaccIntro with "Hlock".
-          { iIntros "H"; iDestruct ("Hlazy" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-          iIntros "Hlock"; iModIntro; iFrame "Hlock".
-          iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
+          iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+          { 
+            iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+            iModIntro; iFrame; by iIntros.
+          }
+          iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+          iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
           iModIntro. iIntros "_". iModIntro. wp_pures.
@@ -266,7 +275,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
 
           rewrite /case_map Hsome Heq.
           case_decide as Hcase'; simpl in Hcase'; first lia.
-          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hlocked]") as "AP".
+          iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hacq]") as "AP".
           {
             iSplit; last done. iFrame. iExists γ.
             iFrame "Hgmap". iSplit; first rewrite -Heq -Hdom dom_insert_lookup_L //.
@@ -279,20 +288,23 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S m γ vl.
           iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val'. }
-          rewrite loc_add_0; awp_apply (release_spec with "Hlocked Hin_lock").
+          rewrite -{2}(loc_add_0 (node_lock pred)).
+          awp_apply (release_spec with "Hacq Hin_lock").
           iApply (aacc_apst_sub with "[] AP"); try done.
           { 
-            iIntros "!> %S %m [Hlazy Hmap]". 
-            iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-            unfold has_lock; rewrite loc_add_0. by iFrame.
+            iIntros "!> %S %m [H ?]". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+            iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+            iApply "Hlazy". by iExists st. 
           }
           iIntros (S m) "[Hlazy Hmap]".
           iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-          unfold has_lock; rewrite loc_add_0.
-          iAaccIntro with "Hlock".
-          { iIntros "H"; iDestruct ("Hlazy" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-          iIntros "Hlock"; iModIntro; iFrame "Hlock".
-          iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
+          iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+          { 
+            iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+            iModIntro; iFrame; by iIntros.
+          }
+          iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+          iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
           iModIntro. iIntros "_". iModIntro. wp_pures.
@@ -351,7 +363,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           first done; rewrite /case_map Heq; clear Heq.
 
         rewrite -(loc_add_0 (node_next pred)) -(loc_add_0 (node_next new)).
-        iMod ("Hclose" $! (SOMEV #n) (S ∪ {[ new ]}) with "[- Hpt Hvpt Hlocked Hns Hls Htok]") as "AP".
+        iMod ("Hclose" $! (SOMEV #n) (S ∪ {[ new ]}) with "[- Hpt Hvpt Hacq Hns Hls Htok]") as "AP".
         {
           iSplit; last (iExists n, new; by iFrame "Hn").
           iSplitR "Hvals Hvpt' Hgmap Hval".
@@ -365,9 +377,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
               iFrame "Hnexts". iExists n, new; iFrame "# ∗".
             - rewrite assoc_L (comm_L _ ({[head]} ∪ S)).
               iApply big_sepS_insert; first set_solver.
-              iFrame "Hlocks". iExists (node_lock new).
+              iFrame "Hlocks". iExists Free, (node_lock new).
               iSplitL ""; first rewrite loc_add_0 //.
-              iRight. iFrame. iExists s; iFrame. iExists succ; iFrame "# ∗".
+              iFrame. iExists s; iFrame. iExists succ; iFrame "# ∗".
           + iExists γ. iFrame "Hgmap". iSplit; first iPureIntro.
             - rewrite set_map_union_L set_map_singleton_L -Hdom dom_insert_L comm_L //.
             - rewrite comm_L; iApply big_sepS_insert; first set_solver.
@@ -378,25 +390,29 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         clear dependent S m γ.
         iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
         { iExists n; iFrame "Hpt". iExists new. iFrame "Hn". iRight. by iExists val. }
-        awp_apply (release_spec with "Hlocked Hin_lock").
+
+        rewrite -(loc_add_0 (node_lock pred)).
+        awp_apply (release_spec with "Hacq Hin_lock").
         iApply (aacc_apst_sub with "[] AP"); try done.
-        {
-          iIntros "!> %S %m [Hlazy Hmap]". 
-          iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-          unfold has_lock; rewrite loc_add_0. by iFrame.
+        { 
+          iIntros "!> %S %m [H ?]". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
+          iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
+          iApply "Hlazy". by iExists st. 
         }
         iIntros (S m) "[Hlazy Hmap]".
         iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-        unfold has_lock; rewrite loc_add_0.
-        iAaccIntro with "Hlock".
-        { iIntros "H"; iDestruct ("Hlazy" with "H") as "?"; iModIntro; iFrame; by iIntros. }
-        iIntros "Hlock"; iModIntro; iFrame "Hlock".
-        iIntros "Hlock"; iDestruct ("Hlazy" with "Hlock") as "Hlazy".
+        iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+        { 
+          iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
+          iModIntro; iFrame; by iIntros.
+        }
+        iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
+        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
         iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
         iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "_". iModIntro. wp_pures.
         iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
-        iExists new.  by iFrame "# ∗".
+        iExists new. by iFrame "# ∗".
     Qed.
   End Proofs.
 End InsertSpec.

@@ -71,8 +71,8 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         - iExists ∅. rewrite /lazy_list ?lookup_total_insert ?set_map_empty 
             right_id_L ?big_sepS_singleton big_sepS_empty; iFrame "# ∗".
           iSplitL "Hnext Hkeys"; first (iExists t, tail; iFrame "# ∗"; by iLeft).
-          iSplit; last done. iExists (node_lock head +ₗ lvl).
-          iSplit; first done. iRight. iFrame. iExists t. iFrame.
+          iSplit; last done. iExists Free, (node_lock head +ₗ lvl).
+          iSplit; first done. iFrame. iExists t. iFrame.
           unfold locked_val; by case_decide; first lia.
         - iApply big_sepS_mono; last iFrame.
           iIntros (i Hi%zrange_spec) "Hlazy".
@@ -124,9 +124,9 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         right_id_L ?big_sepS_singleton; iFrame.
       iSplitR "Hlock Hnext'".
       { iExists t, tail; rewrite loc_add_0; iFrame "# ∗"; by iLeft. }
-      iSplit; last done. iExists lock.
+      iSplit; last done. iExists Free, lock.
       rewrite loc_add_0; iSplit; first done.
-      iRight. iFrame. iExists t. rewrite loc_add_0; iFrame.
+      iFrame. iExists t. rewrite loc_add_0; iFrame.
       unfold locked_val; case_decide; last done.
       iExists tail. iFrame "Ht". by iLeft.
     Qed.
