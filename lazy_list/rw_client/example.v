@@ -26,9 +26,9 @@ Section Proofs.
   Context `{!heapGS Σ, !rwG Σ, !spawnG Σ}.
 
   Lemma example_client_spec :
-    {{{ True }}}
+    {{{ emp }}}
       example_client
-    {{{ RET (#true, #true); True }}}.
+    {{{ RET (#true, #true); emp }}}.
   Proof.
     iIntros (Φ) "_ HΦ".
 

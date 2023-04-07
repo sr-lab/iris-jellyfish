@@ -145,7 +145,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       end.
 
     Theorem ts_new_spec : 
-      {{{ True }}}
+      {{{ emp }}}
         newMap #()
       {{{ p mΓ, RET #p; ts_map p ∅ mΓ }}}.
     Proof.
@@ -159,7 +159,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
         get #p #k @ ∅
       <<< ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k), RET opt >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU". awp_apply get_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
@@ -186,7 +186,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
         put #p #k #v #t @ ∅
       <<< ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ, RET #() >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU". awp_apply put_spec; first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
@@ -238,7 +238,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<< ∀∀ m, const_map m q Γ >>>
         get #p #k @ ↑mapN
       <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
-      {{{ True }}}
+      {{{ emp }}}
       )%I as "Hread".
       { 
         iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
@@ -285,7 +285,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<< ∀∀ m, mut_map m q Γ >>>
         put #p #k #v #t @ ↑mapN
       <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
-      {{{ True }}}
+      {{{ emp }}}
       )%I as "Hwrite".
       {
         iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.

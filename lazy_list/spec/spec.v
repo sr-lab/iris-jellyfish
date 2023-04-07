@@ -17,7 +17,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
     Local Open Scope Z.
 
     Theorem new_spec :
-      {{{ True }}}
+      {{{ emp }}}
         new #()
       {{{ p Γ, RET #p; set p ∅ Γ }}}.
     Proof.
@@ -50,7 +50,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       ⊢ <<< ∀∀ (s: gset Z), set p s Γ >>> contains #p #k @ ∅
       <<< ∃∃ (b: bool), set p s Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU".
       rewrite difference_empty_L.
@@ -88,7 +88,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       ⊢ <<< ∀∀ (s: gset Z), set p s Γ >>>
         add #p #k @ ∅
       <<< set p (s ∪ {[ k ]}) Γ, RET #() >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU".
       rewrite difference_empty_L.

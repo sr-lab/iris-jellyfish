@@ -38,7 +38,7 @@ Section proof.
   Lemma try_acquire_spec (lk: val) (R : iProp Σ) :
     ⊢ <<< ∀∀ st, lock lk st R >>> try_acquire lk @ ∅
     <<< ∃∃ b, lock lk Locked R ∗ ⌜ if b is true then st = Free else st = Locked ⌝, RET #b >>>
-    {{{ if b is true then acquired lk ∗ R else True }}}.
+    {{{ if b is true then acquired lk ∗ R else emp }}}.
   Proof.
     iIntros (Φ) "AU"; rewrite difference_empty_L.
     wp_lam. wp_bind (CmpXchg _ _ _).
@@ -82,7 +82,7 @@ Section proof.
     acquired lk -∗ R -∗
     <<< ∀∀ st, lock lk st R >>> release lk @ ∅
     <<< lock lk Free R, RET #() >>>
-    {{{ True }}}.
+    {{{ emp }}}.
   Proof.
     iIntros "Hacq HR" (Φ) "AU"; rewrite difference_empty_L.
     iDestruct "Hacq" as (l) "[-> Hl]".

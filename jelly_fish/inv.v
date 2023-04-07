@@ -48,10 +48,10 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
 
     (* Lock resources *)
     Definition locked_val (lvl: Z) (p: loc) : iProp Σ := 
-      if decide (lvl = 0) then 
+      if lvl is 0 then 
         (∃ (s: node_rep), p ↦□ rep_to_node s ∗
         (⌜ s = tail ⌝ ∨ ∃ (v: val_rep), node_val s ↦{#1 / 2} rep_to_val v))%I
-      else True%I.
+      else emp%I.
     Definition in_lock (lvl: Z) (n: node_rep) : iProp Σ := 
       ∃ (p: loc), (node_next n +ₗ lvl) ↦{#1 / 2} #p ∗ locked_val lvl p.
     Definition has_lock (lvl: Z) (n: node_rep) : iProp Σ := 
@@ -76,7 +76,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       ∗
       ([∗ set] n ∈ {[h]} ∪ S, has_lock lvl n)
       ∗
-      match γ with None => True | Some γ => [∗ set] n ∈ S, has_sub γ n end.
+      match γ with None => emp | Some γ => [∗ set] n ∈ S, has_sub γ n end.
 
     (* Vertical list resources *)
     Fixpoint vertical_list (p: loc) (vl: list tval) : iProp Σ := 
@@ -129,7 +129,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Global Instance vl_timeless vl p : Timeless (vertical_list p vl).
     Proof. revert p; induction vl; apply _. Qed.
     Global Instance locked_val_timeless i l : Timeless (locked_val i l).
-    Proof. unfold locked_val; case_decide; apply _. Qed.
+    Proof. unfold locked_val; case_match; apply _. Qed.
   End invariant.
 
   Section proofs.

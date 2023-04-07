@@ -31,7 +31,7 @@ Section Proofs.
   Local Open Scope Z.
 
   Lemma example_client_spec :
-    {{{ True }}}
+    {{{ emp }}}
       example_client
     {{{ v, RET (SOMEV (#v, #2), SOMEV (#5, #1)); ⌜ v = 3 ∨ v = 4 ⌝ }}}.
   Proof.

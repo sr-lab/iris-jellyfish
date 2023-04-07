@@ -73,14 +73,14 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
           iSplitL "Hnext Hkeys"; first (iExists t, tail; iFrame "# ∗"; by iLeft).
           iSplit; last done. iExists Free, (node_lock head +ₗ lvl).
           iSplit; first done. iFrame. iExists t. iFrame.
-          unfold locked_val; by case_decide; first lia.
+          unfold locked_val; by case_match; first lia.
         - iApply big_sepS_mono; last iFrame.
           iIntros (i Hi%zrange_spec) "Hlazy".
           rewrite ?lookup_total_insert_ne //; lia.
     Qed.
 
     Theorem new_spec : 
-      {{{ True }}}
+      {{{ emp }}}
         newMap #()
       {{{ p mΓ, RET #p; vc_map p ∅ mΓ }}}.
     Proof.
@@ -127,8 +127,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       iSplit; last done. iExists Free, lock.
       rewrite loc_add_0; iSplit; first done.
       iFrame. iExists t. rewrite loc_add_0; iFrame.
-      unfold locked_val; case_decide; last done.
-      iExists tail. iFrame "Ht". by iLeft.
+      unfold locked_val. iExists tail. iFrame "Ht". by iLeft.
     Qed.
   End proofs.
 End NewSpec.

@@ -129,7 +129,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<< ∀∀ (s: gset Z) (q: frac), const_set s q Γ >>>
         contains #p #k @ ↑N
       <<< ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros "[%Γl #Hinv]".
       iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
@@ -164,7 +164,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<< ∀∀ (s: gset Z) (q: frac), mut_set s q Γ >>>
         add #p #k @ ↑N
       <<< mut_set (s ⋅ {[ k ]}) q Γ, RET #() >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros "[%Γl #Hinv]".
       iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.

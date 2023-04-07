@@ -112,14 +112,14 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iApply big_sepS_insert; first set_solver.
           iFrame. iExists Free, (node_lock new +ₗ lvl).
           iSplit; first done. iFrame. iExists s; iFrame.
-          by unfold locked_val; case_decide; first lia.
+          by unfold locked_val; case_match; first lia.
         + rewrite comm_L big_sepS_insert; last set_solver. iFrame.
       }
       iModIntro. wp_pures.
 
       clear dependent S.
       iAssert (in_lock lvl pred)%I with "[Hpt]" as "Hin_lock". 
-      { iExists n; iFrame "Hpt". by unfold locked_val; case_decide; first lia. }
+      { iExists n; iFrame "Hpt". by unfold locked_val; case_match; first lia. }
       awp_apply (release_spec with "Hacq Hin_lock").
       iApply (aacc_apst_sub with "[] AP"); try done.
       { 

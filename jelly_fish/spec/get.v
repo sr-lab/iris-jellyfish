@@ -28,7 +28,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       <<< ∀∀ S m, jelly_fish head S m mΓ >>>
         findAll (rep_to_node curr) #k #lvl @ ∅
       <<< jelly_fish head S m mΓ, RET opt_to_val (m !! k) >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros "%Hk %Hlvl Hcurr %Φ"; iRevert (lvl curr Hk Hlvl) "Hcurr".
       iLöb as "IH"; iIntros (lvl curr Hk Hlvl) "#Hcurr AU".
@@ -92,7 +92,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
         get #p #k @ ∅
       <<< vc_map p m mΓ, RET opt_to_val (m !! k) >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU".
       wp_lam. wp_let.

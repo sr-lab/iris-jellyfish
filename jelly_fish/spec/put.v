@@ -275,7 +275,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
         put #p #k #v #t @ ∅
       <<< vc_map p (case_map m k v t) mΓ, RET #() >>>
-      {{{ True }}}.
+      {{{ emp }}}.
     Proof.
       iIntros (Φ) "AU". pose proof HMAX_HEIGHT.
       wp_lam; wp_pures; wp_lam; wp_pures.
