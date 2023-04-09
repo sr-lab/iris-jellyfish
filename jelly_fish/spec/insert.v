@@ -225,7 +225,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S m γ vl.
           iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val. }
-          rewrite -{2}(loc_add_0 (node_lock pred)).
+          rewrite -{2}(Loc.add_0 (node_lock pred)).
           awp_apply (release_spec with "Hacq Hin_lock").
           iApply (aacc_apst_sub with "[] AP"); try done.
           { 
@@ -288,7 +288,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S m γ vl.
           iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val'. }
-          rewrite -{2}(loc_add_0 (node_lock pred)).
+          rewrite -{2}(Loc.add_0 (node_lock pred)).
           awp_apply (release_spec with "Hacq Hin_lock").
           iApply (aacc_apst_sub with "[] AP"); try done.
           { 
@@ -316,7 +316,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         wp_alloc next as "Hnexts"; first lia. wp_let.
         wp_alloc lock as "Hlocks"; first lia. wp_let.
         assert (Z.to_nat (h + 1) = S (Z.to_nat h)) as -> by lia.
-        rewrite ?replicate_S ?array_cons ?loc_add_0.
+        rewrite ?replicate_S ?array_cons ?Loc.add_0.
         iDestruct "Hnexts" as "[Hnext Hns]".
         iDestruct "Hlocks" as "[Hlock Hls]".
 
@@ -336,7 +336,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         rewrite (big_sepS_delete (has_next _ _) _ pred) //.
         iDestruct "Hnexts" as "[Hpt' Hnexts]".
         iDestruct "Hpt'" as (s' succ') "(Hpt' & #Hs' & _ & Hkeys)".
-        rewrite loc_add_0.
+        rewrite Loc.add_0.
         iDestruct (mapsto_agree with "Hpt Hpt'") as %Hs; 
           symmetry in Hs; inversion Hs; subst; clear Hs.
         iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
@@ -362,7 +362,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iMod (ghost_map_insert k (v, t, nil) with "Hgmap") as "[Hgmap Hval]"; 
           first done; rewrite /case_map Heq; clear Heq.
 
-        rewrite -(loc_add_0 (node_next pred)) -(loc_add_0 (node_next new)).
+        rewrite -(Loc.add_0 (node_next pred)) -(Loc.add_0 (node_next new)).
         iMod ("Hclose" $! (SOMEV #n) (S ∪ {[ new ]}) with "[- Hpt Hvpt Hacq Hns Hls Htok]") as "AP".
         {
           iSplit; last (iExists n, new; by iFrame "Hn").
@@ -378,7 +378,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             - rewrite assoc_L (comm_L _ ({[head]} ∪ S)).
               iApply big_sepS_insert; first set_solver.
               iFrame "Hlocks". iExists Free, (node_lock new).
-              iSplitL ""; first rewrite loc_add_0 //.
+              iSplitL ""; first rewrite Loc.add_0 //.
               iFrame. iExists s; iFrame. iExists succ; iFrame "# ∗".
           + iExists γ. iFrame "Hgmap". iSplit; first iPureIntro.
             - rewrite set_map_union_L set_map_singleton_L -Hdom dom_insert_L comm_L //.
@@ -391,7 +391,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iAssert (in_lock 0 pred)%I with "[Hpt Hvpt]" as "Hin_lock". 
         { iExists n; iFrame "Hpt". iExists new. iFrame "Hn". iRight. by iExists val. }
 
-        rewrite -(loc_add_0 (node_lock pred)).
+        rewrite -(Loc.add_0 (node_lock pred)).
         awp_apply (release_spec with "Hacq Hin_lock").
         iApply (aacc_apst_sub with "[] AP"); try done.
         { 

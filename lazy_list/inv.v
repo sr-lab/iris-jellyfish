@@ -7,8 +7,8 @@ From SkipList.lazy_list Require Import code.
 
 
 Class lazyG Σ := LazyG { 
-  lazy_authG :> inG Σ (authR (gsetR node_rep));
-  lazy_disjG :> inG Σ (gset_disjR Z)
+  lazy_authG :: inG Σ (authR (gsetR node_rep));
+  lazy_disjG :: inG Σ (gset_disjR Z)
 }.
 
 Record lazy_gname := mk_lazy_gname {

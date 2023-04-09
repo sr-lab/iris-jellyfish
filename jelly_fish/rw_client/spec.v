@@ -9,9 +9,9 @@ From SkipList.jelly_fish.spec Require Import new get put.
 
 
 Class rwG Σ := RWG { 
-  rw_mutG :> inG Σ (frac_authR (gmapR Z (argmax Z)));
-  rw_agrG :> inG Σ (frac_authR (agreeR (gmap Z (argmax Z))));
-  rw_setG :> skipG Σ
+  rw_mutG :: inG Σ (frac_authR (gmapR Z (argmax Z)));
+  rw_agrG :: inG Σ (frac_authR (agreeR (gmap Z (argmax Z))));
+  rw_setG :: skipG Σ
 }.
 
 Record rw_gname := mk_rw_gname {

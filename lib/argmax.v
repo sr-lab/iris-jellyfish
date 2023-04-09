@@ -33,12 +33,10 @@ Section cmra.
   Lemma argmax_ra_mixin : RAMixin (argmax A).
   Proof.
     apply ra_total_mixin; apply _ || eauto.
-    + intros [a i|] [b j|] [c k|];
-        repeat rewrite ///op/argmax_op_instance; repeat case_decide; try done; try lia.
-      rewrite assoc_L //.
-    + intros [a i|] [b j|]; 
-        repeat rewrite ///op/argmax_op_instance; repeat case_decide; try done; try lia.
-      subst; rewrite comm_L //.
+    + intros [a i|] [b j|] [c k|]; rewrite //?/op/argmax_op_instance;
+        repeat case_decide; try done; try lia; rewrite assoc_L //.
+    + intros [a i|] [b j|]; rewrite //?/op/argmax_op_instance;
+        repeat case_decide; try done; try lia; subst; rewrite comm_L //.
     + intros x; rewrite idemp //.
   Qed.
   Canonical Structure argmaxR : cmra := discreteR (argmax A) argmax_ra_mixin.

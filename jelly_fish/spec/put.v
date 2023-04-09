@@ -113,7 +113,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "H". iApply "HΦ". iIntros (n) "#Hopt".
         iDestruct ("H" with "Hopt") as (new) "H"; iExists new.
-        replace (h - 0) with h by lia; rewrite ?loc_add_0 //.
+        replace (h - 0) with h by lia; rewrite ?Loc.add_0 //.
       + assert (lvl ≠ 0) as Hneq by congruence.
         wp_bind (BinOp _ _ _). iMod "AU" as (S m) "[Hskip [Hclose _]]".
         iDestruct (sent_or_node_in_lower with "Hskip Hcurr") as "#Hcurr'"; first lia.
@@ -163,7 +163,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           iDestruct (mapsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
           iDestruct "Hopt" as %->. wp_pures. clear dependent S S'.
           replace (Z.to_nat (h - (lvl - 1))) with (S (Z.to_nat (h - lvl))) by lia.
-          rewrite ?(loc_add_assoc _ (lvl - 1)).
+          rewrite ?(Loc.add_assoc _ (lvl - 1)).
           replace (lvl - 1 + 1) with lvl by lia.
           rewrite ?replicate_S ?array_cons.
           iDestruct "Hnexts" as "[Hnext Hnexts]".

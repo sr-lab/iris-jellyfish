@@ -11,10 +11,10 @@ From SkipList.jelly_fish Require Import code.
 Definition tval : Type := Z * Z.
 
 Class skipG Σ := SkipG { 
-  skip_authG :> inG Σ (authR (gset node_rep));
-  skip_sortG :> inG Σ (gset_disjR Z);
-  skip_toksG :> inG Σ (authR (gset_disjR Z));
-  skip_gmapG :> ghost_mapG Σ Z (tval * list tval)
+  skip_authG :: inG Σ (authR (gset node_rep));
+  skip_sortG :: inG Σ (gset_disjR Z);
+  skip_toksG :: inG Σ (authR (gset_disjR Z));
+  skip_gmapG :: ghost_mapG Σ Z (tval * list tval)
 }.
 
 Record lazy_gname := mk_lazy_gname {

@@ -8,9 +8,9 @@ From SkipList.lazy_list.spec Require Import spec.
 
 
 Class rwG Σ := RWG { 
-  rw_mutG :> inG Σ (frac_authR (gsetR Z));
-  rw_agrG :> inG Σ (frac_authR (agreeR (gset Z)));
-  rw_setG :> lazyG Σ
+  rw_mutG :: inG Σ (frac_authR (gsetR Z));
+  rw_agrG :: inG Σ (frac_authR (agreeR (gset Z)));
+  rw_setG :: lazyG Σ
 }.
 
 Record rw_gname := mk_rw_gname {

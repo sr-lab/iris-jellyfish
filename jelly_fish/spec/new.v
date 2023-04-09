@@ -43,7 +43,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         by iModIntro; iExists mΓ; iFrame.
       + assert (lvl ≠ MAX_HEIGHT + 1) as Hneq by lia.
 
-        rewrite ?replicate_S ?array_cons ?loc_add_assoc.
+        rewrite ?replicate_S ?array_cons ?Loc.add_assoc.
         replace (Z.to_nat lvl + 1) with (Z.of_nat (Z.to_nat (lvl + 1))) by lia.
         iDestruct "Hnexts" as "[[Hnext Hnext'] Hnexts]".
         iDestruct "Hlocks" as "[Hlock Hlocks]".
@@ -123,10 +123,10 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       rewrite -HmΓ /lazy_list ?lookup_total_singleton ?set_map_empty
         right_id_L ?big_sepS_singleton; iFrame.
       iSplitR "Hlock Hnext'".
-      { iExists t, tail; rewrite loc_add_0; iFrame "# ∗"; by iLeft. }
+      { iExists t, tail; rewrite Loc.add_0; iFrame "# ∗"; by iLeft. }
       iSplit; last done. iExists Free, lock.
-      rewrite loc_add_0; iSplit; first done.
-      iFrame. iExists t. rewrite loc_add_0; iFrame.
+      rewrite Loc.add_0; iSplit; first done.
+      iFrame. iExists t. rewrite Loc.add_0; iFrame.
       unfold locked_val. iExists tail. iFrame "Ht". by iLeft.
     Qed.
   End proofs.
