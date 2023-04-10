@@ -114,20 +114,21 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { 
         iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
-        iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
-        iApply "Hlazy". by iExists st. 
+        iDestruct "Hlock" as (st) "[Hlock Hin]". iExists st. iFrame. iIntros "Hlock".
+        iApply "Hlazy". iExists st. iFrame.
       }
       iIntros (S) "Hlazy".
       iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-      iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+      iDestruct "Hlock" as (st) "[Hlock Hin]"; iAaccIntro with "Hlock".
       { 
-        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
-        iModIntro; iFrame; by iIntros.
+        iIntros "H"; iDestruct ("Hlazy" with "[H Hin]") as "Hlazy";
+          first (iExists st; iFrame). iModIntro; iFrame; by iIntros.
       }
       iIntros "[Hlock ->]"; iModIntro; iExists Locked; iFrame "Hlock".
-      iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Locked.
+      iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy";
+        first (iExists Locked; iFrame).
       iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
-      iModIntro. iIntros "[Hacq Hin_lock]".
+      iModIntro. iIntros "Hacq".
       iModIntro. wp_pures; wp_lam; wp_pures.
 
       wp_bind (Load #(_)). iMod "AU" as (S) "[Hlazy Hclose]".
@@ -135,7 +136,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iDestruct (node_has_next with "Hpred Hlazy")
         as (s succ) "(Hnext & #Hs & #Hsucc & %Hdisj & Hlazy)".
       destruct (decide (k ≤ node_key succ)) as [|Hcase].
-      + iDestruct "Hin_lock" as (?) "[Hnext' Hval]".
+      + iDestruct "Hin" as (?) "[Hnext' Hval]".
         iDestruct (mapsto_agree with "Hnext Hnext'") as %Hs; 
           symmetry in Hs; inversion Hs; subst.
 
@@ -160,22 +161,23 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         case_bool_decide; first lia; wp_if.
 
         clear dependent S.
-        awp_apply (release_spec with "Hacq Hin_lock").
+        awp_apply (release_spec with "Hacq").
         iApply (aacc_aupd_sub with "[] AU"); try done.
         { 
           iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".
-          iDestruct "Hlock" as (st) "Hlock". iExists st. iFrame. iIntros "Hlock".
-          iApply "Hlazy". by iExists st. 
+          iDestruct "Hlock" as (st) "[Hlock Hin]". iExists st. iFrame. iIntros "Hlock".
+          iApply "Hlazy". iExists st. iFrame.
         }
         iIntros (S) "Hlazy".
         iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
-        iDestruct "Hlock" as (st) "Hlock"; iAaccIntro with "Hlock".
+        iDestruct "Hlock" as (st) "[Hlock Hin']"; iAaccIntro with "Hlock".
         { 
-          iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists st.
-          iModIntro; iFrame; by iIntros.
+          iIntros "H"; iDestruct ("Hlazy" with "[H Hin']") as "Hlazy";
+            first (iExists st; iFrame). iModIntro; iFrame; by iIntros.
         }
         iIntros "Hlock"; iModIntro; iExists Free; iFrame "Hlock".
-        iIntros "H"; iDestruct ("Hlazy" with "[H]") as "Hlazy"; first by iExists Free.
+        iIntros "H"; iDestruct ("Hlazy" with "[H Hin]") as "Hlazy";
+          first (iExists Free; iFrame).
         iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
         iModIntro. iIntros "_".
         iModIntro. wp_pures.

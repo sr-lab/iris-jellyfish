@@ -55,7 +55,8 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
     Definition in_lock (lvl: Z) (n: node_rep) : iProp Σ := 
       ∃ (p: loc), (node_next n +ₗ lvl) ↦{#1 / 2} #p ∗ locked_val lvl p.
     Definition has_lock (lvl: Z) (n: node_rep) : iProp Σ := 
-      ∃ (st: state), lock #(node_lock n +ₗ lvl) st (in_lock lvl n).
+      ∃ (st: state), lock #(node_lock n +ₗ lvl) st ∗
+        match st with Free => in_lock lvl n | Locked => emp end.
 
     (* Sublist resources *)
     Definition has_sub (γ: lazy_gname) (n: node_rep) : iProp Σ :=
@@ -125,11 +126,12 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
         ∗
         jelly_fish h S m mΓ.
 
-    (* Needed for [vc_map] to be timeless *)
     Global Instance vl_timeless vl p : Timeless (vertical_list p vl).
     Proof. revert p; induction vl; apply _. Qed.
     Global Instance locked_val_timeless i l : Timeless (locked_val i l).
     Proof. unfold locked_val; case_match; apply _. Qed.
+    Global Instance has_lock_timeless i n : Timeless (has_lock i n).
+    Proof. apply bi.exist_timeless; intros; case_match; apply _. Qed.
   End invariant.
 
   Section proofs.
