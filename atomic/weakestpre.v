@@ -14,14 +14,14 @@ Definition atomic_wp `{!irisGS_gen hlc Λ Σ} {TA TB TC : tele}
   (E : coPset) (* *implementation* mask *)
   (α: TA → iProp Σ) (* atomic pre-condition *)
   (β: TA → TB → iProp Σ) (* atomic post-condition *)
-  (Q: TB → iProp Σ) (* private post-condition *)
+  (Q: TA → TB → iProp Σ) (* private post-condition *)
   (Ψ: TC → iProp Σ)
   (f: TA → TB → val Λ) (* Turn the return data into the return value *)
   : iProp Σ :=
     ∀ (Φ : val Λ → iProp Σ),
             (* The (outer) user mask is what is left after the implementation
             opened its things. *)
-            atomic_update (⊤∖E) ∅ α Ψ β (λ.. x y, Q y ={⊤∖E}=∗ Φ (f x y)) -∗
+            atomic_update (⊤∖E) ∅ α Ψ β (λ.. x y, Q x y ={⊤∖E}=∗ Φ (f x y)) -∗
             WP e {{ Φ }}.
 (* Note: To add a private postcondition, use
    atomic_update α β Eo Ei (λ x y, POST x y -∗ Φ (f x y)) *)
@@ -38,7 +38,9 @@ Notation "'<<<' ∀∀ x1 .. xn , α '>>>' e @ E '<<<' ∃∃ y1 .. yn , β , 'R
              (tele_app $ λ x1, .. (λ xn,
                          tele_app (λ y1, .. (λ yn, β%I) .. )
                         ) .. )
-             (tele_app $ λ y1, .. (λ yn, Q%I) ..)
+             (tele_app $ λ x1, .. (λ xn,
+                         tele_app (λ y1, .. (λ yn, Q%I) .. )
+                        ) .. )
              (tele_app $ λ x1, .. (λ xn, α%I) ..)
              (tele_app $ λ x1, .. (λ xn,
                          tele_app (λ y1, .. (λ yn, v%V) .. )
@@ -56,7 +58,7 @@ Notation "'<<<' ∀∀ x1 .. xn , α '>>>' e @ E '<<<' β , 'RET' v '>>>' {{{ Q 
              E
              (tele_app $ λ x1, .. (λ xn, α%I) ..)
              (tele_app $ λ x1, .. (λ xn, tele_app β%I) .. )
-             (tele_app Q%I)
+             (tele_app $ λ x1, .. (λ xn, tele_app Q%I) .. )
              (tele_app $ λ x1, .. (λ xn, α%I) ..)
              (tele_app $ λ x1, .. (λ xn, tele_app v%V) .. )
   )
@@ -72,7 +74,7 @@ Notation "'<<<' α '>>>' e @ E '<<<' ∃∃ y1 .. yn , β , 'RET' v '>>>' {{{ Q 
              E
              (tele_app α%I)
              (tele_app $ tele_app (λ y1, .. (λ yn, β%I) .. ))
-             (tele_app $ λ y1, .. (λ yn, Q%I) ..)
+             (tele_app $ tele_app (λ y1, .. (λ yn, Q%I) .. ))
              (tele_app α%I)
              (tele_app $ tele_app (λ y1, .. (λ yn, v%V) .. ))
   )
@@ -88,7 +90,7 @@ Notation "'<<<' α '>>>' e @ E '<<<' β , 'RET' v '>>>' {{{ Q } } }" :=
              E
              (tele_app α%I)
              (tele_app $ tele_app β%I)
-             (tele_app Q%I)
+             (tele_app $ tele_app Q%I)
              (tele_app α%I)
              (tele_app $ tele_app v%V)
   )
@@ -100,13 +102,13 @@ Notation "'<<<' α '>>>' e @ E '<<<' β , 'RET' v '>>>' {{{ Q } } }" :=
 Section lemmas.
   Context `{!irisGS_gen hlc Λ Σ} {TA TB TC : tele}.
   Notation iProp := (iProp Σ).
-  Implicit Types (α : TA → iProp) (β : TA → TB → iProp) (Q : TB → iProp) (Ψ : TC → iProp) (f : TA → TB → val Λ).
+  Implicit Types (α : TA → iProp) (β Q : TA → TB → iProp) (Ψ : TC → iProp) (f : TA → TB → val Λ).
 
   (* Atomic triples imply sequential triples. *)
   Lemma atomic_wp_seq e E α β Q Ψ f :
     atomic_wp e E α β Q Ψ f -∗
     ∀ Φ, ∀.. x, α x -∗
-    (∀.. y, β x y -∗ (Q y -∗ Φ (f x y))) -∗
+    (∀.. y, β x y -∗ (Q x y -∗ Φ (f x y))) -∗
     (∀.. y, β x y -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ β x y)) -∗
     WP e {{ Φ }}.
   Proof.
@@ -128,12 +130,12 @@ Section lemmas.
     TCEq (to_val e) None →
     atomic_wp e E α β Q Ψ f -∗
     ∀ Φ, ∀.. x, α x -∗
-    ▷ (∀.. y, β x y -∗ (Q y -∗ Φ (f x y))) -∗
+    ▷ (∀.. y, β x y -∗ (Q x y -∗ Φ (f x y))) -∗
     (∀.. y, β x y -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ β x y)) -∗
     WP e {{ Φ }}.
   Proof.
     iIntros (?) "H"; iIntros (Φ x) "Hα HΦ HΨ".
-    iApply (wp_step_fupd _ _ ⊤ _ (∀.. y, β x y -∗ (Q y -∗ Φ (f x y)))
+    iApply (wp_step_fupd _ _ ⊤ _ (∀.. y, β x y -∗ (Q x y -∗ Φ (f x y)))
       with "[$HΦ //]"); first done.
     iApply (atomic_wp_seq with "H Hα [] HΨ").
     iIntros (y) "Hβ HQ HΦ". iModIntro.
@@ -142,7 +144,7 @@ Section lemmas.
 
   (* Sequential triples with the empty mask for a physically atomic [e] are atomic. *)
   Lemma atomic_seq_wp_atomic e E α β Q Ψ f `{!Atomic WeaklyAtomic e} :
-    (∀ Φ, ∀.. x, α x -∗ (∀.. y, β x y -∗ (Q y -∗ Φ (f x y))) -∗ WP e @ ∅ {{ Φ }}) -∗
+    (∀ Φ, ∀.. x, α x -∗ (∀.. y, β x y -∗ (Q x y -∗ Φ (f x y))) -∗ WP e @ ∅ {{ Φ }}) -∗
     atomic_wp e E α β Q Ψ f.
   Proof.
     iIntros "Hwp" (Φ) "AU". iMod "AU" as (x) "[Hα [_ Hclose]]".
@@ -157,10 +159,10 @@ Section lemmas.
   (** Sequential triples with a persistent precondition and no initial quantifier
   are atomic. *)
   Lemma persistent_seq_wp_atomic e E (α : [tele] → iProp) 
-        (β : [tele] → TB → iProp) (Q : TB → iProp) Ψ
+        (β : [tele] → TB → iProp) (Q : [tele] → TB → iProp) Ψ
         (f : [tele] → TB → val Λ) {HP : Persistent (α [tele_arg])} :
     (∀ Φ, α [tele_arg] -∗ 
-      (∀.. y, β [tele_arg] y -∗ (Q y -∗ Φ (f [tele_arg] y))) -∗ WP e {{ Φ }}
+      (∀.. y, β [tele_arg] y -∗ (Q [tele_arg] y -∗ Φ (f [tele_arg] y))) -∗ WP e {{ Φ }}
     ) -∗
     atomic_wp e E α β Q Ψ f.
   Proof.

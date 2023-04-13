@@ -1,7 +1,6 @@
 From SkipList.atomic Require Import weakestpre proofmode.
 
 From iris.heap_lang Require Import notation.
-Import derived_laws_later.bi.
 
 
 Definition newlock : val := λ: <>, ref #false.
