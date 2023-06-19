@@ -529,7 +529,7 @@ Section lemmas.
   (** The elimination form: an atomic accessor *)
   Lemma aupd_aacc {TA TB TC : tele} Eo Ei
       (α : TA → PROP) (Ψ : TC → PROP) (β Φ : TA → TB → PROP) :
-    atomic_update Eo Ei α Ψ β Φ -∗
+    atomic_update Eo Ei α Ψ β Φ ⊢
     atomic_acc Eo Ei α (atomic_update Eo Ei α Ψ β Φ) Ψ β Φ.
   Proof using Type*. by rewrite {1}aupd_unfold. Qed.
 
@@ -555,8 +555,8 @@ Section lemmas.
   Local Lemma aupd_intro {TA TB TC : tele} Eo Ei
       (α : TA → PROP) P Q (Ψ : TC → PROP) (β Φ : TA → TB → PROP) :
     Absorbing P → Persistent P →
-    (P ∧ Q -∗ atomic_acc Eo Ei α Q Ψ β Φ) →
-    P ∧ Q -∗ atomic_update Eo Ei α Ψ β Φ.
+    (P ∧ Q ⊢ atomic_acc Eo Ei α Q Ψ β Φ) →
+    P ∧ Q ⊢ atomic_update Eo Ei α Ψ β Φ.
   Proof.
     rewrite atomic_update_unseal {1}/atomic_update_def /=.
     iIntros (?? HAU) "[#HP HQ]".

@@ -126,9 +126,6 @@ for an [EIf _ _ _] in the expression, and reduce it.
 The use of [open_constr] in this tactic is essential. It will convert all holes
 (i.e. [_]s) into evars, that later get unified when an occurences is found
 (see [unify e' efoc] in the code below). *)
-Ltac iSolveTC :=
-  solve [once (typeclasses eauto)].
-
 Tactic Notation "wp_pure" open_constr(efoc) :=
   iStartProof;
   lazymatch goal with
@@ -137,10 +134,10 @@ Tactic Notation "wp_pure" open_constr(efoc) :=
     reshape_expr e ltac:(fun K e' =>
       unify e' efoc;
       eapply (tac_wp_pure _ _ _ _ K e');
-      [iSolveTC                       (* PureExec *)
+      [tc_solve                       (* PureExec *)
       |try solve_vals_compare_safe    (* The pure condition for PureExec --
          handles trivial goals, including [vals_compare_safe] *)
-      |iSolveTC                       (* IntoLaters *)
+      |tc_solve                       (* IntoLaters *)
       |wp_finish                      (* new goal *)
       ])
     || fail "wp_pure: cannot find" efoc "in" e "or" efoc "is not a redex"
@@ -149,7 +146,7 @@ Tactic Notation "wp_pure" open_constr(efoc) :=
     reshape_expr e ltac:(fun K e' =>
       unify e' efoc;
       eapply (tac_twp_pure _ _ _ K e');
-      [iSolveTC                       (* PureExec *)
+      [tc_solve                       (* PureExec *)
       |try solve_vals_compare_safe    (* The pure condition for PureExec *)
       |wp_finish                      (* new goal *)
       ])
@@ -173,10 +170,10 @@ Tactic Notation "wp_pure" open_constr(efoc) "credit:" constr(H) :=
     reshape_expr e ltac:(fun K e' =>
       unify e' efoc;
       eapply (tac_wp_pure_credit _ _ _ _ Htmp K e');
-      [iSolveTC                       (* PureExec *)
+      [tc_solve                       (* PureExec *)
       |try solve_vals_compare_safe    (* The pure condition for PureExec --
          handles trivial goals, including [vals_compare_safe] *)
-      |iSolveTC                       (* IntoLaters *)
+      |tc_solve                       (* IntoLaters *)
       |finish ()                      (* new goal *)
       ])
     || fail "wp_pure: cannot find" efoc "in" e "or" efoc "is not a redex"
@@ -279,7 +276,7 @@ Lemma tac_wp_allocN Δ Δ' s E j K v n Φ :
   envs_entails Δ (WP fill K (AllocN (Val $ LitV $ LitInt n) (Val v)) @ s; E {{ Φ }}).
 Proof.
   rewrite envs_entails_unseal=> ? ? HΔ.
-  rewrite -wp_bind. eapply wand_apply; first exact: wp_allocN.
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, wp_allocN.
   rewrite left_id into_laterN_env_sound; apply later_mono, forall_intro=> l.
   specialize (HΔ l).
   destruct (envs_app _ _ _) as [Δ''|] eqn:HΔ'; [ | contradiction ].
@@ -297,7 +294,7 @@ Lemma tac_twp_allocN Δ s E j K v n Φ :
   envs_entails Δ (WP fill K (AllocN (Val $ LitV $ LitInt n) (Val v)) @ s; E [{ Φ }]).
 Proof.
   rewrite envs_entails_unseal=> ? HΔ.
-  rewrite -twp_bind. eapply wand_apply; first exact: twp_allocN.
+  rewrite -twp_bind. eapply wand_apply; first by apply wand_entails, twp_allocN.
   rewrite left_id. apply forall_intro=> l.
   specialize (HΔ l).
   destruct (envs_app _ _ _) as [Δ'|] eqn:HΔ'; [ | contradiction ].
@@ -316,7 +313,7 @@ Lemma tac_wp_alloc Δ Δ' s E j K v Φ :
   envs_entails Δ (WP fill K (Alloc (Val v)) @ s; E {{ Φ }}).
 Proof.
   rewrite envs_entails_unseal=> ? HΔ.
-  rewrite -wp_bind. eapply wand_apply; first exact: wp_alloc.
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, wp_alloc.
   rewrite left_id into_laterN_env_sound; apply later_mono, forall_intro=> l.
   specialize (HΔ l).
   destruct (envs_app _ _ _) as [Δ''|] eqn:HΔ'; [ | contradiction ].
@@ -333,7 +330,7 @@ Lemma tac_twp_alloc Δ s E j K v Φ :
   envs_entails Δ (WP fill K (Alloc (Val v)) @ s; E [{ Φ }]).
 Proof.
   rewrite envs_entails_unseal=> HΔ.
-  rewrite -twp_bind. eapply wand_apply; first exact: twp_alloc.
+  rewrite -twp_bind. eapply wand_apply; first by apply wand_entails, twp_alloc.
   rewrite left_id. apply forall_intro=> l.
   specialize (HΔ l).
   destruct (envs_app _ _ _) as [Δ''|] eqn:HΔ'; [ | contradiction ].
@@ -349,7 +346,7 @@ Lemma tac_wp_free Δ Δ' s E i K l v Φ :
   envs_entails Δ (WP fill K (Free (LitV l)) @ s; E {{ Φ }}).
 Proof.
   rewrite envs_entails_unseal=> ? Hlk Hfin.
-  rewrite -wp_bind. eapply wand_apply; first exact: wp_free.
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, wp_free.
   rewrite into_laterN_env_sound -later_sep envs_lookup_split //; simpl.
   rewrite -Hfin wand_elim_r (envs_lookup_sound' _ _ _ _ _ Hlk).
   apply later_mono, sep_mono_r, wand_intro_r. rewrite right_id //.
@@ -361,7 +358,7 @@ Lemma tac_twp_free Δ s E i K l v Φ :
   envs_entails Δ (WP fill K (Free (LitV l)) @ s; E [{ Φ }]).
 Proof.
   rewrite envs_entails_unseal=> Hlk Hfin.
-  rewrite -twp_bind. eapply wand_apply; first exact: twp_free.
+  rewrite -twp_bind. eapply wand_apply; first by apply wand_entails, twp_free.
   rewrite envs_lookup_split //; simpl.
   rewrite -Hfin wand_elim_r (envs_lookup_sound' _ _ _ _ _ Hlk).
   apply sep_mono_r, wand_intro_r. rewrite right_id //.
@@ -374,7 +371,7 @@ Lemma tac_wp_load Δ Δ' s E i K b l q v Φ :
   envs_entails Δ (WP fill K (Load (LitV l)) @ s; E {{ Φ }}).
 Proof.
   rewrite envs_entails_unseal=> ?? Hi.
-  rewrite -wp_bind. eapply wand_apply; first exact: wp_load.
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, wp_load.
   rewrite into_laterN_env_sound -later_sep envs_lookup_split //; simpl.
   apply later_mono.
   destruct b; simpl.
@@ -387,7 +384,7 @@ Lemma tac_twp_load Δ s E i K b l q v Φ :
   envs_entails Δ (WP fill K (Load (LitV l)) @ s; E [{ Φ }]).
 Proof.
   rewrite envs_entails_unseal=> ? Hi.
-  rewrite -twp_bind. eapply wand_apply; first exact: twp_load.
+  rewrite -twp_bind. eapply wand_apply; first by apply wand_entails, twp_load.
   rewrite envs_lookup_split //; simpl.
   destruct b; simpl.
   - iIntros "[#$ He]". iIntros "_". iApply Hi. iApply "He". iFrame "#".
@@ -405,7 +402,7 @@ Lemma tac_wp_store Δ Δ' s E i K l v v' Φ :
 Proof.
   rewrite envs_entails_unseal=> ???.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
-  rewrite -wp_bind. eapply wand_apply; first by eapply wp_store.
+  rewrite -wp_bind. eapply wand_apply; first by eapply wand_entails, wp_store.
   rewrite into_laterN_env_sound -later_sep envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply later_mono, sep_mono_r, wand_mono.
 Qed.
@@ -419,7 +416,7 @@ Lemma tac_twp_store Δ s E i K l v v' Φ :
 Proof.
   rewrite envs_entails_unseal. intros.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
-  rewrite -twp_bind. eapply wand_apply; first by eapply twp_store.
+  rewrite -twp_bind. eapply wand_apply; first by eapply wand_entails, twp_store.
   rewrite envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply sep_mono_r, wand_mono.
 Qed.
@@ -435,7 +432,7 @@ Lemma tac_wp_xchg Δ Δ' s E i K l v v' Φ :
 Proof.
   rewrite envs_entails_unseal=> ???.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
-  rewrite -wp_bind. eapply wand_apply; first by eapply wp_xchg.
+  rewrite -wp_bind. eapply wand_apply; first by eapply wand_entails, wp_xchg.
   rewrite into_laterN_env_sound -later_sep envs_simple_replace_sound //; simpl.
   rewrite right_id.
   by apply later_mono, sep_mono_r, wand_mono.
@@ -450,7 +447,7 @@ Lemma tac_twp_xchg Δ s E i K l v v' Φ :
 Proof.
   rewrite envs_entails_unseal. intros.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
-  rewrite -twp_bind. eapply wand_apply; first by eapply twp_xchg.
+  rewrite -twp_bind. eapply wand_apply; first by eapply wand_entails, twp_xchg.
   rewrite envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply sep_mono_r, wand_mono.
 Qed.
@@ -473,11 +470,11 @@ Proof.
   destruct (envs_simple_replace _ _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
   destruct (decide (v = v1)) as [Heq|Hne].
   - rewrite -wp_bind. eapply wand_apply.
-    { eapply wp_cmpxchg_suc; eauto. }
+    { eapply wand_entails, wp_cmpxchg_suc; eauto. }
     rewrite into_laterN_env_sound -later_sep /= {1}envs_simple_replace_sound //; simpl.
     apply later_mono, sep_mono_r. rewrite right_id. apply wand_mono; auto.
   - rewrite -wp_bind. eapply wand_apply.
-    { eapply wp_cmpxchg_fail; eauto. }
+    { eapply wand_entails, wp_cmpxchg_fail; eauto. }
     rewrite into_laterN_env_sound -later_sep /= {1}envs_lookup_split //; simpl.
     apply later_mono, sep_mono_r. apply wand_mono; auto.
 Qed.
@@ -498,11 +495,11 @@ Proof.
   destruct (envs_simple_replace _ _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
   destruct (decide (v = v1)) as [Heq|Hne].
   - rewrite -twp_bind. eapply wand_apply.
-    { eapply twp_cmpxchg_suc; eauto. }
+    { eapply wand_entails, twp_cmpxchg_suc; eauto. }
     rewrite /= {1}envs_simple_replace_sound //; simpl.
     apply sep_mono_r. rewrite right_id. apply wand_mono; auto.
   - rewrite -twp_bind. eapply wand_apply.
-    { eapply twp_cmpxchg_fail; eauto. }
+    { eapply wand_entails, twp_cmpxchg_fail; eauto. }
     rewrite /= {1}envs_lookup_split //; simpl.
     apply sep_mono_r. apply wand_mono; auto.
 Qed.
@@ -515,7 +512,7 @@ Lemma tac_wp_cmpxchg_fail Δ Δ' s E i K l q v v1 v2 Φ :
   envs_entails Δ (WP fill K (CmpXchg (LitV l) v1 v2) @ s; E {{ Φ }}).
 Proof.
   rewrite envs_entails_unseal=> ?????.
-  rewrite -wp_bind. eapply wand_apply; first exact: wp_cmpxchg_fail.
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, wp_cmpxchg_fail.
   rewrite into_laterN_env_sound -later_sep envs_lookup_split //; simpl.
   by apply later_mono, sep_mono_r, wand_mono.
 Qed.
@@ -526,7 +523,7 @@ Lemma tac_twp_cmpxchg_fail Δ s E i K l q v v1 v2 Φ :
   envs_entails Δ (WP fill K (CmpXchg (LitV l) v1 v2) @ s; E [{ Φ }]).
 Proof.
   rewrite envs_entails_unseal. intros. rewrite -twp_bind.
-  eapply wand_apply; first exact: twp_cmpxchg_fail.
+  eapply wand_apply; first by apply wand_entails, twp_cmpxchg_fail.
   (* [//] solves some evars and enables further simplification. *)
   rewrite envs_lookup_split /= // /=. by do 2 f_equiv.
 Qed.
@@ -545,7 +542,7 @@ Proof.
   rewrite envs_entails_unseal=> ?????; subst.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
   rewrite -wp_bind. eapply wand_apply.
-  { eapply wp_cmpxchg_suc; eauto. }
+  { eapply wand_entails, wp_cmpxchg_suc; eauto. }
   rewrite into_laterN_env_sound -later_sep envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply later_mono, sep_mono_r, wand_mono.
 Qed.
@@ -562,7 +559,7 @@ Proof.
   rewrite envs_entails_unseal=>????; subst.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
   rewrite -twp_bind. eapply wand_apply.
-  { eapply twp_cmpxchg_suc; eauto. }
+  { eapply wand_entails, twp_cmpxchg_suc; eauto. }
   rewrite envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply sep_mono_r, wand_mono.
 Qed.
@@ -578,7 +575,7 @@ Lemma tac_wp_faa Δ Δ' s E i K l z1 z2 Φ :
 Proof.
   rewrite envs_entails_unseal=> ???.
   destruct (envs_simple_replace _ _ _) as [Δ''|] eqn:HΔ''; [ | contradiction ].
-  rewrite -wp_bind. eapply wand_apply; first exact: (wp_faa _ _ _ z1 z2).
+  rewrite -wp_bind. eapply wand_apply; first by apply wand_entails, (wp_faa _ _ _ z1 z2).
   rewrite into_laterN_env_sound -later_sep envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply later_mono, sep_mono_r, wand_mono.
 Qed.
@@ -592,7 +589,7 @@ Lemma tac_twp_faa Δ s E i K l z1 z2 Φ :
 Proof.
   rewrite envs_entails_unseal=> ??.
   destruct (envs_simple_replace _ _ _) as [Δ'|] eqn:HΔ'; [ | contradiction ].
-  rewrite -twp_bind. eapply wand_apply; first exact: (twp_faa _ _ _ z1 z2).
+  rewrite -twp_bind. eapply wand_apply; first by apply wand_entails, (twp_faa _ _ _ z1 z2).
   rewrite envs_simple_replace_sound //; simpl.
   rewrite right_id. by apply sep_mono_r, wand_mono.
 Qed.
@@ -631,6 +628,98 @@ Tactic Notation "wp_apply" open_constr(lem) :=
 Tactic Notation "wp_smart_apply" open_constr(lem) :=
   wp_apply_core lem ltac:(fun H => iApplyHyp H; try iNext; try wp_expr_simpl)
                     ltac:(fun cont => wp_pure _; []; cont ()).
+
+Tactic Notation "wp_apply" open_constr(lem) "as" constr(pat) :=
+  wp_apply lem; last iIntros pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1) ")"
+    constr(pat) :=
+  wp_apply lem; last iIntros ( x1 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4) ")"
+    constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7) ")"
+    constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) simple_intropattern(x9) ")" constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 x9 ) pat.
+Tactic Notation "wp_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) simple_intropattern(x9) simple_intropattern(x10) ")"
+    constr(pat) :=
+  wp_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 ) pat.
+
+
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" constr(pat) :=
+  wp_smart_apply lem; last iIntros pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1) ")"
+    constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4) ")"
+    constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7) ")"
+    constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) simple_intropattern(x9) ")" constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 x9 ) pat.
+Tactic Notation "wp_smart_apply" open_constr(lem) "as" "(" simple_intropattern(x1)
+    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
+    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
+    simple_intropattern(x8) simple_intropattern(x9) simple_intropattern(x10) ")"
+    constr(pat) :=
+  wp_smart_apply lem; last iIntros ( x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 ) pat.
+
 
 (** Tactic tailored for atomic triples: the first, simple one just runs
 [iAuIntro] on the goal, as atomic triples always have an atomic update as their
@@ -675,14 +764,14 @@ Tactic Notation "wp_alloc" ident(l) "as" constr(H) :=
         first
           [reshape_expr e ltac:(fun K e' => eapply (tac_wp_alloc _ _ _ _ Htmp K))
           |fail 1 "wp_alloc: cannot find 'Alloc' in" e];
-        [iSolveTC
+        [tc_solve
         |finish ()]
     in
     let process_array _ :=
         first
           [reshape_expr e ltac:(fun K e' => eapply (tac_wp_allocN _ _ _ _ Htmp K))
           |fail 1 "wp_alloc: cannot find 'Alloc' in" e];
-        [idtac|iSolveTC
+        [idtac|tc_solve
          |finish ()]
     in (process_single ()) || (process_array ())
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
@@ -715,7 +804,7 @@ Tactic Notation "wp_free" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_free _ _ _ _ _ K))
       |fail 1 "wp_free: cannot find 'Free' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |pm_reduce; wp_finish]
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
@@ -737,7 +826,7 @@ Tactic Notation "wp_load" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_load _ _ _ _ _ K))
       |fail 1 "wp_load: cannot find 'Load' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |wp_finish]
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
@@ -759,7 +848,7 @@ Tactic Notation "wp_store" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_store _ _ _ _ _ K))
       |fail 1 "wp_store: cannot find 'Store' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |pm_reduce; first [wp_seq|wp_finish]]
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
@@ -781,7 +870,7 @@ Tactic Notation "wp_xchg" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_xchg _ _ _ _ _ K))
       |fail 1 "wp_xchg: cannot find 'Xchg' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |pm_reduce; first [wp_seq|wp_finish]]
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
@@ -803,7 +892,7 @@ Tactic Notation "wp_cmpxchg" "as" simple_intropattern(H1) "|" simple_intropatter
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_cmpxchg _ _ _ _ _ K))
       |fail 1 "wp_cmpxchg: cannot find 'CmpXchg' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |try solve_vals_compare_safe
     |pm_reduce; intros H1; wp_finish
@@ -829,7 +918,7 @@ Tactic Notation "wp_cmpxchg_fail" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_cmpxchg_fail _ _ _ _ _ K))
       |fail 1 "wp_cmpxchg_fail: cannot find 'CmpXchg' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |try (simpl; congruence) (* value inequality *)
     |try solve_vals_compare_safe
@@ -855,7 +944,7 @@ Tactic Notation "wp_cmpxchg_suc" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_cmpxchg_suc _ _ _ _ _ K))
       |fail 1 "wp_cmpxchg_suc: cannot find 'CmpXchg' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |try (simpl; congruence) (* value equality *)
     |try solve_vals_compare_safe
@@ -881,7 +970,7 @@ Tactic Notation "wp_faa" :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_faa _ _ _ _ _ K))
       |fail 1 "wp_faa: cannot find 'FAA' in" e];
-    [iSolveTC
+    [tc_solve
     |solve_mapsto ()
     |pm_reduce; wp_finish]
   | |- envs_entails _ (twp ?s ?E ?e ?Q) =>
