@@ -29,19 +29,27 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       0 < lvl →
       node_key head < node_key new < INT_MAX →
       node_key curr < node_key new →
-      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[ curr ]})) -∗
-      n ↦□ rep_to_node new -∗
-      (node_next new +ₗ lvl) ↦ #() -∗
-      (node_lock new +ₗ lvl) ↦ #false -∗
-      has_sub γ new -∗
-      <<< ∀∀ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl >>>
-        insert (rep_to_node curr) #lvl #n @ ∅
-      <<< lazy_list head (S ∪ {[ new ]}) Γ (Some γ) lvl, RET #() >>>
+      ⊢ <<< 
+        ∀∀ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl =>
+        lazy_list head (S ∪ {[ new ]}) Γ (Some γ) lvl;
+        RET #() 
+      >>> @ ∅
       {{{
-        has_sub Γ new
-      }}}.
+        (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[ curr ]}))
+        ∗
+        n ↦□ rep_to_node new
+        ∗
+        (node_next new +ₗ lvl) ↦ #()
+        ∗
+        (node_lock new +ₗ lvl) ↦ #false
+        ∗
+        has_sub γ new
+      }}}
+        insert (rep_to_node curr) #lvl #n
+      {{{ has_sub Γ new }}}.
     Proof.
-      iIntros "%Hlvl %Hk %Hk' #Hcurr #Hn Hnew Hlock [Hfrag' Htok'] %Φ AU".
+      iIntros "%Hlvl %Hk %Hk' !> %Φ HP AU".
+      iDestruct "HP" as "(#Hcurr & #Hn & Hnew & Hlock & [Hfrag' Htok'])".
       wp_lam; wp_pures. wp_load. wp_lam; wp_pures.
 
       awp_apply (findLock_spec with "Hcurr"); first lia.
@@ -146,18 +154,18 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       node_key head < k < INT_MAX →
       node_key curr < k →
       0 ≤ h →
-      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[ curr ]})) -∗
-      <<< ∀∀ S m, jf_map head S m Γ >>>
-        tryInsert (rep_to_node curr) #k #v #t #h @ ∅
-      <<< ∃∃ opt S',
-        jf_map head S' (case_map m k v t) Γ
-        ∗
-        match m !! k with 
-        | None => ∃ (n: loc) (new: node_rep),
-                    ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
-        | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
-        end,
-      RET opt >>>
+      ⊢ <<< 
+        ∀∀ S m, jf_map head S m Γ =>
+        ∃∃ opt S', jf_map head S' (case_map m k v t) Γ ∗
+          match m !! k with 
+          | None => ∃ (n: loc) (new: node_rep),
+                      ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
+          | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
+          end;
+        RET opt
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[ curr ]}) }}}
+        tryInsert (rep_to_node curr) #k #v #t #h
       {{{
         ∀ (n: loc), ⌜ opt = SOMEV #n ⌝ -∗ ∃ (new: node_rep),
           n ↦□ rep_to_node new ∗ ⌜ node_key new = k ⌝ ∗ has_sub Γ new
@@ -167,7 +175,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           (node_lock new +ₗ 1) ↦∗ replicate (Z.to_nat h) #false
       }}}.
     Proof.
-      iIntros "%Hk %Hk' %Hh #Hcurr %Φ AU".
+      iIntros "%Hk %Hk' %Hh !> %Φ #Hcurr AU".
       wp_lam; wp_pures.
 
       awp_apply (findLock_spec with "Hcurr"); first lia.

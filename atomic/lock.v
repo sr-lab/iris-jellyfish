@@ -35,11 +35,14 @@ Section proof.
   Qed.
 
   Lemma try_acquire_spec (lk: val) :
-    ⊢ <<< ∀∀ st, lock lk st >>> try_acquire lk @ ∅
-    <<< ∃∃ b, lock lk Locked ∗ ⌜ if b is true then st = Free else st = Locked ⌝, RET #b >>>
-    {{{ if b is true then acquired lk else emp }}}.
+    ⊢ <<< 
+      ∀∀ st, lock lk st => 
+      ∃∃ b, lock lk Locked ∗ ⌜ if b is true then st = Free else st = Locked ⌝; 
+      RET #b
+    >>> @ ∅
+    {{{ emp }}} try_acquire lk {{{ if b is true then acquired lk else emp }}}.
   Proof.
-    iIntros (Φ) "AU"; rewrite difference_empty_L.
+    iIntros "!>" (Φ) "_ AU"; rewrite difference_empty_L.
     wp_lam. wp_bind (CmpXchg _ _ _).
     iMod "AU" as ([]) "[Hlock [_ Hclose]]".
     + iDestruct "Hlock" as (l) "[-> Hl]". wp_cmpxchg_suc.
@@ -57,13 +60,12 @@ Section proof.
   Qed.
 
   Lemma acquire_spec (lk: val) :
-    ⊢ <<< ∀∀ st, lock lk st >>> acquire lk @ ∅ 
-    <<< lock lk Locked ∗ ⌜ st = Free ⌝, RET #() >>>
-    {{{ acquired lk }}}.
+    ⊢ <<< ∀∀ st, lock lk st => lock lk Locked ∗ ⌜ st = Free ⌝; RET #() >>> @ ∅ 
+    {{{ emp }}} acquire lk {{{ acquired lk }}}.
   Proof.
-    iIntros (Φ) "AU"; rewrite difference_empty_L.
+    iIntros "!>" (Φ) "_ AU"; rewrite difference_empty_L.
     iLöb as "IH". wp_lam.
-    awp_apply try_acquire_spec.
+    awp_apply (try_acquire_spec with "[$]").
     iApply (aacc_aupd_eq with "AU"); try done.
     iIntros (st) "Hlock"; iAaccIntro with "Hlock".
     { do 2 (iIntros; iModIntro; iFrame). }
@@ -78,12 +80,10 @@ Section proof.
   Qed.
 
   Lemma release_spec (lk: val) :
-    acquired lk -∗
-    <<< ∀∀ st, lock lk st >>> release lk @ ∅
-    <<< lock lk Free, RET #() >>>
-    {{{ emp }}}.
+    ⊢ <<< ∀∀ st, lock lk st => lock lk Free; RET #() >>> @ ∅
+    {{{ acquired lk }}} release lk {{{ emp }}}.
   Proof.
-    iIntros "Hacq" (Φ) "AU"; rewrite difference_empty_L.
+    iIntros "!>" (Φ) "Hacq AU"; rewrite difference_empty_L.
     iDestruct "Hacq" as (l) "[-> Hl]".
     wp_lam. iMod "AU" as ([]) "[Hlock [_ Hclose]]";
       iDestruct "Hlock" as (l') "[%Heq Hl']"; replace l' with l by congruence.

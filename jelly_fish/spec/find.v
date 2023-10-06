@@ -17,14 +17,14 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Theorem find_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname)
       (γ: option lazy_gname) (lvl: Z) :
       node_key curr < k < INT_MAX →
-      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]})) -∗
-      <<< ∀∀ S, lazy_list head S Γ γ lvl >>>
-        find (rep_to_node curr) #k #lvl @ ∅
-      <<< ∃∃ pred succ, 
-        lazy_list head S Γ γ lvl
-        ∗
-        ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝, 
-      RET ((rep_to_node pred), (rep_to_node succ)) >>>
+      ⊢ <<< 
+        ∀∀ S, lazy_list head S Γ γ lvl =>
+        ∃∃ pred succ, lazy_list head S Γ γ lvl ∗
+        ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝;
+        RET ((rep_to_node pred), (rep_to_node succ)) 
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]}) }}}
+        find (rep_to_node curr) #k #lvl
       {{{ 
         (⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}))
         ∗
@@ -33,7 +33,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         ⌜ node_key pred < k ≤ node_key succ ⌝
       }}}.
     Proof.
-      iIntros "%Hk Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iIntros "%Hk !> %Φ Hcurr"; iRevert (curr Hk) "Hcurr".
       iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
       rewrite difference_empty_L.
       wp_lam. wp_let. wp_let. wp_lam. wp_pures.
@@ -70,14 +70,14 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
     Theorem findLock_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname)
       (γ: option lazy_gname) (lvl: Z) :
       node_key curr < k < INT_MAX →
-      (⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]})) -∗
-      <<< ∀∀ S, lazy_list head S Γ γ lvl >>>
-        findLock (rep_to_node curr) #k #lvl @ ∅
-      <<< ∃∃ pred succ,
-        lazy_list head S Γ γ lvl
-        ∗
-        ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝,
-      RET ((rep_to_node pred), (rep_to_node succ)) >>>
+      ⊢ <<<
+        ∀∀ S, lazy_list head S Γ γ lvl =>
+        ∃∃ pred succ, lazy_list head S Γ γ lvl ∗
+        ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝;
+        RET ((rep_to_node pred), (rep_to_node succ))
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own Γ.(auth_gname) (◯ {[curr]}) }}}
+        findLock (rep_to_node curr) #k #lvl
       {{{
         (⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}))
         ∗
@@ -95,7 +95,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           acquired #(node_lock pred +ₗ lvl)
       }}}.
     Proof.
-      iIntros "%Hk Hcurr %Φ"; iRevert (curr Hk) "Hcurr".
+      iIntros "%Hk !> %Φ Hcurr"; iRevert (curr Hk) "Hcurr".
       iLöb as "IH"; iIntros (curr Hk) "#Hcurr AU".
       rewrite difference_empty_L.
       wp_lam. wp_let. wp_let.
@@ -110,7 +110,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iModIntro. iIntros "(#Hpred & _ & [%Hk' _])".
       iModIntro. wp_pures; wp_lam; wp_pures.
 
-      awp_apply acquire_spec.
+      awp_apply (acquire_spec with "[$]").
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { 
         iIntros "!> %S H". iDestruct (node_has_lock with "Hpred H") as "[Hlock Hlazy]".

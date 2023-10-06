@@ -24,13 +24,16 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
     Theorem findAll_spec (k lvl: Z) (head curr: node_rep) (mΓ: gmap Z lazy_gname) :
       node_key curr < k < INT_MAX →
       0 ≤ lvl ≤ MAX_HEIGHT →
-      (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[curr]})) -∗
-      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
-        findAll (rep_to_node curr) #k #lvl @ ∅
-      <<< jelly_fish head S m mΓ, RET opt_to_val (m !! k) >>>
+      ⊢ <<<
+        ∀∀ S m, jelly_fish head S m mΓ =>
+        jelly_fish head S m mΓ;
+        RET opt_to_val (m !! k)
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[curr]}) }}}
+        findAll (rep_to_node curr) #k #lvl
       {{{ emp }}}.
     Proof.
-      iIntros "%Hk %Hlvl Hcurr %Φ"; iRevert (lvl curr Hk Hlvl) "Hcurr".
+      iIntros "%Hk %Hlvl !> %Φ Hcurr"; iRevert (lvl curr Hk Hlvl) "Hcurr".
       iLöb as "IH"; iIntros (lvl curr Hk Hlvl) "#Hcurr AU".
       rewrite difference_empty_L.
       wp_lam. wp_let. wp_let.
@@ -89,12 +92,10 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
-        get #p #k @ ∅
-      <<< vc_map p m mΓ, RET opt_to_val (m !! k) >>>
-      {{{ emp }}}.
+      ⊢ <<< ∀∀ m, vc_map p m mΓ => vc_map p m mΓ; RET opt_to_val (m !! k) >>> @ ∅
+      {{{ emp }}} get #p #k {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
       wp_lam. wp_let.
 
       wp_bind (Load _). iMod "AU" as (m) "[Hmap [Hclose _]]".
@@ -103,8 +104,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       { iExists head, S; by iFrame "# ∗". }
       iModIntro; clear dependent m S.
 
-      awp_apply (findAll_spec with "[]"); 
-        first lia; first (pose HMAX_HEIGHT; lia); first by iLeft.
+      awp_apply findAll_spec; first lia; first (pose HMAX_HEIGHT; lia); first by iLeft.
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { 
         iIntros "!> %m Hmap". 

@@ -42,23 +42,23 @@ Section Proofs.
     rewrite -(Qp.div_2 1); iDestruct (mut_set_sep with "Hmut") as "[Hmut1 Hmut2]".
     wp_smart_apply (wp_par (λ _, mut_set _ _ _) (λ _, mut_set _ _ _) with "[Hmut1] [Hmut2]").
     {
-      awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
       iIntros "Hmut1 _". iModIntro. wp_pures.
 
-      awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
       by iIntros.
     }
     { 
-      awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
       iIntros "Hmut2 _". iModIntro. wp_pures.
 
-      awp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
       by iIntros.
@@ -71,13 +71,13 @@ Section Proofs.
     rewrite -(Qp.div_2 1); iDestruct (const_set_sep with "Hconst") as "[Hconst1 Hconst2]".
     wp_smart_apply (wp_par (λ v, ⌜ v = #true ⌝%I) (λ v, ⌜ v = #true ⌝%I) with "[Hconst1] [Hconst2]").
     {
-      awp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (read_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hconst1"; first (iIntros "?"; iModIntro; iFrame).
       iIntros (b) "[Hconst1 %Hif]". iModIntro. iExists _, _. iFrame "Hconst1".
       iIntros; iPureIntro. destruct (b); first done; last set_solver.
     }
     {
-      awp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
+      awp_apply (read_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hconst2"; first (iIntros "?"; iModIntro; iFrame).
       iIntros (b) "[Hconst2 %Hif]". iModIntro. iExists _, _. iFrame "Hconst2".
       iIntros; iPureIntro. destruct (b); first done; last set_solver.

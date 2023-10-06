@@ -49,11 +49,14 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
 
     Theorem contains_spec (p: loc) (Γ: lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ (s: gset Z), set p s Γ >>> contains #p #k @ ∅
-      <<< ∃∃ (b: bool), set p s Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
-      {{{ emp }}}.
+      ⊢ <<<
+        ∀∀ (s: gset Z), set p s Γ =>
+        ∃∃ (b: bool), set p s Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝;
+        RET #b
+      >>> @ ∅
+      {{{ emp }}} contains #p #k {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
       rewrite difference_empty_L.
       wp_lam. wp_let. 
       
@@ -86,12 +89,10 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
 
     Theorem add_spec (p: loc) (Γ: lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ (s: gset Z), set p s Γ >>>
-        add #p #k @ ∅
-      <<< set p (s ∪ {[ k ]}) Γ, RET #() >>>
-      {{{ emp }}}.
+      ⊢ <<< ∀∀ (s: gset Z), set p s Γ => set p (s ∪ {[ k ]}) Γ; RET #() >>> @ ∅
+      {{{ emp }}} add #p #k {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
       rewrite difference_empty_L.
       wp_lam. wp_let. 
       

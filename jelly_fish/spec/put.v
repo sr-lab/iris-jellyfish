@@ -19,17 +19,20 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       node_key curr < k < INT_MAX →
       lvl ≤ MAX_HEIGHT →
       0 ≤ h ≤ lvl →
-      (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]})) -∗
-      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
-        findLevel (rep_to_node curr) #k #lvl #h @ ∅
-      <<< ∃∃ pred, jelly_fish head S m mΓ, RET (rep_to_node pred) >>>
+      ⊢ <<<
+        ∀∀ S m, jelly_fish head S m mΓ =>
+        ∃∃ pred, jelly_fish head S m mΓ;
+        RET (rep_to_node pred)
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]}) }}}
+        findLevel (rep_to_node curr) #k #lvl #h
       {{{ 
         (⌜ pred = head ⌝ ∨ own (mΓ !!! h).(auth_gname) (◯ {[ pred ]}))
         ∗
         ⌜ node_key pred < k < INT_MAX ⌝
       }}}.
     Proof.
-      iIntros "%Hk %Hlvl %Hh Hcurr %Φ"; iRevert (lvl curr Hk Hlvl Hh) "Hcurr".
+      iIntros "%Hk %Hlvl %Hh !> %Φ Hcurr"; iRevert (lvl curr Hk Hlvl Hh) "Hcurr".
       iLöb as "IH"; iIntros (lvl curr Hk Hlvl Hh) "#Hcurr AU".
       wp_lam; wp_pures.
 
@@ -73,18 +76,18 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       node_key curr < k →
       lvl ≤ MAX_HEIGHT →
       0 ≤ lvl ≤ h →
-      (⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]})) -∗
-      <<< ∀∀ S m, jelly_fish head S m mΓ >>>
-        insertAll (rep_to_node curr) #k #v #t #h #lvl @ ∅
-      <<< ∃∃ opt S',
-        jelly_fish head S' (case_map m k v t) mΓ
-        ∗
-        match m !! k with 
-        | None => ∃ (n: loc) (new: node_rep),
-                    ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
-        | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
-        end,
-      RET opt >>>
+      ⊢ <<< 
+        ∀∀ S m, jelly_fish head S m mΓ =>
+        ∃∃ opt S', jelly_fish head S' (case_map m k v t) mΓ ∗
+          match m !! k with 
+          | None => ∃ (n: loc) (new: node_rep),
+                      ⌜ opt = SOMEV #n ⌝ ∗ n ↦□ rep_to_node new ∗ ⌜ S' = S ∪ {[ new ]} ⌝
+          | Some _ => ⌜ opt = NONEV ⌝ ∗ ⌜ S' = S ⌝
+          end;
+        RET opt
+      >>> @ ∅
+      {{{ ⌜ curr = head ⌝ ∨ own (mΓ !!! lvl).(auth_gname) (◯ {[ curr ]}) }}}
+        insertAll (rep_to_node curr) #k #v #t #h #lvl
       {{{
         ∀ (n: loc), ⌜ opt = SOMEV #n ⌝ -∗ ∃ (new: node_rep),
           n ↦□ rep_to_node new ∗ ⌜ node_key new = k ⌝ ∗ has_sub (mΓ !!! lvl) new
@@ -94,7 +97,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           (node_lock new +ₗ lvl +ₗ 1) ↦∗ replicate (Z.to_nat (h - lvl)) #false
       }}}.
     Proof.
-      iIntros "%Hk %Hk' %Hlvl %Hh Hcurr %Φ"; iRevert (lvl curr Φ Hk Hk' Hlvl Hh) "Hcurr".
+      iIntros "%Hk %Hk' %Hlvl %Hh !> %Φ Hcurr"; iRevert (lvl curr Φ Hk Hk' Hlvl Hh) "Hcurr".
       iLöb as "IH"; iIntros (lvl curr Φ Hk Hk' Hlvl Hh) "#Hcurr AU".
       wp_lam; wp_pures.
 
@@ -169,7 +172,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           iDestruct "Hnexts" as "[Hnext Hnexts]".
           iDestruct "Hlocks" as "[Hlock Hlocks]".
 
-          awp_apply (insert_spec with "Hcurr Hn Hnext Hlock Hsub"); try lia.
+          awp_apply (insert_spec with "[Hcurr Hn Hnext Hlock Hsub]");
+            try iFrame "Hcurr Hn Hnext Hlock Hsub"; try lia.
           iApply (aacc_apst_sub with "[] AP"); try done.
           {
             iIntros "!> %S %m Hskip".
@@ -205,12 +209,16 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
     Theorem putH_spec (p: loc) (k v t h: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX)
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
-      ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
-        putH #p #k #v #t #h @ ∅
-      <<< ∃∃ opt, vc_map p (case_map m k v t) mΓ ∗ ⌜ opt = m !! k ⌝, RET #() >>>
+      ⊢ <<<
+        ∀∀ m, vc_map p m mΓ =>
+        ∃∃ opt, vc_map p (case_map m k v t) mΓ ∗ ⌜ opt = m !! k ⌝;
+        RET #()
+      >>> @ ∅
+      {{{ emp }}}
+        putH #p #k #v #t #h
       {{{ ⌜ opt = None ⌝ → ∃ new, ⌜ node_key new = k ⌝ ∗ has_sub (mΓ !!! h) new }}}.
     Proof.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
       wp_lam; wp_pures. 
       
       wp_bind (Load _). iMod "AU" as (m) "[Hmap [Hclose _]]".
@@ -219,7 +227,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       { iExists head, S; by iFrame "# ∗". }
       iModIntro; clear dependent m S.
 
-      awp_apply (findLevel_spec); try lia; first by iLeft.
+      awp_apply findLevel_spec; try lia; first by iLeft.
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { 
         iIntros "!> %m Hmap". 
@@ -272,14 +280,12 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, vc_map p m mΓ >>>
-        put #p #k #v #t @ ∅
-      <<< vc_map p (case_map m k v t) mΓ, RET #() >>>
-      {{{ emp }}}.
+      ⊢ <<< ∀∀ m, vc_map p m mΓ => vc_map p (case_map m k v t) mΓ; RET #() >>> @ ∅
+      {{{ emp }}} put #p #k #v #t {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU". pose proof HMAX_HEIGHT.
+      iIntros "!> %Φ _ AU". pose proof HMAX_HEIGHT.
       wp_lam; wp_pures; wp_lam; wp_pures.
-      awp_apply (putH_spec); try lia.
+      awp_apply (putH_spec with "[$]"); try lia.
       iApply (aacc_aupd_eq with "AU"); try done.
       iIntros (m) "Hmap"; iAaccIntro with "Hmap".
       { iIntros; iModIntro; iFrame; by iIntros. }

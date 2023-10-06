@@ -14,12 +14,12 @@ Section post_definition.
   Context `{BiFUpd PROP} {TC : tele}.
   Implicit Types
     (Eo Ei : coPset) (* outer/inner masks *)
-    (Ψ : TC → PROP) (* atomic post-condition *)
+    (Ψ : TC → PROP) (* atomic postcondition *)
     (Q : PROP) (* keep Ψ condition *)
-    (Φ : PROP) (* post-condition *)
+    (Φ : PROP) (* postcondition *)
   .
 
-  (** atomic_post_acc as the "introduction form" of atomic post-conditions: An 
+  (** atomic_post_acc as the "introduction form" of atomic postconditions: An 
       accessor that can return to [Q]. *)
   Definition atomic_post_acc Eo Ei Ψ Q Φ : PROP :=
     |={Eo, Ei}=> ∃.. z, Ψ z ∗ ((Ψ z ={Ei, Eo}=∗ Q) ∧ (Ψ z ={Ei, Eo}=∗ Φ)).
@@ -84,7 +84,7 @@ Local Definition atomic_post_unseal :
 Global Arguments atomic_post_acc {PROP _ TC} Eo Ei _ _ _ : simpl never.
 Global Arguments atomic_post {PROP _ TC} Eo Ei _ _ : simpl never.
 
-(** Notation: Atomic post-conditions *)
+(** Notation: Atomic postconditions *)
 Notation "'AP' '<<' ∃∃ z1 .. zn , Ψ '>>' @ Eo , Ei '<<' 'COMM' Φ '>>'" :=
   (atomic_post (TC:=TeleS (λ z1, .. (TeleS (λ zn, TeleO)) .. ))
                Eo Ei
@@ -267,11 +267,11 @@ Section definition.
   Context `{BiFUpd PROP} {TA TB TC : tele}.
   Implicit Types
     (Eo Ei : coPset) (* outer/inner masks *)
-    (α : TA → PROP) (* atomic pre-condition *)
+    (α : TA → PROP) (* atomic precondition *)
     (P : PROP) (* abortion condition *)
-    (Ψ : TC → PROP) (* atomic post-condition *)
+    (Ψ : TC → PROP) (* atomic postcondition *)
     (β : TA → TB → PROP)
-    (Φ : TA → TB → PROP) (* post-condition *)
+    (Φ : TA → TB → PROP) (* postcondition *)
   .
 
   (** atomic_acc as the "introduction form" of atomic updates: An accessor

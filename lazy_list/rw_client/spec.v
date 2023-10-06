@@ -125,17 +125,18 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
 
     Theorem read_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_set N p Γ -∗
-      <<< ∀∀ (s: gset Z) (q: frac), const_set s q Γ >>>
-        contains #p #k @ ↑N
-      <<< ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝, RET #b >>>
-      {{{ emp }}}.
+      is_set N p Γ ⊢ <<<
+        ∀∀ (s: gset Z) (q: frac), const_set s q Γ =>
+        ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝;
+        RET #b
+      >>> @ ↑N
+      {{{ emp }}} contains #p #k {{{ emp }}}.
     Proof.
       iIntros "[%Γl #Hinv]".
       iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
 
-      awp_apply contains_spec; first done.
+      awp_apply (contains_spec with "[$]"); first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
         iIntros "!> %s %q [Hset ?]". iDestruct "Hset" as (s') "[? ?]". 
@@ -160,17 +161,18 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
 
     Theorem write_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_set N p Γ -∗
-      <<< ∀∀ (s: gset Z) (q: frac), mut_set s q Γ >>>
-        add #p #k @ ↑N
-      <<< mut_set (s ⋅ {[ k ]}) q Γ, RET #() >>>
-      {{{ emp }}}.
+      is_set N p Γ ⊢ <<< 
+        ∀∀ (s: gset Z) (q: frac), mut_set s q Γ =>
+        mut_set (s ⋅ {[ k ]}) q Γ;
+        RET #()
+      >>> @ ↑N
+      {{{ emp }}} add #p #k {{{ emp }}}.
     Proof.
       iIntros "[%Γl #Hinv]".
       iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-      iIntros (Φ) "AU".
+      iIntros "!> %Φ _ AU".
 
-      awp_apply add_spec; first done.
+      awp_apply (add_spec with "[$]"); first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
         iIntros "!> %s %q [Hset ?]". iDestruct "Hset" as (s') "[? ?]". 

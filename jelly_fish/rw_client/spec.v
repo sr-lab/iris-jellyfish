@@ -156,12 +156,14 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem ts_get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
-        get #p #k @ ∅
-      <<< ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k), RET opt >>>
-      {{{ emp }}}.
+      ⊢ <<<
+        ∀∀ m, ts_map p m mΓ =>
+        ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k);
+        RET opt
+      >>> @ ∅
+      {{{ emp }}} get #p #k {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU". awp_apply get_spec; first done.
+      iIntros "!> %Φ _ AU". awp_apply (get_spec with "[$]"); first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
         iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
@@ -183,12 +185,14 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem ts_put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, ts_map p m mΓ >>>
-        put #p #k #v #t @ ∅
-      <<< ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ, RET #() >>>
-      {{{ emp }}}.
+      ⊢ <<<
+        ∀∀ m, ts_map p m mΓ =>
+        ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ;
+        RET #()
+      >>> @ ∅
+      {{{ emp }}} put #p #k #v #t {{{ emp }}}.
     Proof.
-      iIntros (Φ) "AU". awp_apply put_spec; first done.
+      iIntros "!> %Φ _ AU". awp_apply (put_spec with "[$]"); first done.
       iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
       { 
         iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
@@ -228,23 +232,24 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem const_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_map p Γ -∗
+      is_map p Γ ⊢
       {{{ const_map m q Γ }}}
         get #p #k
       {{{ opt, RET opt; const_map m q Γ ∗ opt_equiv opt (m !! k) }}}.
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hconst HΦ".
-      iAssert (
-      <<< ∀∀ m, const_map m q Γ >>>
-        get #p #k @ ↑mapN
-      <<< ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k), RET opt >>>
-      {{{ emp }}}
+      iAssert (<<<
+        ∀∀ m, const_map m q Γ =>
+        ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k);
+        RET opt
+      >>> @ ↑mapN
+      {{{ emp }}} get #p #k {{{ emp }}}
       )%I as "Hread".
       { 
         iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-        clear m Φ; iIntros (Φ) "AU".
+        clear m Φ; iIntros "!> %Φ _ AU".
 
-        awp_apply ts_get_spec; first done.
+        awp_apply (ts_get_spec with "[$]"); first done.
         iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
         { 
           iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
@@ -268,30 +273,31 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
       }
       iDestruct (atomic_wp_seq_step with "Hread") as "Hwp".
-      iApply ("Hwp" with "Hconst [HΦ]").
+      iApply ("Hwp" with "[$] Hconst [HΦ]").
       + iNext; iIntros; iApply "HΦ"; by iFrame.
       + iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
     Qed.
 
     Theorem mut_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
       (k v t: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      is_map p Γ -∗
+      is_map p Γ ⊢
       {{{ mut_map m q Γ }}}
         put #p #k #v #t
       {{{ RET #(); mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ }}}.
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hmut HΦ".
-      iAssert (
-      <<< ∀∀ m, mut_map m q Γ >>>
-        put #p #k #v #t @ ↑mapN
-      <<< mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ, RET #() >>>
-      {{{ emp }}}
+      iAssert (<<<
+        ∀∀ m, mut_map m q Γ =>
+        mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ;
+        RET #()
+      >>> @ ↑mapN
+      {{{ emp }}} put #p #k #v #t {{{ emp }}}
       )%I as "Hwrite".
       {
         iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-        clear m Φ; iIntros (Φ) "AU".
+        clear m Φ; iIntros "!> %Φ _ AU".
 
-        awp_apply ts_put_spec; first done.
+        awp_apply (ts_put_spec with "[$]"); first done.
         iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
         { 
           iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
@@ -325,7 +331,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
       }
       iDestruct (atomic_wp_seq_step with "Hwrite") as "Hwp".
-      iApply ("Hwp" with "Hmut [HΦ]").
+      iApply ("Hwp" with "[$] Hmut [HΦ]").
       + iNext; iIntros; iApply "HΦ"; by iFrame.
       + iIntros; iExists _; iFrame; by iIntros.
     Qed.
