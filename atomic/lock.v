@@ -87,7 +87,7 @@ Section proof.
     iDestruct "Hacq" as (l) "[-> Hl]".
     wp_lam. iMod "AU" as ([]) "[Hlock [_ Hclose]]";
       iDestruct "Hlock" as (l') "[%Heq Hl']"; replace l' with l by congruence.
-    { iDestruct (mapsto_agree with "Hl Hl'") as %?; congruence. }
+    { iDestruct (pointsto_agree with "Hl Hl'") as %?; congruence. }
     iCombine "Hl Hl'" as "Hl"; rewrite Qp.three_quarter_quarter.
     wp_store. iMod ("Hclose" with "[Hl]") as "AP".
     { iExists l. by iFrame. }

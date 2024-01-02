@@ -319,7 +319,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
           (jelly_fish h S m mΓ -∗ vc_map p m mΓ).
     Proof.
       iIntros "Hh Hmap". iDestruct "Hmap" as (h' S) "(#H & %Hmin & Hskip)".
-      iDestruct (mapsto_agree with "Hh H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hh H") as %<-%rep_to_node_inj; iClear "H".
       iExists S. iFrame "Hskip". iIntros "Hskip". iExists h, S. by iFrame.
     Qed. 
   End proofs.

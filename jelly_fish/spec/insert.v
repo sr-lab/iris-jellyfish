@@ -86,9 +86,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       rewrite (big_sepS_delete (has_next _ _) _ pred) //.
       iDestruct "Hnexts" as "[Hnext Hnexts]".
       iDestruct "Hnext" as (s' succ') "(Hnext & #Hs' & _ & Hkeys)".
-      iDestruct (mapsto_agree with "Hpt Hnext") as %Hs; 
+      iDestruct (pointsto_agree with "Hpt Hnext") as %Hs; 
         symmetry in Hs; inversion Hs; subst; clear Hs.
-      iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj.
+      iDestruct (pointsto_agree with "Hs Hs'") as %<-%rep_to_node_inj.
       iClear "Hs'"; iCombine "Hpt Hnext" as "Hpt".
       wp_store. iDestruct "Hpt" as "[Hpt Hnext]".
 
@@ -189,7 +189,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hacq)".
       iDestruct "Hacq" as (s) "(Hpt & #Hs & Hval & Hacq)".
       iDestruct "Hval" as (?) "[Hs' Hsucc']".
-      iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
+      iDestruct (pointsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
       iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
 
       case_bool_decide as Hcase; wp_if.
@@ -215,7 +215,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iDestruct "Hval" as (? vl) "(Hvpt' & Hkey & Hvl)".
           iDestruct (ghost_map_lookup with "Hgmap Hkey") as %Hsome; 
             rewrite -Heq in Hsome.
-          iDestruct (mapsto_agree with "Hvpt Hvpt'") as %<-%rep_to_val_inj.
+          iDestruct (pointsto_agree with "Hvpt Hvpt'") as %<-%rep_to_val_inj.
 
           wp_load. rewrite /case_map Hsome.
           case_decide as Hcase'; simpl in Hcase'; last lia.
@@ -262,7 +262,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           { unfold val_vt in Ht; unfold val_t in Ht'; lia. }
 
           wp_alloc prev as "Hprev". wp_pures; wp_lam; wp_pures.
-          iMod (mapsto_persist with "Hprev") as "#Hprev".
+          iMod (pointsto_persist with "Hprev") as "#Hprev".
           set (val' := (v, t, prev)).
           rewrite (fold_rep_to_val val').
 
@@ -276,7 +276,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iDestruct "Hval" as (? vl) "(Hvpt' & Hkey & Hvl)".
           iDestruct (ghost_map_lookup with "Hgmap Hkey") as %Hsome; 
             rewrite -Heq in Hsome.
-          iDestruct (mapsto_agree with "Hvpt Hvpt'") as %<-%rep_to_val_inj.
+          iDestruct (pointsto_agree with "Hvpt Hvpt'") as %<-%rep_to_val_inj.
           iCombine "Hvpt Hvpt'" as "Hvpt". wp_store.
           iDestruct "Hvpt" as "[Hvpt Hvpt']".
 
@@ -332,7 +332,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hlocks" as "[Hlock Hls]".
 
         wp_alloc vpt as "[Hvpt Hvpt']". wp_let.
-        wp_alloc n as "Hn". wp_let. iMod (mapsto_persist with "Hn") as "#Hn".
+        wp_alloc n as "Hn". wp_let. iMod (pointsto_persist with "Hn") as "#Hn".
         set (val := (v, t, dummy_null)); set (new := (k, vpt, next, lock)).
         rewrite (fold_rep_to_val val) (fold_rep_to_node new).
 
@@ -348,9 +348,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iDestruct "Hnexts" as "[Hpt' Hnexts]".
         iDestruct "Hpt'" as (s' succ') "(Hpt' & #Hs' & _ & Hkeys)".
         rewrite Loc.add_0.
-        iDestruct (mapsto_agree with "Hpt Hpt'") as %Hs; 
+        iDestruct (pointsto_agree with "Hpt Hpt'") as %Hs; 
           symmetry in Hs; inversion Hs; subst; clear Hs.
-        iDestruct (mapsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
+        iDestruct (pointsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
         iCombine "Hpt Hpt'" as "Hpt".
         wp_store. iDestruct "Hpt" as "[Hpt Hpt']".
 

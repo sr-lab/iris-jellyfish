@@ -163,7 +163,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           iApply "HΦ". iIntros. congruence.
         - iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
           iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & Hnexts & Hlocks)".
-          iDestruct (mapsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
+          iDestruct (pointsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
           iDestruct "Hopt" as %->. wp_pures. clear dependent S S'.
           replace (Z.to_nat (h - (lvl - 1))) with (S (Z.to_nat (h - lvl))) by lia.
           rewrite ?(Loc.add_assoc _ (lvl - 1)).
@@ -255,7 +255,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       }
       iIntros (m) "Hmap".
       iDestruct "Hmap" as (head' S) "(H & _ & Hskip)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iAaccIntro with "Hskip".
       { 
         iIntros "Hskip". iModIntro. iSplitR ""; last (iIntros; iModIntro; iFrame).
@@ -273,7 +273,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iApply "HΦ". by iIntros.
       + iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
         iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & _)".
-        iDestruct (mapsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
+        iDestruct (pointsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
         iDestruct "Hopt" as %->. rewrite difference_empty_L.
         iApply "HΦ". iIntros. iExists new. by iFrame.
     Qed.

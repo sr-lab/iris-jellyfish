@@ -86,7 +86,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros (Φ) "_ HΦ"; wp_lam; pose proof HMAX_HEIGHT. 
 
-      wp_alloc t as "Ht"; iMod (mapsto_persist with "Ht") as "#Ht".
+      wp_alloc t as "Ht"; iMod (pointsto_persist with "Ht") as "#Ht".
       wp_alloc next as "Hnexts"; first lia. wp_let.
       wp_alloc lock as "Hlocks"; first lia. wp_let.
       set (head := (INT_MIN, dummy_null, next, lock)).
@@ -115,7 +115,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
       { replace 1 with (0 + 1) by lia; rewrite zrange_empty_r big_sepS_empty //. }
 
       wp_pures; rewrite (fold_rep_to_node head).
-      wp_alloc p as "Hp"; iMod (mapsto_persist with "Hp") as "#Hp".
+      wp_alloc p as "Hp"; iMod (pointsto_persist with "Hp") as "#Hp".
       iModIntro; iApply "HΦ".
       iExists head, ∅. iFrame "Hp Hskip". iSplit; first done.
       iSplitR "Hvals"; last first.

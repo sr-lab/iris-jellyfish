@@ -132,7 +132,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
         as (succ) "(Hnext & #Hsucc & %Hdisj & Hlazy)".
       destruct (decide (k ≤ node_key succ)) as [|Hcase].
       + iDestruct "Hin" as (?) "Hnext'".
-        iDestruct (mapsto_agree with "Hnext Hnext'") as %<-.
+        iDestruct (pointsto_agree with "Hnext Hnext'") as %<-.
 
         wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
         iDestruct "Hclose" as "[_ Hclose]".

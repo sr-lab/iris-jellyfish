@@ -28,7 +28,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
 
       set (head := (INT_MIN, t, l)).
       wp_pures; rewrite (fold_rep_to_node head).
-      wp_alloc h as "Hh"; iMod (mapsto_persist with "Hh") as "#Hh".
+      wp_alloc h as "Hh"; iMod (pointsto_persist with "Hh") as "#Hh".
 
       iMod (own_alloc (● ∅ ⋅ ◯ ∅))
         as (γauth) "[Hauth _]"; 
@@ -70,7 +70,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { iIntros "!> %s". by iApply set_has_lazy. }
       iIntros (s) "Hset"; iDestruct "Hset" as (? S) "(H & _ & -> & Hlazy)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iAaccIntro with "Hlazy".
       { iIntros; iModIntro; iSplitR ""; last by iIntros. iExists head, S; by iFrame "# ∗". }
       iIntros (pred succ) "[Hlazy %Hkin]".
@@ -106,7 +106,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       iApply (aacc_aupd_sub with "[] AU"); try done.
       { iIntros "!> %s". by iApply set_has_lazy. }
       iIntros (s) "Hset"; iDestruct "Hset" as (? S) "(H & _ & -> & Hlazy)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iAaccIntro with "Hlazy".
       { iIntros; iModIntro; iSplitR ""; last by iIntros. iExists head, S; by iFrame "# ∗". }
       iIntros (pred succ) "[Hlazy %Hkin]".
@@ -154,14 +154,14 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         wp_bind (Store _ _).
         iMod "AU" as (s) "[Hset [_ HAP]]".
         iDestruct "Hset" as (h' S) "(H & _ & %Hkeys & Hlazy)".
-        iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+        iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
         iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
         iDestruct "Hlazy" as "(Hauth & Hdisj & Hnexts & Hlocks)".
 
         rewrite (big_sepS_delete (has_next _) _ pred) //.
         iDestruct "Hnexts" as "[Hnext Hnexts]".
         iDestruct "Hnext" as (succ') "(Hnext & _ & Hkeys)".
-        iDestruct (mapsto_agree with "Hnext Hnext'") as %->%rep_to_node_inj.
+        iDestruct (pointsto_agree with "Hnext Hnext'") as %->%rep_to_node_inj.
         iCombine "Hnext Hnext'" as "Hnext"; wp_store.
         iDestruct "Hnext" as "[Hnext Hnext']".
 

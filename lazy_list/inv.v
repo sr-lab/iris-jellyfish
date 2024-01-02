@@ -127,7 +127,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
     Proof.
       iIntros "Hhead #Hnode Hset".
       iDestruct "Hset" as (h' S) "(H & Hmin & Hkeys & Hlazy)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iDestruct (lazy_node_has_lock with "Hnode Hlazy") as "[Hlock Hlazy]".
       iFrame "Hlock". iIntros. iExists head, S. iFrame. by iApply "Hlazy".
     Qed.
@@ -139,7 +139,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
           lazy_list head S Γ ∗ (lazy_list head S Γ -∗ set p s Γ).
     Proof.
       iIntros "Hhead Hset". iDestruct "Hset" as (Γl S) "(H & ? & ? & Hlazy)".
-      iDestruct (mapsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iExists S. iFrame "Hlazy". iIntros "Hlazy". iExists head, S. iFrame.
     Qed. 
   End proofs.

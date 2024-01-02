@@ -137,7 +137,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         as (s succ) "(Hnext & #Hs & #Hsucc & %Hdisj & Hlazy)".
       destruct (decide (k ≤ node_key succ)) as [|Hcase].
       + iDestruct "Hin" as (?) "[Hnext' Hval]".
-        iDestruct (mapsto_agree with "Hnext Hnext'") as %Hs; 
+        iDestruct (pointsto_agree with "Hnext Hnext'") as %Hs; 
           symmetry in Hs; inversion Hs; subst.
 
         wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
