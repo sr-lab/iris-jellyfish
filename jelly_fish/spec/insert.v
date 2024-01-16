@@ -30,7 +30,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       node_key head < node_key new < INT_MAX →
       node_key curr < node_key new →
       ⊢ <<< 
-        ∀∀ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl =>
+        ∀∀ (S: gset node_rep), lazy_list head S Γ (Some γ) lvl |
         lazy_list head (S ∪ {[ new ]}) Γ (Some γ) lvl;
         RET #() 
       >>> @ ∅
@@ -155,7 +155,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       node_key curr < k →
       0 ≤ h →
       ⊢ <<< 
-        ∀∀ S m, jf_map head S m Γ =>
+        ∀∀ S m, jf_map head S m Γ |
         ∃∃ opt S', jf_map head S' (case_map m k v t) Γ ∗
           match m !! k with 
           | None => ∃ (n: loc) (new: node_rep),

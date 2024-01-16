@@ -18,7 +18,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       (γ: option lazy_gname) (lvl: Z) :
       node_key curr < k < INT_MAX →
       ⊢ <<< 
-        ∀∀ S, lazy_list head S Γ γ lvl =>
+        ∀∀ S, lazy_list head S Γ γ lvl |
         ∃∃ pred succ, lazy_list head S Γ γ lvl ∗
         ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝;
         RET ((rep_to_node pred), (rep_to_node succ)) 
@@ -71,7 +71,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       (γ: option lazy_gname) (lvl: Z) :
       node_key curr < k < INT_MAX →
       ⊢ <<<
-        ∀∀ S, lazy_list head S Γ γ lvl =>
+        ∀∀ S, lazy_list head S Γ γ lvl |
         ∃∃ pred succ, lazy_list head S Γ γ lvl ∗
         ⌜ k ≠ node_key succ → k ∉ (set_map node_key S : gset Z) ⌝;
         RET ((rep_to_node pred), (rep_to_node succ))

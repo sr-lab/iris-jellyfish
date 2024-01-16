@@ -157,7 +157,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Theorem ts_get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       ⊢ <<<
-        ∀∀ m, ts_map p m mΓ =>
+        ∀∀ m, ts_map p m mΓ |
         ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k);
         RET opt
       >>> @ ∅
@@ -186,7 +186,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Theorem ts_put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX) :
       ⊢ <<<
-        ∀∀ m, ts_map p m mΓ =>
+        ∀∀ m, ts_map p m mΓ |
         ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ;
         RET #()
       >>> @ ∅
@@ -239,7 +239,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hconst HΦ".
       iAssert (<<<
-        ∀∀ m, const_map m q Γ =>
+        ∀∀ m, const_map m q Γ |
         ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k);
         RET opt
       >>> @ ↑mapN
@@ -287,7 +287,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hmut HΦ".
       iAssert (<<<
-        ∀∀ m, mut_map m q Γ =>
+        ∀∀ m, mut_map m q Γ |
         mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ;
         RET #()
       >>> @ ↑mapN

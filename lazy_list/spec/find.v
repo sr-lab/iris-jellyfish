@@ -17,7 +17,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
     Theorem find_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname) :
       node_key curr < k < INT_MAX →
       ⊢ <<< 
-        ∀∀ (S: gset node_rep), lazy_list head S Γ =>
+        ∀∀ (S: gset node_rep), lazy_list head S Γ |
         ∃∃ pred succ, lazy_list head S Γ ∗ 
           ⌜ k = node_key succ ↔ k ∈ (set_map node_key S : gset Z) ⌝; 
         RET ((rep_to_node pred), (rep_to_node succ))
@@ -71,7 +71,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
     Theorem findLock_spec (k: Z) (head curr: node_rep) (Γ: lazy_gname) :
       node_key curr < k < INT_MAX →
       ⊢ <<< 
-        ∀∀ (S: gset node_rep), lazy_list head S Γ =>
+        ∀∀ (S: gset node_rep), lazy_list head S Γ |
         ∃∃ pred succ, lazy_list head S Γ ∗
           ⌜ k = node_key succ ↔ k ∈ (set_map node_key S : gset Z) ⌝;
         RET ((rep_to_node pred), (rep_to_node succ))

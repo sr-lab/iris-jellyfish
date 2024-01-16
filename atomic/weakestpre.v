@@ -30,7 +30,7 @@ Definition atomic_wp `{!irisGS_gen hlc Λ Σ} {TA TB TC : tele}
 
 (* The way to read the [tele_app foo] here is that they convert the n-ary
 function [foo] into a unary function taking a telescope as the argument. *)
-Notation "'<<<' ∀∀ x1 .. xn , α => ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
+Notation "'<<<' ∀∀ x1 .. xn , α | ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
   (atomic_wp (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
              (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
              (TC:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
@@ -50,10 +50,10 @@ Notation "'<<<' ∀∀ x1 .. xn , α => ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E
                         ) .. )
   )
   (at level 20, E, α, β, P, Q, v at level 200, x1 binder, xn binder, y1 binder, yn binder,
-   format "'[hv' '<<<' '[' ∀∀ x1 .. xn , α => ∃∃ y1 .. yn , β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
+   format "'[hv' '<<<' '[' ∀∀ x1 .. xn , α | ∃∃ y1 .. yn , β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
   : bi_scope.
 
-Notation "'<<<' ∀∀ x1 .. xn , α => β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
+Notation "'<<<' ∀∀ x1 .. xn , α | β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
   (atomic_wp (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
              (TB:=TeleO)
              (TC:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
@@ -67,10 +67,10 @@ Notation "'<<<' ∀∀ x1 .. xn , α => β ; 'RET' v '>>>' @ E {{{ P } } } e {{{
              (tele_app $ λ x1, .. (λ xn, tele_app v%V) .. )
   )
   (at level 20, E, α, β, P, Q, v at level 200, x1 binder, xn binder,
-   format "'[hv' '<<<' '[' ∀∀ x1 .. xn , α => β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
+   format "'[hv' '<<<' '[' ∀∀ x1 .. xn , α | β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
   : bi_scope.
 
-Notation "'<<<' α => ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
+Notation "'<<<' α | ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
   (atomic_wp (TA:=TeleO)
              (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
              (TC:=TeleO)
@@ -84,10 +84,10 @@ Notation "'<<<' α => ∃∃ y1 .. yn , β ; 'RET' v '>>>' @ E {{{ P } } } e {{{
              (tele_app $ tele_app (λ y1, .. (λ yn, v%V) .. ))
   )
   (at level 20, E, α, β, P, Q, v at level 200, y1 binder, yn binder,
-   format "'[hv' '<<<' '[' α => ∃∃ y1 .. yn , β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
+   format "'[hv' '<<<' '[' α | ∃∃ y1 .. yn , β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
   : bi_scope.
 
-Notation "'<<<' α => β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
+Notation "'<<<' α | β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
   (atomic_wp (TA:=TeleO)
              (TB:=TeleO)
              (TC:=TeleO)
@@ -101,7 +101,7 @@ Notation "'<<<' α => β ; 'RET' v '>>>' @ E {{{ P } } } e {{{ Q } } }" :=
              (tele_app $ tele_app v%V)
   )
   (at level 20, E, α, β, P, Q, v at level 200,
-   format "'[hv' '<<<' '[' α => β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
+   format "'[hv' '<<<' '[' α | β ; 'RET' v ']' '>>>' @ E {{{ '[' P ']' } } } e {{{ '[' Q ']' } } } ']'")
   : bi_scope.
 
 (** Theory *)

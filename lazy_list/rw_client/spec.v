@@ -126,7 +126,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Theorem read_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_set N p Γ ⊢ <<<
-        ∀∀ (s: gset Z) (q: frac), const_set s q Γ =>
+        ∀∀ (s: gset Z) (q: frac), const_set s q Γ |
         ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝;
         RET #b
       >>> @ ↑N
@@ -162,7 +162,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Theorem write_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_set N p Γ ⊢ <<< 
-        ∀∀ (s: gset Z) (q: frac), mut_set s q Γ =>
+        ∀∀ (s: gset Z) (q: frac), mut_set s q Γ |
         mut_set (s ⋅ {[ k ]}) q Γ;
         RET #()
       >>> @ ↑N

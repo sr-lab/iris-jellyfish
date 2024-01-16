@@ -20,7 +20,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       lvl ≤ MAX_HEIGHT →
       0 ≤ h ≤ lvl →
       ⊢ <<<
-        ∀∀ S m, jelly_fish head S m mΓ =>
+        ∀∀ S m, jelly_fish head S m mΓ |
         ∃∃ pred, jelly_fish head S m mΓ;
         RET (rep_to_node pred)
       >>> @ ∅
@@ -77,7 +77,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       lvl ≤ MAX_HEIGHT →
       0 ≤ lvl ≤ h →
       ⊢ <<< 
-        ∀∀ S m, jelly_fish head S m mΓ =>
+        ∀∀ S m, jelly_fish head S m mΓ |
         ∃∃ opt S', jelly_fish head S' (case_map m k v t) mΓ ∗
           match m !! k with 
           | None => ∃ (n: loc) (new: node_rep),
@@ -210,7 +210,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       (Hrange: INT_MIN < k < INT_MAX)
       (Hheight: 0 ≤ h ≤ MAX_HEIGHT) :
       ⊢ <<<
-        ∀∀ m, vc_map p m mΓ =>
+        ∀∀ m, vc_map p m mΓ |
         ∃∃ opt, vc_map p (case_map m k v t) mΓ ∗ ⌜ opt = m !! k ⌝;
         RET #()
       >>> @ ∅
@@ -280,7 +280,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, vc_map p m mΓ => vc_map p (case_map m k v t) mΓ; RET #() >>> @ ∅
+      ⊢ <<< ∀∀ m, vc_map p m mΓ | vc_map p (case_map m k v t) mΓ; RET #() >>> @ ∅
       {{{ emp }}} put #p #k #v #t {{{ emp }}}.
     Proof.
       iIntros "!> %Φ _ AU". pose proof HMAX_HEIGHT.

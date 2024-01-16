@@ -36,7 +36,7 @@ Section proof.
 
   Lemma try_acquire_spec (lk: val) :
     ⊢ <<< 
-      ∀∀ st, lock lk st => 
+      ∀∀ st, lock lk st | 
       ∃∃ b, lock lk Locked ∗ ⌜ if b is true then st = Free else st = Locked ⌝; 
       RET #b
     >>> @ ∅
@@ -60,7 +60,7 @@ Section proof.
   Qed.
 
   Lemma acquire_spec (lk: val) :
-    ⊢ <<< ∀∀ st, lock lk st => lock lk Locked ∗ ⌜ st = Free ⌝; RET #() >>> @ ∅ 
+    ⊢ <<< ∀∀ st, lock lk st | lock lk Locked ∗ ⌜ st = Free ⌝; RET #() >>> @ ∅ 
     {{{ emp }}} acquire lk {{{ acquired lk }}}.
   Proof.
     iIntros "!>" (Φ) "_ AU"; rewrite difference_empty_L.
@@ -80,7 +80,7 @@ Section proof.
   Qed.
 
   Lemma release_spec (lk: val) :
-    ⊢ <<< ∀∀ st, lock lk st => lock lk Free; RET #() >>> @ ∅
+    ⊢ <<< ∀∀ st, lock lk st | lock lk Free; RET #() >>> @ ∅
     {{{ acquired lk }}} release lk {{{ emp }}}.
   Proof.
     iIntros "!>" (Φ) "Hacq AU"; rewrite difference_empty_L.

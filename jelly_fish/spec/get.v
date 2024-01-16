@@ -25,7 +25,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       node_key curr < k < INT_MAX →
       0 ≤ lvl ≤ MAX_HEIGHT →
       ⊢ <<<
-        ∀∀ S m, jelly_fish head S m mΓ =>
+        ∀∀ S m, jelly_fish head S m mΓ |
         jelly_fish head S m mΓ;
         RET opt_to_val (m !! k)
       >>> @ ∅
@@ -92,7 +92,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<< ∀∀ m, vc_map p m mΓ => vc_map p m mΓ; RET opt_to_val (m !! k) >>> @ ∅
+      ⊢ <<< ∀∀ m, vc_map p m mΓ | vc_map p m mΓ; RET opt_to_val (m !! k) >>> @ ∅
       {{{ emp }}} get #p #k {{{ emp }}}.
     Proof.
       iIntros "!> %Φ _ AU".
