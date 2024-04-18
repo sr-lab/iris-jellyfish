@@ -7,8 +7,8 @@ Artifact which extends the atomic triples from Iris with atomic postconditions, 
 ### Prerequisites
 This development is known to compile with
 
-- Coq 8.18.0
-- A development version of Iris
+- Coq 8.19.1
+- Iris 4.2.0
 
 
 ### Directory Structure

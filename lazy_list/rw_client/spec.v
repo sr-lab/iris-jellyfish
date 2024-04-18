@@ -145,15 +145,15 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iIntros (s q) "[Hset Hagr◯]".
       iDestruct "Hset" as (s') "(Hset & Hmut● & Hagr● & Hmut◯)".
       iAaccIntro with "Hset".
-      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists s'; iFrame. }
+      { do 2 (iIntros "?"; iModIntro; iFrame). }
       iIntros (b) "(Hset & Hif)".
 
       iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
       rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq; 
         rewrite -Heq; clear Heq.
 
-      iModIntro. iExists s. iFrame. iIntros "Hset".
-      iRight. iExists b. iFrame. iSplitR ""; first (iExists s; iFrame).
+      iModIntro. iExists s. iFrame.
+      iIntros "Hset". iRight. iExists b. iFrame.
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro. iIntros "_".
       iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
@@ -181,7 +181,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iIntros (s q) "[Hset Hmut◯]".
       iDestruct "Hset" as (s') "(Hset & Hmut● & Hagr● & Hagr◯)".
       iAaccIntro with "Hset".
-      { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists s'; iFrame. }
+      { do 2 (iIntros "?"; iModIntro; iFrame). }
       iIntros "Hset".
       
       iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
@@ -192,8 +192,8 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
       { by apply (frac_auth_update_1 _ _ (to_agree (s' ∪ {[k]}))). }
 
-      iModIntro. iExists (s' ∪ {[k]}). iFrame. iIntros "Hset".
-      iRight. iFrame. iSplitR ""; first (iExists (s' ∪ {[k]}); iFrame).
+      iModIntro. iExists (s' ∪ {[k]}). iFrame.
+      iIntros "Hset". iRight. iFrame.
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
       iModIntro. iIntros "_".
       iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.

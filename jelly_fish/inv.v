@@ -219,13 +219,13 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       + replace lvl with 0 by lia. iExists S.
         iDestruct "Hmap" as (γ) "(%Hdom & Hauth & Hvals)".
         iFrame "Hbot". iSplit; last by iPureIntro.
-        iIntros. iFrame. iExists γ. by iFrame.
+        iIntros. by iFrame.
       + rewrite (big_sepS_delete _ _ lvl); last (rewrite zrange_spec; lia).
         iDestruct "Hskip" as "[[%S' Hlazy] Hskip]".
         iExists S'. unfold opt_sub; case_decide; first lia.
         iFrame. iSplit; last by iPureIntro. iIntros "Hlazy".
         iApply (big_sepS_delete _ _ lvl); first (rewrite zrange_spec; lia).
-        iFrame. by iExists S'.
+        iFrame.
     Qed.
 
     Lemma node_in_lower (lvl: Z) (h n: node_rep)
@@ -304,7 +304,7 @@ Module SkipListInv (Params: SKIP_LIST_PARAMS).
       iDestruct (ghost_map_lookup with "Hgmap Hvt") as %Hsome.
 
       iExists val, vl. iFrame "Hpt". iSplit; first done.
-      iIntros "Hpt". iFrame. iExists γ. iFrame "Hgmap".
+      iIntros "Hpt". iFrame.
       iApply (big_sepS_delete _ _ n); first set_solver.
       iFrame "Hvals". iExists val, vl. iFrame.
     Qed.

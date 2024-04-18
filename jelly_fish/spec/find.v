@@ -153,8 +153,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         iModIntro. wp_load; wp_let; wp_lam; wp_pures.
         case_bool_decide; last lia; wp_if.
         wp_pure. iApply "HΦ".
-        iFrame "# ∗". iSplit; first (iPureIntro; lia).
-        iExists s. iFrame "# ∗".
+        iFrame "# ∗". iPureIntro; lia.
       + wp_load. iDestruct ("Hlazy" with "Hnext") as "Hlazy".
         iDestruct "Hclose" as "[Hclose _]"; iDestruct ("Hclose" with "Hlazy") as ">AU".
         iModIntro. wp_load; wp_let; wp_lam; wp_pures.

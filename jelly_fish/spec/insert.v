@@ -115,7 +115,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           iApply big_sepS_insert; first set_solver.
           iSplitL "Hnew Hkeys'"; first (iExists s, succ; iFrame "# ∗").
           iApply big_sepS_delete; first done.
-          iFrame. iExists n, new; iFrame "# ∗".
+          iFrame "# ∗".
         + rewrite assoc_L (comm_L _ _ {[new]}).
           iApply big_sepS_insert; first set_solver.
           iFrame. iExists Free. 
@@ -221,8 +221,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           case_decide as Hcase'; simpl in Hcase'; last lia.
           iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hacq]") as "AP".
           {
-            iSplit; last done. iFrame. iExists γ.
-            iFrame "Hgmap". iSplit; first done.
+            iSplit; last done. iFrame. iSplit; first done.
             iApply (big_sepS_delete _ _ succ); first set_solver.
             iFrame "Hvals". iExists val, vl. iFrame.
           }
@@ -287,11 +286,10 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           case_decide as Hcase'; simpl in Hcase'; first lia.
           iMod ("Hclose" $! NONEV S with "[- Hpt Hvpt Hacq]") as "AP".
           {
-            iSplit; last done. iFrame. iExists γ.
-            iFrame "Hgmap". iSplit; first rewrite -Heq -Hdom dom_insert_lookup_L //.
+            iSplit; last done. iFrame.
+            iSplit; first rewrite -Heq -Hdom dom_insert_lookup_L //.
             iApply (big_sepS_delete _ _ succ); first set_solver.
-            iFrame "Hvals". iExists val', (val_vt val :: vl). iFrame.
-            iExists (val_p val); iFrame "# ∗".
+            iFrame "Hvals". iExists val', (val_vt val :: vl). iFrame "# ∗".
           }
           iModIntro. wp_pures.
 
@@ -390,7 +388,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
               iApply big_sepS_insert; first set_solver.
               iFrame "Hlocks". iExists Free. 
               iSplitL "Hlock"; first (iExists lock; iFrame; rewrite Loc.add_0 //).
-              iExists s; iFrame. iExists succ; iFrame "# ∗".
+              iExists s; iFrame "# ∗".
           + iExists γ. iFrame "Hgmap". iSplit; first iPureIntro.
             - rewrite set_map_union_L set_map_singleton_L -Hdom dom_insert_L comm_L //.
             - rewrite comm_L; iApply big_sepS_insert; first set_solver.

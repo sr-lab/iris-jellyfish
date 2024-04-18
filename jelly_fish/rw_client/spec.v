@@ -226,8 +226,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           rewrite /case_map Hopt fmap_insert.
           rewrite {2}/f_vs //= right_id_L //.
       }
-      iRight. iFrame. iSplitR ""; first by (iExists (case_map m' k v t); iFrame).
-      iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ". done.
+      iRight. iFrame. iSplit; first done. iIntros "AP".
+      iMod (atomic_post_commit with "AP") as "HΦ". done.
     Qed.
 
     Theorem const_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
@@ -258,7 +258,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iIntros (m) "[Hmap Hagr◯]".
         iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
         iAaccIntro with "Hmap".
-        { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+        { do 2 (iIntros "?"; iModIntro; iFrame). }
         iIntros (opt) "[Hmap Hopt]".
 
         iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
@@ -306,7 +306,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iIntros (m) "[Hmap Hmut◯]".
         iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
         iAaccIntro with "Hmap".
-        { iIntros "?"; iModIntro; iFrame. iSplitR ""; last by iIntros. iExists m'; iFrame. }
+        { do 2 (iIntros "?"; iModIntro; iFrame). }
         iIntros "Hmap".
 
         iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
@@ -325,8 +325,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := prodZ {[v]} t]}))). }
 
         iModIntro. iExists (m' ⋅ {[k := prodZ {[v]} t]}). iFrame. iIntros "Hmap".
-        iRight. iFrame. iSplitR ""; first (iExists (m' ⋅ {[k := prodZ {[v]} t]}); iFrame).
-        iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
+        iRight. iFrame. iIntros "AP".
+        iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "_".
         iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
       }

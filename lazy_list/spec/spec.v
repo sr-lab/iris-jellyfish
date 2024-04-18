@@ -39,11 +39,11 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       set (Γ := mk_lazy_gname γauth γdisj).
 
       iModIntro; iApply ("HΦ" $! h Γ).
-      iFrame; iExists head, ∅. 
+      iFrame; iExists head. 
       rewrite /lazy_list set_map_empty right_id_L ?big_sepS_singleton.
       iFrame "# ∗"; do 2 (iSplit; first done).
-      iSplitL "Ht Hkeys"; first (iExists tail; iFrame; by iLeft).
-      iExists Free. iSplitR "Ht'"; last by iExists tail. 
+      iSplitL "Hkeys"; first (iFrame; by iLeft).
+      iExists Free. iSplitR "Ht"; last by iExists tail. 
       iExists l. by iFrame.
     Qed.
 
