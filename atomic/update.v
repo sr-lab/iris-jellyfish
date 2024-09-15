@@ -580,6 +580,30 @@ Section lemmas.
       iModIntro. by iApply apst_intro.
   Qed.
 
+  Local Lemma aupd_intro' {TA TB TC : tele} Eo Ei
+      (α : TA → PROP) (Ψ : TC → PROP) (β Φ : TA → TB → PROP) :
+    Ei ⊆ Eo →
+    (∃.. x, α x ∗ (∀.. x y, β x y -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ Φ x y))) -∗
+    atomic_update Eo Ei α Ψ β Φ.
+  Proof.
+    iIntros (HE) "(%x & Hα & HΦ)".
+    rewrite atomic_update_unseal /atomic_update_def /=.
+    iApply (greatest_fixpoint_coiter _
+      (λ _, (α x ∗ (∀.. x y, β x y -∗ ∃.. z, Ψ z ∗ (Ψ z -∗ Φ x y)))%I)
+    ); last iFrame.
+    iIntros "!> * (Hα & HΦ)". iApply (atomic_acc_wand with "[]").
+    + iSplit; first by iIntros "?"; iFrame.
+      clear x y. by iIntros (x y) "HΦ".
+    + iApply fupd_mask_intro; first done.
+      iIntros "Hclose". iExists x. iFrame "Hα". 
+      iSplit.
+      - iIntros "Hα". iMod "Hclose" as "_". iModIntro. iFrame.
+      - clear y.
+        iIntros (y) "Hβ". iMod "Hclose" as "_". iModIntro.
+        iApply apst_intro; first done.
+        by iApply "HΦ".
+  Qed.
+
   (* This lets you open invariants etc. when the goal is an atomic accessor. *)
   Global Instance elim_acc_aacc {TA TB TC : tele} {X} E1 E2 Ei
       (α' β' : X → PROP) γ' 
