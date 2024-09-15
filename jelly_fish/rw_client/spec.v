@@ -269,8 +269,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iRight. iExists opt. 
         iSplitR ""; first iSplit; first iExists m'; iFrame.
         iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-        iModIntro. iIntros "?".
-        iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
+        by iModIntro.
       }
       iDestruct (atomic_wp_seq_step with "Hread") as "Hwp".
       iApply ("Hwp" with "[$] Hconst [HΦ]").
@@ -327,8 +326,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iModIntro. iExists (m' ⋅ {[k := prodZ {[v]} t]}). iFrame. iIntros "Hmap".
         iRight. iFrame. iIntros "AP".
         iMod (atomic_post_commit with "AP") as "HΦ".
-        iModIntro. iIntros "_".
-        iApply fupd_mask_mono; last (by iApply "HΦ"); first solve_ndisj.
+        by iModIntro.
       }
       iDestruct (atomic_wp_seq_step with "Hwrite") as "Hwp".
       iApply ("Hwp" with "[$] Hmut [HΦ]").

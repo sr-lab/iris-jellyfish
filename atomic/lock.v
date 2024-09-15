@@ -73,10 +73,10 @@ Section proof.
     + iModIntro. iExists Locked. iFrame "Hlock". iIntros "Hlock".
       iRight. iFrame. iSplit; first done. iIntros "AP".
       iMod (atomic_post_commit with "AP") as "HΦ".
-      by iModIntro; iIntros; iModIntro; wp_pures; iApply "HΦ".
+      by iModIntro; iIntros; wp_pures; iApply "HΦ".
     + iModIntro. iExists Locked. iFrame "Hlock". iIntros "Hlock".
       iLeft. iFrame. iIntros "AP".
-      by iModIntro; iIntros; iModIntro; wp_pures; iApply "IH".
+      by iModIntro; iIntros; wp_pures; iApply "IH".
   Qed.
 
   Lemma release_spec (lk: val) :

@@ -155,8 +155,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. iExists s. iFrame.
       iIntros "Hset". iRight. iExists b. iFrame.
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+      by iModIntro.
     Qed.
 
     Theorem write_spec (p: loc) (Γ: rw_gname)
@@ -195,8 +194,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. iExists (s' ∪ {[k]}). iFrame.
       iIntros "Hset". iRight. iFrame.
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "_".
-      iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+      by iModIntro.
     Qed.
   End proofs.
 End RWSpec.

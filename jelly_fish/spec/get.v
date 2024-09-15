@@ -56,7 +56,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       + iLeft. iDestruct ("Hskip" with "Hlazy") as "Hskip". iFrame.
         clear dependent S S' m. iIntros "AU".
         iModIntro. iIntros "(Hpred & #Hsucc & %Hk')".
-        iModIntro. wp_pures; wp_lam; wp_pures.
+        wp_pures; wp_lam; wp_pures.
         case_bool_decide; last congruence.
         wp_pures; wp_lam; wp_pures.
         wp_bind (Load _). iMod "AU" as (S m) "[Hskip [_ Hclose]]".
@@ -76,17 +76,19 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S S' m. iIntros "AP".
           iMod (atomic_post_commit with "AP") as "HΦ".
           iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
-          iModIntro. wp_pures; wp_lam; wp_pures.
+          wp_pures; wp_lam; wp_pures.
           case_bool_decide; first congruence.
           wp_pures. by iApply "HΦ".
         - iLeft. iDestruct ("Hskip" with "Hlazy") as "Hskip". iFrame.
           clear dependent S S' m. iIntros "AU".
           iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
-          iMod "AU" as (S m) "[Hskip [Hclose _]]".
+          wp_pures. wp_lam. wp_pures.
+          case_bool_decide; first congruence; wp_pures.
+          case_bool_decide; first congruence. wp_pure.
+          wp_bind (BinOp _ _ _). iMod "AU" as (S m) "[Hskip [Hclose _]]".
           iDestruct (sent_or_node_in_lower with "Hskip Hpred") as "#Hpred'"; first lia.
           iMod ("Hclose" with "[$]") as "AU".
-          iModIntro. wp_pures; wp_lam; wp_pures.
-          do 2 (case_bool_decide; first congruence; wp_pures).
+          wp_pure. iApply (fupd_mask_intro_subseteq _ _ _); first done.
           iApply ("IH" with "[%] [%] Hpred' AU"); first lia; first lia.
     Qed.
 

@@ -83,7 +83,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       + clear dependent S. iIntros "AP".
         iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "_".
-        iModIntro. wp_pures; wp_lam; wp_pures.
+        wp_pures; wp_lam; wp_pures.
         do 2 case_bool_decide; try congruence; by iApply "HΦ".
     Qed.
 
@@ -117,7 +117,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         { iExists head, S; iFrame "# ∗"; iSplit; first done. iPureIntro; set_solver. }
         clear dependent S. iIntros "AP".
         iModIntro. iIntros "(#Hpred & _ & _ & Hnext' & Hacq)".
-        iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
+        wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
         case_bool_decide; last congruence; wp_if.
 
         iAssert (in_lock pred)%I with "[Hnext']" as "Hin"; first by iExists succ.
@@ -143,7 +143,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       + iLeft. iSplitL "Hlazy"; first (iExists head, S; by iFrame "# ∗").
         clear dependent S; iIntros "AU".
         iModIntro. iIntros "(#Hpred & #Hsucc & %Hk & Hnext' & Hacq)".
-        iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
+        wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
         case_bool_decide; first congruence; wp_if.
         wp_lam; wp_pures; wp_load.
 

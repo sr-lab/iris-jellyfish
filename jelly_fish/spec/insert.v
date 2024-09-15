@@ -61,7 +61,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iLeft. iFrame "Hlazy". iIntros "AU". clear dependent S.
       iModIntro. iIntros "(#Hpred & #Hsucc & %Hk'' & Hacq)".
       iDestruct "Hacq" as (s) "(Hpt & #Hs & _ & Hacq)".
-      iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
       wp_load. wp_load. wp_lam; wp_pures.
       wp_store. iDestruct "Hnew" as "[Hnew Hnew']".
       wp_lam; wp_pures.
@@ -190,7 +190,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iDestruct "Hacq" as (s) "(Hpt & #Hs & Hval & Hacq)".
       iDestruct "Hval" as (?) "[Hs' Hsucc']".
       iDestruct (pointsto_agree with "Hs Hs'") as %<-%rep_to_node_inj; iClear "Hs'".
-      iModIntro. wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_pures; wp_lam; wp_pures; wp_lam; wp_pures.
 
       case_bool_decide as Hcase; wp_if.
       + assert (k = node_key succ) as Heq by congruence.
@@ -253,7 +253,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             first (iExists Free; iFrame).
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          iModIntro. iIntros "_". iModIntro. wp_pures.
+          iModIntro. iIntros "_". wp_pures. iModIntro.
           iApply "HΦ". iIntros. congruence.
         - (* The key already exists but with an outdated timestamp *)
           wp_load. wp_pures; wp_lam; wp_pures.
@@ -316,7 +316,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
             first (iExists Free; iFrame).
           iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          iModIntro. iIntros "_". iModIntro. wp_pures.
+          iModIntro. iIntros "_". wp_pures. iModIntro.
           iApply "HΦ". iIntros. congruence.
       + (* The key does not exists in the map *)
         assert (k ≠ node_key succ) by congruence.
@@ -419,7 +419,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           first (iExists Free; iFrame); iClear "Hin'".
         iFrame "Hlazy Hmap". iIntros "AP". rewrite difference_empty_L.
         iMod (atomic_post_commit with "AP") as "HΦ".
-        iModIntro. iIntros "_". iModIntro. wp_pures.
+        iModIntro. iIntros "_". wp_pures. iModIntro.
         iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
         iExists new. by iFrame "# ∗".
     Qed.

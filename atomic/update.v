@@ -945,17 +945,17 @@ Lemma aupd_inv `{!irisGS_gen hlc Λ Σ} {TA TB : tele} E
     α 
     α 
     β 
-    (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y) -∗
+    (λ.. x y, Q x y -∗ Φ x y) -∗
   atomic_update E ∅ 
     (λ.. x, ▷I ∗ α x)
     (λ.. x, ▷I ∗ α x)
     (λ.. x y, ▷I ∗ β x y) 
-    (λ.. x y, Q x y ={E}=∗ Φ x y).
+    (λ.. x y, Q x y -∗ Φ x y).
 Proof.
   iIntros (HN) "#Hinv AU".
   rewrite {2}atomic_update_unseal /atomic_update_def /=.
   iApply (greatest_fixpoint_coiter _ (
-    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y -∗ Φ x y))%I
   )); last iFrame.
   iIntros "!> * AU". iInv N as "HI" "Hclose'".
   iMod "AU" as (x) "[Hα Hclose]".
@@ -970,7 +970,7 @@ Proof.
 
     rewrite {2}atomic_post_unseal /atomic_post_def /=.
     iApply (greatest_fixpoint_coiter _ (
-      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y -∗ Φ x y))%I
     )); last iFrame.
     iIntros "!> * AP". iInv N as "HI" "Hclose'".
     iMod "AP" as (z) "[Hα Hclose]".
@@ -978,8 +978,7 @@ Proof.
     iFrame. iSplitWith "Hclose"; iIntros "[HI Hα]";
       iMod ("Hclose" with "Hα") as "HΦ";
       iMod ("Hclose'" with "HI") as "_"; first done.
-    iModIntro. iIntros "HQ".
-    iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+    iModIntro. iIntros "HQ". by iApply "HΦ".
 Qed.
 
 Lemma aupd_inv_timeless `{!irisGS_gen hlc Λ Σ} {TA TB : tele} E
@@ -991,17 +990,17 @@ Lemma aupd_inv_timeless `{!irisGS_gen hlc Λ Σ} {TA TB : tele} E
     α 
     α 
     β 
-    (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y) -∗
+    (λ.. x y, Q x y -∗ Φ x y) -∗
   atomic_update E ∅ 
     (λ.. x, I ∗ α x)
     (λ.. x, I ∗ α x)
     (λ.. x y, I ∗ β x y) 
-    (λ.. x y, Q x y ={E}=∗ Φ x y).
+    (λ.. x y, Q x y -∗ Φ x y).
 Proof.
   iIntros (HN) "#Hinv AU".
   rewrite {2}atomic_update_unseal /atomic_update_def /=.
   iApply (greatest_fixpoint_coiter _ (
-    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+    λ _, (atomic_update (E ∖ ↑N) ∅ α α β (λ.. x y, Q x y -∗ Φ x y))%I
   )); last iFrame.
   iIntros "!> * AU". iInv N as ">HI" "Hclose'".
   iMod "AU" as (x) "[Hα Hclose]".
@@ -1016,7 +1015,7 @@ Proof.
 
     rewrite {2}atomic_post_unseal /atomic_post_def /=.
     iApply (greatest_fixpoint_coiter _ (
-      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y ={E ∖ ↑N}=∗ Φ x y))%I
+      λ _, (atomic_post (E ∖ ↑N) ∅ α (Q x y -∗ Φ x y))%I
     )); last iFrame.
     iIntros "!> * AP". iInv N as ">HI" "Hclose'".
     iMod "AP" as (z) "[Hα Hclose]".
@@ -1024,6 +1023,5 @@ Proof.
     iFrame. iSplitWith "Hclose"; iIntros "[HI Hα]";
       iMod ("Hclose" with "Hα") as "HΦ";
       iMod ("Hclose'" with "HI") as "_"; first done.
-    iModIntro. iIntros "HQ".
-    iApply fupd_mask_mono; last by iApply "HΦ". solve_ndisj.
+    iModIntro. iIntros "HQ". by iApply "HΦ".
 Qed.

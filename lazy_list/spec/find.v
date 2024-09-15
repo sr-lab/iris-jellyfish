@@ -103,7 +103,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
       iModIntro. iExists S. iFrame "Hlazy". iIntros "Hlazy".
       iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
       iModIntro. iIntros "(#Hpred & _ & [%Hk' _])".
-      iModIntro. wp_pures; wp_lam; wp_pures.
+      wp_pures; wp_lam; wp_pures.
 
       awp_apply (acquire_spec with "[$]").
       iApply (aacc_aupd_sub with "[] AU"); try done.
@@ -124,7 +124,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
         first (iExists Locked; iFrame).
       iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
       iModIntro. iIntros "Hacq".
-      iModIntro. wp_pures; wp_lam; wp_pures.
+      wp_pures; wp_lam; wp_pures.
 
       wp_bind (Load _). iMod "AU" as (S) "[Hlazy Hclose]".
       iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
@@ -176,7 +176,7 @@ Module FindSpec (Params: LAZY_LIST_PARAMS).
           first (iExists Free; iFrame); iClear "Hin'".
         iLeft. iFrame "Hlazy". clear dependent S. iIntros "AU".
         iModIntro. iIntros "_".
-        iModIntro. wp_pures.
+        wp_pures.
 
         iDestruct "Hsucc" as "[->|Hsucc]"; first (rewrite /node_key/= in Hcase; lia).
         iApply ("IH" with "[%] [$] AU"); lia.

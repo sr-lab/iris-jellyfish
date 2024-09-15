@@ -45,7 +45,7 @@ Section Proofs.
       awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut1". iModIntro. iExists _, _. iFrame "Hmut1".
-      iIntros "Hmut1 _". iModIntro. wp_pures.
+      iIntros "Hmut1 _". wp_pures.
 
       awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut1"; first (iIntros "?"; iModIntro; iFrame).
@@ -56,7 +56,7 @@ Section Proofs.
       awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).
       iIntros "Hmut2". iModIntro. iExists _, _. iFrame "Hmut2".
-      iIntros "Hmut2 _". iModIntro. wp_pures.
+      iIntros "Hmut2 _". wp_pures.
 
       awp_apply (write_spec with "Hinv [$]"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
       iAaccIntro with "Hmut2"; first (iIntros "?"; iModIntro; iFrame).

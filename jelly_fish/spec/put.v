@@ -56,18 +56,18 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         clear dependent S S' m. iIntros "AP".
         iMod (atomic_post_commit with "AP") as "HΦ".
         iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
-        iModIntro. wp_pures.
+        wp_pures.
         case_bool_decide; last congruence; wp_if.
         rewrite difference_empty_L.
         iApply "HΦ". iFrame "Hpred". iPureIntro; lia.
       + iLeft. iFrame "Hskip".
         clear dependent S S' m. iIntros "AU".
         iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
-        iMod "AU" as (S m) "[Hskip [Hclose _]]".
+        wp_pures. case_bool_decide; first congruence; wp_pure.
+        wp_bind (BinOp _ _ _). iMod "AU" as (S m) "[Hskip [Hclose _]]".
         iDestruct (sent_or_node_in_lower with "Hskip Hpred") as "#Hpred'"; first lia.
         iMod ("Hclose" with "[$]") as "AU".
-        iModIntro. wp_pures.
-        case_bool_decide; first congruence; wp_pures.
+        wp_pure. iApply (fupd_mask_intro_subseteq _ _ _); first done.
         iApply ("IH" with "[%] [%] [%] Hpred' AU"); lia.
     Qed.
 
@@ -141,7 +141,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iLeft. iFrame "Hskip".
         clear dependent S S' m. iIntros "AU".
         iModIntro. iIntros "(Hpred & Hsucc & %Hk'')".
-        iModIntro. wp_pures.
+        wp_pures.
 
         wp_bind (insertAll _ _ _ _ _ _).
         iApply ("IH" with "[%] [%] [%] [%] Hpred"); try lia.
@@ -154,13 +154,13 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         iRight. iExists opt, S'. 
         iFrame "Hskip Hmatch". iIntros "AP".
         iModIntro. iIntros "Hres".
-        iModIntro. wp_pures.
+        wp_pures.
         
         destruct (m !! k); clear dependent m.
         - iDestruct "Hmatch" as "[-> _]". wp_pures.
           rewrite difference_empty_L.
           iMod (atomic_post_commit with "AP") as "HΦ".
-          iApply "HΦ". iIntros. congruence.
+          iModIntro. iApply "HΦ". iIntros. congruence.
         - iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
           iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & Hnexts & Hlocks)".
           iDestruct (pointsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
@@ -200,7 +200,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           clear dependent S S' m. iIntros "AP".
           iMod (atomic_post_commit with "AP") as "HΦ".
           iModIntro. iIntros "Hsub".
-          iModIntro. wp_pures.
+          wp_pures. iModIntro.
           rewrite difference_empty_L.
           iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
           iExists new.  by iFrame "# ∗".
@@ -244,7 +244,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iLeft. iFrame "Hmap".
       clear dependent S m. iIntros "AU".
       iModIntro. iIntros "[Hnode %Hk]".
-      iModIntro. wp_pures.
+      wp_pures.
 
       awp_apply (insertAll_spec with "Hnode"); try lia.
       iApply (aacc_aupd_sub with "[] AU"); try done.
@@ -267,14 +267,14 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iRight. iExists (m !! k). iSplitR "".
       { iSplit; last done. iExists head, S'; by iFrame "# ∗". }
       iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-      iModIntro. iIntros "Hres". iModIntro.
-      wp_pures. case_match.
-      + iDestruct "Hmatch" as "[-> _]". rewrite difference_empty_L.
+      iModIntro. iIntros "Hres".
+      wp_pures. iModIntro. case_match.
+      + iDestruct "Hmatch" as "[-> _]".
         iApply "HΦ". by iIntros.
       + iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
         iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & _)".
         iDestruct (pointsto_agree with "Hn Hn'") as %<-%rep_to_node_inj.
-        iDestruct "Hopt" as %->. rewrite difference_empty_L.
+        iDestruct "Hopt" as %->.
         iApply "HΦ". iIntros. iExists new. by iFrame.
     Qed.
 

@@ -23,7 +23,7 @@ Definition atomic_wp `{!irisGS_gen hlc Λ Σ} {TA TB TC : tele}
             P -∗
             (* The (outer) user mask is what is left after the implementation
             opened its things. *)
-            atomic_update (⊤∖E) ∅ α Ψ β (λ.. x y, Q x y ={⊤∖E}=∗ Φ (f x y)) -∗
+            atomic_update (⊤∖E) ∅ α Ψ β (λ.. x y, Q x y -∗ Φ (f x y)) -∗
             WP e {{ Φ }})%I.
 (* Note: To add a private postcondition, use
    atomic_update α β Eo Ei (λ x y, POST x y -∗ Φ (f x y)) *)
@@ -126,7 +126,7 @@ Section lemmas.
     iIntros (y) "Hβ !>".
     iDestruct ("HΨ" with "Hβ") as (z) "[HΨ Hβ]".
     iExists z. iFrame "HΨ". iIntros "HΨ".
-    rewrite ->!tele_app_bind. iIntros "HQ !> HΦ".
+    rewrite ->!tele_app_bind. iIntros "HQ HΦ".
     iDestruct ("Hβ" with "HΨ") as "Hβ".
     iApply ("HΦ" with "Hβ HQ").
   Qed.
@@ -159,9 +159,7 @@ Section lemmas.
     iApply ("Hwp" with "HP Hα"). iIntros (y) "Hβ HQ".
     iMod ("Hclose" with "Hβ") as "AP". rewrite ->!tele_app_bind. 
     iMod "AP" as (z) "[HΨ [_ HΦ]]". iMod ("HΦ" with "HΨ") as "HΦ".
-    iDestruct ("HΦ" with "HQ") as "HΦ".
-    iApply fupd_mask_mono; last by iFrame.
-    solve_ndisj.
+    iDestruct ("HΦ" with "HQ") as "HΦ". by iModIntro.
   Qed.
 
   (** Sequential triples with a persistent precondition and no initial quantifier
@@ -179,9 +177,7 @@ Section lemmas.
     iModIntro. iApply wp_fupd. iApply ("Hwp" with "HP Hα"). iIntros (y) "Hβ HQ".
     iMod ("HΦ") as "[_ [_ Hclose]]". iMod ("Hclose" with "Hβ") as "HΦ".
     rewrite ->!tele_app_bind. iMod "HΦ" as (z) "[HΨ [_ HΦ]]".
-    iMod ("HΦ" with "HΨ") as "HΦ". iDestruct ("HΦ" with "HQ") as "HΦ".
-    iApply fupd_mask_mono; last by iFrame.
-    solve_ndisj.
+    iMod ("HΦ" with "HΨ") as "HΦ". iModIntro. by iApply "HΦ".
   Qed.
 
   Lemma atomic_wp_mask_weaken e E1 E2 α β P Q Ψ f :
@@ -191,9 +187,7 @@ Section lemmas.
     iApply (atomic_update_mask_weaken (⊤ ∖ E2)); first solve_ndisj.
     iApply (atomic_update_wand with "[] AU").
     iIntros (x y) "HΦ". rewrite ->!tele_app_bind.
-    iIntros "HQ". iDestruct ("HΦ" with "HQ") as "HΦ".
-    iApply fupd_mask_mono; last by iFrame.
-    solve_ndisj.
+    iIntros "HQ". by iApply "HΦ".
   Qed.
 
   (** We can open invariants around atomic triples.
