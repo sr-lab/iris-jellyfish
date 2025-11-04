@@ -16,7 +16,7 @@ Section stdpp_extra.
 End stdpp_extra.
 
 Section extra.
-  Context `{Countable K} {A : cmra}.
+  Context {SI : sidx} `{Countable K} {A : cmra}.
   Implicit Types m : gmap K A.
   Implicit Types i : K.
   Implicit Types x y : A.
@@ -24,13 +24,9 @@ Section extra.
   Lemma insert_singleton_op_Some m i x y : 
     m !! i = Some x → <[i:=y ⋅ x]> m ≡ {[ i := y ]} ⋅ m.
   Proof.
-    intros Hsome; symmetry.
-    rewrite -(insert_delete m i x) //.
-    rewrite insert_singleton_op; last apply lookup_delete.
-    rewrite assoc singleton_op.
-    do 2 (rewrite -insert_singleton_op; last apply lookup_delete).
-    rewrite (insert_delete m i x) //.
-    by rewrite insert_delete_insert.
+    intros Hsome. rewrite gmap_op -(insert_merge_l _ _ _ _ (y ⋅ x)).
+    + by rewrite -gmap_op left_id.
+    + by rewrite Hsome.
   Qed.
 
   Lemma insert_singleton_op_Some_L `{!LeibnizEquiv A} m i x y : 

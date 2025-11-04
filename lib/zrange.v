@@ -83,10 +83,11 @@ Section zrange.
 End zrange.
 
 Section ZRange.
+  Context {SI : sidx} `{gset_disjR Z}.
   Local Open Scope Z.
 
   Definition ZRange (l r: Z) : gset_disj Z := 
-    if decide (l < r) then GSet (zrange l r) else GSetBot.
+    if decide (l < r) then GSet (zrange l r) else GSetInvalid.
   Lemma ZRange_disj S l r:
     ✓ (GSet S ⋅ ZRange l r) ↔ S ## zrange l r ∧ l < r.
   Proof. rewrite /ZRange; case_decide; first set_solver; by split; last lia. Qed.

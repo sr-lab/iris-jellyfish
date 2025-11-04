@@ -38,7 +38,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
                    else {[vt.1]} ∪ tset vl t
       end.
     Definition f_vs (vt: tval * list tval) : argmax Z := 
-      prodZ ({[vt.1.1]} ∪ tset vt.2 vt.1.2) vt.1.2.
+      ArgMax ({[vt.1.1]} ∪ tset vt.2 vt.1.2) vt.1.2.
     Definition ts_map (p: loc) (m: gmap Z (argmax Z)) (mΓ: gmap Z lazy_gname) : iProp Σ := 
       ∃ (m': gmap Z (tval * list tval)), vc_map p m' mΓ ∗ ⌜ m = f_vs <$> m' ⌝.
 
@@ -141,7 +141,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       match opt with
       | None => ⌜ ret = NONEV ⌝
       | Some vt => ∃ (vs: gset Z) (v t: Z), 
-                     ⌜ vt = prodZ vs t ⌝ ∗ ⌜ v ∈ vs ⌝ ∗ ⌜ ret = SOMEV (#v, #t) ⌝
+                     ⌜ vt = ArgMax vs t ⌝ ∗ ⌜ v ∈ vs ⌝ ∗ ⌜ ret = SOMEV (#v, #t) ⌝
       end.
 
     Theorem ts_new_spec : 
@@ -187,7 +187,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       (Hrange: INT_MIN < k < INT_MAX) :
       ⊢ <<<
         ∀∀ m, ts_map p m mΓ |
-        ts_map p (m ⋅ {[ k := prodZ {[v]} t]}) mΓ;
+        ts_map p (m ⋅ {[ k := ArgMax {[v]} t]}) mΓ;
         RET #()
       >>> @ ∅
       {{{ emp }}} put #p #k #v #t {{{ emp }}}.
@@ -205,7 +205,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       iIntros "Hmap".
 
       iModIntro. iExists (case_map m' k v t). iFrame. iIntros "Hmap".
-      assert (m ⋅ {[k := prodZ {[v]} t]} = f_vs <$> case_map m' k v t) 
+      assert (m ⋅ {[k := ArgMax {[v]} t]} = f_vs <$> case_map m' k v t) 
         as Heq; last (rewrite Heq; clear Heq).
       { 
         rewrite Hfmap. destruct ((f_vs <$> m') !! k) eqn:Hopt.
@@ -282,12 +282,12 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       is_map p Γ ⊢
       {{{ mut_map m q Γ }}}
         put #p #k #v #t
-      {{{ RET #(); mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ }}}.
+      {{{ RET #(); mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ }}}.
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hmut HΦ".
       iAssert (<<<
         ∀∀ m, mut_map m q Γ |
-        mut_map (m ⋅ {[ k := prodZ {[v]} t]}) q Γ;
+        mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ;
         RET #()
       >>> @ ↑mapN
       {{{ emp }}} put #p #k #v #t {{{ emp }}}
@@ -310,20 +310,20 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
         iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
         { 
-          apply frac_auth_update, (op_local_update_discrete _ _ {[ k := prodZ {[v]} t]}). 
+          apply frac_auth_update, (op_local_update_discrete _ _ {[ k := ArgMax {[v]} t]}). 
           destruct (m' !! k) eqn:Hopt.
           + rewrite -(insert_singleton_op_Some_L _ _ _ _ Hopt).
             by apply insert_valid.
           + rewrite -(insert_singleton_op _ _ _ Hopt).
             by apply insert_valid.
         }
-        do 2 rewrite (comm _ {[k := prodZ {[v]} t]} _).
+        do 2 rewrite (comm _ {[k := ArgMax {[v]} t]} _).
         iDestruct "Hagr◯" as "[Hfalse|Hagr◯]".
         { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
         iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
-        { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := prodZ {[v]} t]}))). }
+        { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := ArgMax {[v]} t]}))). }
 
-        iModIntro. iExists (m' ⋅ {[k := prodZ {[v]} t]}). iFrame. iIntros "Hmap".
+        iModIntro. iExists (m' ⋅ {[k := ArgMax {[v]} t]}). iFrame. iIntros "Hmap".
         iRight. iFrame. iIntros "AP".
         iMod (atomic_post_commit with "AP") as "HΦ".
         by iModIntro.

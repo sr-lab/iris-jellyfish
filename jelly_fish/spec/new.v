@@ -68,7 +68,7 @@ Module NewSpec (Params: SKIP_LIST_PARAMS).
         rewrite (zrange_split_r _ lvl); last lia.
         rewrite (comm_L _ _ {[lvl]}) big_sepS_insert; last (rewrite zrange_spec; lia).
         iSplitR "Hskip".
-        - iExists ∅. rewrite /lazy_list ?lookup_total_insert ?set_map_empty 
+        - iExists ∅. rewrite /lazy_list ?lookup_total_insert_eq ?set_map_empty 
             right_id_L ?big_sepS_singleton big_sepS_empty; iFrame "# ∗".
           iSplitL ""; first by iLeft. iSplit; last done. iExists Free.
           iSplitL "Hlock"; first (iExists (node_lock head +ₗ lvl); by iFrame).
