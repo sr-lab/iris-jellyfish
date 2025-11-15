@@ -1,9 +1,9 @@
 From iris.algebra Require Import frac_auth gset.
 From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import proofmode notation.
 From AtomicInvariant.atomic Require Import triple.
-From AtomicInvariant.lazy_list Require Import code inv.
-From AtomicInvariant.lazy_list.spec Require Import spec.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.examples.lazy_list Require Import code inv.
+From AtomicInvariant.examples.lazy_list.spec Require Import spec.
 
 
 Class rwG Σ := RWG { 

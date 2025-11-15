@@ -1,8 +1,8 @@
 From iris.algebra Require Import auth gset.
 From AtomicInvariant.lib Require Import zrange.
 From iris.heap_lang Require Import proofmode notation.
-From AtomicInvariant.atomic Require Import lock.
-From AtomicInvariant.lazy_list Require Import code.
+From AtomicInvariant.examples.locks Require Import spin_lock.
+From AtomicInvariant.examples.lazy_list Require Import code.
 
 
 Class lazyG Σ := LazyG { 

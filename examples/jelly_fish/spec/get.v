@@ -1,8 +1,8 @@
 From stdpp Require Import numbers.
 From AtomicInvariant.atomic Require Import triple.
 From iris.heap_lang Require Import proofmode notation.
-From AtomicInvariant.jelly_fish Require Import code inv.
-From AtomicInvariant.jelly_fish.spec Require Import find.
+From AtomicInvariant.examples.jelly_fish Require Import code inv.
+From AtomicInvariant.examples.jelly_fish.spec Require Import find.
 
 
 Module GetSpec (Params: SKIP_LIST_PARAMS).

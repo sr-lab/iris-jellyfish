@@ -1,10 +1,10 @@
 From iris.algebra Require Import frac_auth gmap.
 From AtomicInvariant.lib Require Import argmax gmap.
 From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import proofmode notation.
 From AtomicInvariant.atomic Require Import triple.
-From AtomicInvariant.jelly_fish Require Import code inv.
-From AtomicInvariant.jelly_fish.spec Require Import new get put.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.examples.jelly_fish Require Import code inv.
+From AtomicInvariant.examples.jelly_fish.spec Require Import new get put.
 
 
 Class rwG Σ := RWG { 

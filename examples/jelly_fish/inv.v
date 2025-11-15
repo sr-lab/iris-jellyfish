@@ -1,9 +1,9 @@
 From iris.algebra Require Import auth gset.
 From iris.base_logic.lib Require Import ghost_map.
-From iris.heap_lang Require Import proofmode notation.
 From AtomicInvariant.lib Require Import zrange.
-From AtomicInvariant.atomic Require Import lock.
-From AtomicInvariant.jelly_fish Require Import code.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.examples.locks Require Import spin_lock.
+From AtomicInvariant.examples.jelly_fish Require Import code.
 
 
 Definition tval : Type := Z * Z.

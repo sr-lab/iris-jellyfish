@@ -1,8 +1,8 @@
 From AtomicInvariant.lib Require Import argmax.
-From iris.heap_lang Require Import proofmode.
 From AtomicInvariant.atomic Require Import triple.
-From AtomicInvariant.jelly_fish Require Import code.
-From AtomicInvariant.jelly_fish.rw_client Require Import spec.
+From iris.heap_lang Require Import proofmode.
+From AtomicInvariant.examples.jelly_fish Require Import code.
+From AtomicInvariant.examples.jelly_fish.rw_client Require Import spec.
 
 From iris.heap_lang Require Import par notation.
 

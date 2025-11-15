@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import notation.
-From AtomicInvariant.atomic Require Import lock.
+From AtomicInvariant.examples.locks Require Import spin_lock.
 
 
 Section node_rep.

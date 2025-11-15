@@ -1,7 +1,8 @@
 From AtomicInvariant.lib Require Import zrange.
+From AtomicInvariant.atomic Require Import triple.
 From iris.heap_lang Require Import proofmode notation.
-From AtomicInvariant.atomic Require Import triple lock.
-From AtomicInvariant.jelly_fish Require Import code inv.
+From AtomicInvariant.examples.locks Require Import spin_lock.
+From AtomicInvariant.examples.jelly_fish Require Import code inv.
 
 
 Module FindSpec (Params: SKIP_LIST_PARAMS).

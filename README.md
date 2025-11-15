@@ -1,31 +1,31 @@
-# Atomic Postconditions: Resourceful Reasoning beyond Linearization Points
-## Formal Verification of the Lazy JellyFish Skip List in Iris
+# Resourceful Reasoning beyond Linearisation Points
+## A Reinterpretation of Logical Atomicity in Iris
 
-Artifact which extends the atomic triples from Iris with atomic postconditions, containing mechanized proofs for our elaborate case study: the Lazy JellyFish skip list, a concurrent map implementation. We also present the proofs for a simpler lazy set data structure to showcase how our arguments evolve from a simple linked list to a complex skip list. To compile this Coq development, simply run `make`.
+An alternative definition of logical atomicity where the public state is accessible _after_ the linearisation point. Using the Iris definition of atomic updates, we define _atomic invariants_: atomic updates that allow the $\alpha$ resource to be accessed after obtaining $\beta$ via a subsequent atomic update. This artifact contains mechanised proofs for a number of case studies, ranging from a simple spin lock to a complex skip list implementation for concurrent maps with version control.
 
 
 ### Prerequisites
 This development is known to compile with
 
-- Coq 8.19.1
-- Iris 4.2.0
+- Rocq 9.1.0
+- Iris 4.4.0
+
+To compile this Rocq development, simply run `make`.
 
 
 ### Directory Structure
-The `lib/` directory contains definitions and lemmas required for both structures.
+The `lib/` directory contains useful definitions and lemmas not available in Rocq-std++ or Iris.
 
-- `argmax.v`: Definition of and facts about the `argmax` resource algebra.
+- `argmax.v`: Definition of the `argmax` resource algebra.
 - `gmap.v`: Additional facts about the `gmap` resource algebra.
-- `zrange.v`: Definition of and facts about sets containing a range of integers.
+- `zrange.v`: Definition of sets containing a range of integers.
 
-The `atomic/` directory contains an alternative definition of logical atomicity in Iris.
+The `atomic/` directory contains our novel definition of logical atomicity.
 
-- `update.v`: Definition of and facts about atomic updates. We extend the previous definition by defining atomic postconditions.
-- `weakestpre.v`: Definition of and facts about atomic triples based on the new definition of atomic updates. These triples also support private postconditions.
-- `proofmode.v`: Ensures that the `awp_apply` tactic refers to the new definition for atomic triples.
-- `lock.v`: Alternative logically atomic specification for locks without the use of an invariant.
+- `invariant.v`: Definition of atomic invariants.
+- `triple.v`: Definition of atomic triples based on atomic invariants.
 
-The `lazy_list/` and `jelly_fish/` directories contain the proofs for the lazy set and JellyFish map, respectively. Each of these directories is structured as:
+The `examples/` directory contains proofs of correctness using our new atomic triples for concurrent data structures, including an alternative logically atomic specification for locks in `locks/` without the use of an invariant. The `lazy_list/` and `jelly_fish/` directories contain the proofs for a lazy set and a lazy JellyFish map, respectively. Each of these directories is structured as:
 
 - `code.v`: File with code for the data structure.
 - `inv.v`: File describing the invariant resources.

@@ -1,8 +1,8 @@
 From AtomicInvariant.lib Require Import zrange.
-From iris.heap_lang Require Import proofmode notation.
 From AtomicInvariant.atomic Require Import triple.
-From AtomicInvariant.jelly_fish Require Import code inv.
-From AtomicInvariant.jelly_fish.spec Require Import insert.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.examples.jelly_fish Require Import code inv.
+From AtomicInvariant.examples.jelly_fish.spec Require Import insert.
 
 
 Module PutSpec (Params: SKIP_LIST_PARAMS).

@@ -6,21 +6,22 @@ lib/zrange.v
 
 atomic/invariant.v
 atomic/triple.v
-atomic/lock.v
 
-lazy_list/code.v
-lazy_list/inv.v
-lazy_list/spec/find.v
-lazy_list/spec/spec.v
-lazy_list/rw_client/spec.v
-lazy_list/rw_client/example.v
+examples/locks/spin_lock.v
 
-jelly_fish/code.v
-jelly_fish/inv.v
-jelly_fish/spec/new.v
-jelly_fish/spec/find.v
-jelly_fish/spec/get.v
-jelly_fish/spec/insert.v
-jelly_fish/spec/put.v
-jelly_fish/rw_client/spec.v
-jelly_fish/rw_client/example.v
+examples/lazy_list/code.v
+examples/lazy_list/inv.v
+examples/lazy_list/spec/find.v
+examples/lazy_list/spec/spec.v
+examples/lazy_list/rw_client/spec.v
+examples/lazy_list/rw_client/example.v
+
+examples/jelly_fish/code.v
+examples/jelly_fish/inv.v
+examples/jelly_fish/spec/new.v
+examples/jelly_fish/spec/find.v
+examples/jelly_fish/spec/get.v
+examples/jelly_fish/spec/insert.v
+examples/jelly_fish/spec/put.v
+examples/jelly_fish/rw_client/spec.v
+examples/jelly_fish/rw_client/example.v

@@ -1,7 +1,7 @@
-From iris.heap_lang Require Import proofmode.
 From AtomicInvariant.atomic Require Import triple.
-From AtomicInvariant.lazy_list Require Import code.
-From AtomicInvariant.lazy_list.rw_client Require Import spec.
+From iris.heap_lang Require Import proofmode.
+From AtomicInvariant.examples.lazy_list Require Import code.
+From AtomicInvariant.examples.lazy_list.rw_client Require Import spec.
 
 From iris.heap_lang Require Import par notation.
 

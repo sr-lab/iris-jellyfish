@@ -1,4 +1,4 @@
-From AtomicInvariant.atomic Require Import lock.
+From AtomicInvariant.examples.locks Require Import spin_lock.
 From iris.heap_lang Require Import notation.
 
 
