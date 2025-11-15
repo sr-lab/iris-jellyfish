@@ -1,50 +1,89 @@
-(** This file declares notation for logically atomic Hoare triples, and some
-generic lemmas about them. To enable the definition of a shared theory applying
-to triples with any number of binders, the triples themselves are defined via telescopes, but as a user
-you need not be concerned with that. You can just use the following notation:
-  <<{ ∀∀ x, atomic_precondition }>>
-    code @ E
-  <<{ ∃∃ y, atomic_postcondition | z, RET return_value; private_postcondition }>>
-Here, [x] (which can be any number of binders, including 0) is bound in all of
-the atomic pre- and postcondition and the private (non-atomic) postcondition and
-the return value, [y] (which can be any number of binders, including 0) is bound
-in both postconditions and the return value, and [z] (which can be any number of
-binders, including 0) is bound in the return value and the private
-postcondition.
-Note that atomic triples are *not* implicitly persistent, unlike Texan triples.
-If you need a private (non-atomic) precondition, you can use a magic wand:
-  private_precondition -∗
-  <<{ ∀∀ x, atomic_precondition }>>
-    code @ E
-  <<{ ∃∃ y, atomic_postcondition
-    | z, RET return_value; private_postcondition }>>
-If you don't need a private postcondition, you can leave it away, e.g.:
-  <<{ ∀∀ x, atomic_precondition }>>
-    code @ E
-  <<{ ∃∃ y, atomic_postcondition | RET return_value }>>
-Note that due to combinatorial explosion and because Coq does not have a
-facility to declare such notation in a compositional way, not *all* variants of
-this notation exist: if you have binders before the [RET] (which is very
-uncommon), you must have a private postcondition (it can be [True]), and you
-must have [∀∀] and [∃∃] binders (they can be [_: ()]).
-For an example for how to prove and use logically atomic specifications, see
-[iris_heap_lang/lib/increment.v].
-*)
-
-From stdpp Require Import namespaces.
-From iris.bi Require Import telescopes.
-From AtomicInvariant.atomic Require Export invariant.
-From iris.proofmode Require Import proofmode classes.
+From stdpp Require Import coPset.
+From iris.bi.lib Require Export atomic.
+From iris.proofmode Require Import proofmode.
 From iris.program_logic Require Export weakestpre.
 From iris.base_logic Require Import invariants.
-From iris.prelude Require Import options.
 
-(* This hard-codes the inner mask to be empty, because we have yet to find an
-example where we want it to be anything else.
 
-For the non-atomic post-condition, we use an [option PROP], combined with a
-[-∗?]. This is to avoid introducing spurious [True -∗] into proofs that do not
-need a non-atomic post-condition (which is most of them). *)
+Section invariants.
+  Context {PROP : bi} `{!BiFUpd PROP} {TA TB : tele}.
+  Implicit Types
+    (E : coPset) (* outer/inner masks *)
+    (α : TA → PROP) (* atomic pre-condition *)
+    (β : TA → TB → PROP) (* atomic post-condition *)
+    (Φ : TA → TB → PROP) (* post-condition *)
+  .
+
+  Definition is_invariant α := (∃.. x, α x)%I.
+  Definition from_effect β Ψ := λ x y, (β x y ∗ (β x y -∗ Ψ))%I.
+  
+  Definition atomic_resource Eo Ei α Ψ :=
+    atomic_update Eo Ei α
+      (λ x _, α x)
+      (λ (_ : TA) (_ : TB), Ψ).
+  Definition atomic_effect E Ψ α :=
+    (Ψ ∗ (Ψ ={E}=∗ is_invariant α))%I.
+  Definition atomic_invariant Eo Ei α β Φ :=
+    atomic_update Eo Ei α
+      (λ x y, atomic_effect (⊤ ∖ Eo) (β x y) α)
+      (λ x y, atomic_resource Eo Ei α (Φ x y)).
+
+  Lemma aupd_intro Eo Ei α β Φ :
+    Ei ⊆ Eo →
+    (∃.. x, α x ∗ (∀.. y, β x y -∗ Φ x y)) -∗
+    atomic_update Eo Ei α β Φ.
+  Proof.
+    iIntros (HE) "(%x & Hα & HΦ)".
+    iAuIntro. iAaccIntro with "Hα".
+    + iIntros "Hα". iModIntro. iFrame.
+    + iIntros (y) "Hβ". iModIntro. by iApply "HΦ".
+  Qed.
+
+  Lemma ares_intro Eo Ei α Ψ :
+    Ei ⊆ Eo →
+    (is_invariant α ∗ (is_invariant α -∗ Ψ)) -∗
+    atomic_resource Eo Ei α Ψ.
+  Proof.
+    iIntros (HE) "([%x Hα] & HΨ)".
+    iApply aupd_intro; first done.
+    iExists x. iFrame. iIntros "% Hα".
+    iApply "HΨ". by iExists x.
+  Qed.
+
+  Lemma aeff_intro E Ψ α :
+    (Ψ ∗ (Ψ -∗ is_invariant α)) -∗
+    atomic_effect E Ψ α.
+  Proof.
+    iIntros "[HΨ Hα]". iFrame.
+    iIntros "HΨ". iApply "Hα". by iFrame.
+  Qed.
+
+  Lemma ainv_intro Eo Ei α β Φ :
+    Ei ⊆ Eo →
+    (∃.. x, α x ∗ (∀.. y, β x y -∗ β x y ∗ (is_invariant α -∗ Φ x y))) -∗
+    atomic_invariant Eo Ei α β Φ.
+  Proof.
+    iIntros (HE) "(%x & Hα & HΦ)".
+    iApply aupd_intro; first done.
+    iExists x. iFrame. iIntros (y) "[Hβ Hα]".
+    iDestruct ("HΦ" with "Hβ") as "[Hβ HΦ]".
+    iApply ares_intro; first done.
+    iDestruct ("Hα" with "Hβ") as "Hα".
+    iFrame.
+  Admitted.
+
+  Lemma ainv_intro_alt Eo Ei α β Φ :
+    Ei ⊆ Eo →
+    (∃.. x, α x ∗ (∀.. y, is_invariant α -∗ Φ x y)) -∗
+    atomic_invariant Eo Ei α β Φ.
+  Proof.
+    iIntros (HE) "(%x & Hα & HΦ)".
+    iApply ainv_intro; first done.
+    iExists x. iFrame. iIntros "% Hβ".
+    iFrame. iApply "HΦ".
+  Qed.
+End invariants.
+
 Definition atomic_wp `{!irisGS_gen hlc Λ Σ} {TA TB TP : tele}
   (e: expr Λ) (* expression *)
   (E : coPset) (* *implementation* mask *)
@@ -59,6 +98,74 @@ Definition atomic_wp `{!irisGS_gen hlc Λ Σ} {TA TB TP : tele}
             atomic_invariant (⊤∖E) ∅ α β (λ.. x y, ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
             WP e {{ Φ }}.
 
+(** Notation: Atomic invariants *)
+Notation "'AI' '<{' ∃∃ x1 .. xn , α '}>' @ Eo , Ei '<{' ∀∀ y1 .. yn , β , 'COMM' Φ '}>'" :=
+  (atomic_invariant (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+                (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
+                Eo Ei
+                (tele_app $ λ x1, .. (λ xn, α%I) ..)
+                (tele_app $ λ x1, .. (λ xn,
+                        tele_app (λ y1, .. (λ yn, β%I) .. )
+                        ) .. )
+                (tele_app $ λ x1, .. (λ xn,
+                        tele_app (λ y1, .. (λ yn, Φ%I) .. )
+                        ) .. )
+  )
+  (at level 20, Eo, Ei, α, β, Φ at level 200, x1 binder, xn binder, y1 binder, yn binder,
+  format "'[hv   ' 'AI'  '<{'  '[' ∃∃  x1  ..  xn ,  '/' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '[' ∀∀  y1  ..  yn ,  '/' β ,  '/' COMM  Φ  ']' '}>' ']'") : bi_scope.
+
+Notation "'AI' '<{' ∃∃ x1 .. xn , α '}>' @ Eo , Ei '<{' β , 'COMM' Φ '}>'" :=
+  (atomic_invariant (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+                (TB:=TeleO)
+                Eo Ei
+                (tele_app $ λ x1, .. (λ xn, α%I) ..)
+                (tele_app $ λ x1, .. (λ xn, tele_app β%I) .. )
+                (tele_app $ λ x1, .. (λ xn, tele_app Φ%I) .. )
+  )
+  (at level 20, Eo, Ei, α, β, Φ at level 200, x1 binder, xn binder,
+  format "'[hv   ' 'AI'  '<{'  '[' ∃∃  x1  ..  xn ,  '/' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '[' β ,  '/' COMM  Φ  ']' '}>' ']'") : bi_scope.
+
+Notation "'AI' '<{' α '}>' @ Eo , Ei '<{' ∀∀ y1 .. yn , β , 'COMM' Φ '}>'" :=
+  (atomic_invariant (TA:=TeleO)
+                (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
+                Eo Ei
+                (tele_app α%I)
+                (tele_app $ tele_app (λ y1, .. (λ yn, β%I) ..))
+                (tele_app $ tele_app (λ y1, .. (λ yn, Φ%I) ..))
+  )
+  (at level 20, Eo, Ei, α, β, Φ at level 200, y1 binder, yn binder,
+  format "'[hv   ' 'AI'  '<{'  '[' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '[' ∀∀  y1  ..  yn ,  '/' β ,  '/' COMM  Φ  ']' '}>' ']'") : bi_scope.
+
+Notation "'AI' '<{' α '}>' @ Eo , Ei '<{' β , 'COMM' Φ '}>'" :=
+  (atomic_invariant (TA:=TeleO) (TB:=TeleO)
+                Eo Ei
+                (tele_app α%I)
+                (tele_app $ tele_app β%I)
+                (tele_app $ tele_app Φ%I)
+  )
+  (at level 20, Eo, Ei, α, β, Φ at level 200,
+  format "'[hv   ' 'AI'  '<{'  '[' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '[' β ,  '/' COMM  Φ  ']' '}>' ']'") : bi_scope.
+
+(** Notation: Atomic resources *)
+Notation "'AR' '<{' ∃∃ x1 .. xn , α '}>' @ Eo , Ei '<{' Ψ '}>'" :=
+  (atomic_resource (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+                Eo Ei
+                (tele_app $ λ x1, .. (λ xn, α%I) ..)
+                (tele_app Ψ%I)
+  )
+  (at level 20, Eo, Ei, α, Ψ at level 200, x1 binder, xn binder,
+  format "'[hv   ' 'AR'  '<{'  '[' ∃∃  x1  ..  xn ,  '/' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '['  Ψ  ']' '}>' ']'") : bi_scope.
+
+Notation "'AR' '<{' α '}>' @ Eo , Ei '<{' Ψ '}>'" :=
+  (atomic_resource (TA:=TeleO)
+                Eo Ei
+                (tele_app α%I)
+                (tele_app Ψ%I)
+  )
+  (at level 20, Eo, Ei, α, Ψ at level 200,
+  format "'[hv   ' 'AR'  '<{'  '[' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '['  Ψ  ']' '}>' ']'") : bi_scope.
+
+(** Notation: Atomic triples *)
 (** We avoid '<<{'/'}>>' since those can also reasonably be infix operators
 (and in fact Autosubst uses the latter). *)
 Notation "'<<{' ∀∀ x1 .. xn , α '}>>' e @ E '<<{' ∃∃ y1 .. yn , β '|' z1 .. zn , 'RET' v ; POST '}>>'" :=
@@ -242,6 +349,8 @@ Notation "'<<{' α '}>>' e @ E '<<{' β '|' 'RET' v '}>>'" :=
    format "'[hv' '<<{'  '[' α  ']' '}>>'  '/  ' e  @  E  '/' '<<{'  '[' β  '|'  '/' RET  v  ']' '}>>' ']'")
   : bi_scope.
 
+
+
 (** Theory *)
 Section lemmas.
   Context `{!irisGS_gen hlc Λ Σ} {TA TB TP : tele}.
@@ -251,19 +360,19 @@ Section lemmas.
   (* Atomic triples imply sequential triples. *)
   Lemma atomic_wp_seq e E α β POST f :
     atomic_wp e E α β POST f -∗
-    ∀ Φ, ∀.. x, α x -∗ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
-    (∀.. y, β x y -∗ ∃.. z, α z ∗ (α z -∗ (β x y))) -∗
+    ∀ Φ, ∀.. x, α x -∗
+    (∀.. y, from_effect β (is_invariant α -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) x y) -∗
     WP e {{ Φ }}.
   Proof.
-    iIntros "Hwp" (Φ x) "Hα HΦ Hαβ".
+    iIntros "Hwp" (Φ x) "Hα HΦ".
     iApply (wp_frame_wand with "HΦ"). iApply "Hwp".
     iApply ainv_intro; first by set_solver.
     iExists x. iFrame. iIntros (y) "Hβ".
-    iDestruct ("Hαβ" with "Hβ") as (z) "[Hα Hβ]".
-    iExists z. iFrame. iIntros "Hα".
-    iDestruct ("Hβ" with "Hα") as "Hβ"; clear z.
+    iFrame. iIntros "Hα".
     (* FIXME: Using ssreflect rewrite does not work, see Coq bug #7773. *)
-    rewrite -> !tele_app_bind. iIntros (z) "Hpost HΦ". iApply ("HΦ" with "Hβ Hpost").
+    rewrite -> !tele_app_bind. iIntros (z) "Hpost HΦ".
+    iDestruct ("HΦ" $! y) as "[Hβ HΦ]".
+    iApply ("HΦ" with "Hβ Hα Hpost").
   Qed.
 
   (** This version matches the Texan triple, i.e., with a later in front of the
@@ -271,32 +380,36 @@ Section lemmas.
   Lemma atomic_wp_seq_step e E α β POST f :
     TCEq (to_val e) None →
     atomic_wp e E α β POST f -∗
-    ∀ Φ, ∀.. x, α x -∗ ▷ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
-    (∀.. y, β x y -∗ ∃.. z, α z ∗ (α z -∗ (β x y))) -∗
+    ∀ Φ, ∀.. x, α x -∗
+    ▷ (∀.. y, from_effect β (is_invariant α -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) x y) -∗
     WP e {{ Φ }}.
   Proof.
-    iIntros (?) "H"; iIntros (Φ x) "Hα HΦ Hαβ".
+    iIntros (?) "Hwp"; iIntros (Φ x) "Hα HΦ".
     iApply (wp_step_fupd _ _ ⊤ _ (∀.. y : TB, _)
-      with "[$HΦ //]"); first done.
-    iApply (atomic_wp_seq with "H Hα [] Hαβ").
-    iIntros "%y Hβ %z Hpost HΦ". iApply ("HΦ" with "Hβ Hpost").
+      with "[$HΦ //]"); first done. iApply "Hwp".
+    iApply ainv_intro; first by set_solver.
+    iExists x. iFrame. iIntros (y) "Hβ".
+    iFrame. iIntros "Hα".
+    (* FIXME: Using ssreflect rewrite does not work, see Coq bug #7773. *)
+    rewrite -> !tele_app_bind. iIntros (z) "Hpost HΦ".
+    iDestruct ("HΦ" $! y) as "[Hβ HΦ]".
+    iApply ("HΦ" with "Hβ Hα Hpost").
   Qed.
 
   (* Sequential triples with the empty mask for a physically atomic [e] are atomic. *)
-  Lemma atomic_seq_wp_atomic e E α β POST f `{!Atomic WeaklyAtomic e} :
-    (∀ Φ, ∀.. x, α x -∗ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗ WP e @ ∅ {{ Φ }}) -∗
+  (* Lemma atomic_seq_wp_atomic e E α β POST f `{!Atomic WeaklyAtomic e} :
+    (∀ Φ, ∀.. x, α x -∗ (∀.. x', α x' -∗ ∀.. y z, POST x y z -∗? Φ (f x y z)) -∗ WP e @ ∅ {{ Φ }}) -∗
     atomic_wp e E α β POST f.
   Proof.
     iIntros "Hwp" (Φ) "AI". iMod "AI" as (x) "[Hα [_ Hclose]]".
-    iApply ("Hwp" with "Hα"). iIntros "%y Hβ %z Hpost".
-    iMod ("Hclose" with "Hβ") as "HΦ".
-    iMod ("HΦ") as "[%z' [Hα [_ Hclose]]]". iMod ("Hclose" $! z' with "Hα") as "HΦ".
+    iApply ("Hwp" with "Hα"). iIntros "%x' Hα %y %z Hpost".
+    iMod ("Hclose" with "Hα") as "HΦ".
     rewrite ->!tele_app_bind. iApply "HΦ". done.
-  Qed.
+  Qed. *)
 
   (** Sequential triples with a persistent precondition and no initial quantifier
   are atomic. *)
-  Lemma persistent_seq_wp_atomic e E (α : [tele] → iProp) (β : [tele] → TB → iProp)
+  (* Lemma persistent_seq_wp_atomic e E (α : [tele] → iProp) (β : [tele] → TB → iProp)
       (POST : [tele] → TB → TP → option iProp) (f : [tele] → TB → TP → val Λ)
       {HP : Persistent (α [tele_arg])} :
     (∀ Φ, α [tele_arg] -∗ (∀.. y, β [tele_arg] y -∗ ∀.. z, POST [tele_arg] y z -∗? Φ (f [tele_arg] y z)) -∗ WP e {{ Φ }}) -∗
@@ -306,17 +419,16 @@ Section lemmas.
     iMod ("HΦ") as "[#Hα [Hclose _]]". iMod ("Hclose" with "Hα") as "HΦ".
     iApply wp_fupd. iApply ("Hwp" with "Hα"). iIntros "!> %y Hβ %z Hpost".
     iMod ("HΦ") as "[_ [_ Hclose]]". iMod ("Hclose" with "Hβ") as "HΦ".
-    iMod ("HΦ") as "[_ [_ Hclose]]". iMod ("Hclose" with "Hα") as "HΦ".
     (* FIXME: Using ssreflect rewrite does not work, see Coq bug #7773. *)
     rewrite ->!tele_app_bind. iApply "HΦ". done.
-  Qed.
+  Qed. *)
 
-  Lemma atomic_wp_mask_weaken e E1 E2 α β POST f :
+  (* Lemma atomic_wp_mask_weaken e E1 E2 α β POST f :
     E1 ⊆ E2 → atomic_wp e E1 α β POST f -∗ atomic_wp e E2 α β POST f.
   Proof.
     iIntros (HE) "Hwp". iIntros (Φ) "AU". iApply "Hwp".
-    iApply atomic_invariant_mask_weaken; last done. set_solver.
-  Qed.
+    iApply atomic_update_mask_weaken; last done. set_solver.
+  Qed. *)
 
   (** We can open invariants around atomic triples.
       (Just for demonstration purposes; we always use [iInv] in proofs.) *)
@@ -325,8 +437,39 @@ Section lemmas.
     atomic_wp e (E ∖ ↑N) (λ.. x, ▷ I ∗ α x) (λ.. x y, ▷ I ∗ β x y) POST f -∗
     inv N I -∗ atomic_wp e E α β POST f.
   Proof.
-    intros ?. iIntros "Hwp #Hinv" (Φ) "AI". iApply "Hwp".
-    iApply (atomic_invariant_inv with "[AI] Hinv"); first solve_ndisj.
-    by replace (⊤ ∖ (E ∖ ↑N) ∖ ↑N) with (⊤ ∖ E) by set_solver.
+    intros ?. iIntros "Hwp #Hinv" (Φ) "AU". iApply "Hwp".
+    unfold atomic_invariant; iAuIntro.
+    iInv N as "HI". iApply (aacc_aupd with "AU"); first solve_ndisj.
+    iIntros (x) "Hα". iAaccIntro with "[HI Hα]"; rewrite ->!tele_app_bind; first by iFrame.
+    - (* abort *)
+      iIntros "[HI $]". by eauto with iFrame.
+    - (* commit *)
+      iIntros (y) "Heff"; rewrite ->!tele_app_bind.
+      iModIntro. iRight. iExists y; rewrite ->!tele_app_bind.
+      assert (∀ Y : coPset, (⊤ ∖ (⊤ ∖ Y)) = Y) as Hdiff.
+      {
+        intros Y. by rewrite difference_difference_r_L
+          difference_diag_L union_empty_l_L
+          comm_L -subseteq_intersection_L.
+      }
+      rewrite ?Hdiff.
+      iAssert (atomic_effect E (β x y) α ∗ ▷ I)%I with "[-]" as "[Heff HI]".
+      {
+        iDestruct "Heff" as "[[? ?] Heff]"; iFrame.
+        iIntros "Hβ". iInv N as "HI".
+        iMod ("Heff" with "[$]") as (z) "Hα".
+        rewrite ->!tele_app_bind; iDestruct "Hα" as "[HI Hα]".
+        iModIntro. iFrame. iModIntro. by iExists z.
+      }
+
+      iFrame. iIntros "AU". iModIntro.
+      unfold atomic_resource; iAuIntro.
+      iInv N as "HI". iApply (aacc_aupd with "AU"); first solve_ndisj.
+      iIntros (z) "Hα". iAaccIntro with "[HI Hα]"; rewrite ->!tele_app_bind; first by iFrame.
+      * iIntros "[HI $]". by eauto with iFrame.
+      * iIntros (w) "[HI Hα]". iModIntro.
+        rewrite ->!tele_app_bind. iRight. iExists w. iFrame. iIntros.
+        iModIntro. done.
   Qed.
+
 End lemmas.

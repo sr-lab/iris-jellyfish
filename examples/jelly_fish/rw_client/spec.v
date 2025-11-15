@@ -235,7 +235,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iIntros "AR". rewrite difference_diag_L.
         iApply (ares_commit with "AR").
       }
-      iApply (atomic_wp_seq_step with "Hread Hconst [] HΦ").
+      iApply (atomic_wp_seq_step with "Hread Hconst HΦ").
       iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
     Qed.
 
@@ -280,7 +280,7 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iIntros "AR". rewrite difference_diag_L.
         iApply (ares_commit with "AR").
       }
-      iApply (atomic_wp_seq_step with "Hwrite Hmut [] HΦ").
+      iApply (atomic_wp_seq_step with "Hwrite Hmut HΦ").
       iIntros "?"; iExists _; iFrame; by iIntros.
     Qed.
   End proofs.
