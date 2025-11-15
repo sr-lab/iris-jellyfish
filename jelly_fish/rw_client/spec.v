@@ -1,11 +1,10 @@
 From iris.algebra Require Import frac_auth gmap.
+From AtomicInvariant.lib Require Import argmax gmap.
 From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import notation.
-
-From SkipList.lib Require Import argmax gmap.
-From SkipList.atomic Require Import proofmode weakestpre.
-From SkipList.jelly_fish Require Import code inv.
-From SkipList.jelly_fish.spec Require Import new get put.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.atomic Require Import triple.
+From AtomicInvariant.jelly_fish Require Import code inv.
+From AtomicInvariant.jelly_fish.spec Require Import new get put.
 
 
 Class rwG Σ := RWG { 
@@ -156,57 +155,32 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
 
     Theorem ts_get_spec (p: loc) (mΓ: gmap Z lazy_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<<
-        ∀∀ m, ts_map p m mΓ |
-        ∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k);
-        RET opt
-      >>> @ ∅
-      {{{ emp }}} get #p #k {{{ emp }}}.
+      ⊢ <<{ ∀∀ m, ts_map p m mΓ }>> get #p #k @ ∅
+        <<{∃∃ opt, ts_map p m mΓ ∗ opt_equiv opt (m !! k) | RET opt }>>.
     Proof.
-      iIntros "!> %Φ _ AU". awp_apply (get_spec with "[$]"); first done.
-      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
-      { 
-        iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
-        iExists m'. iFrame. iIntros. iExists m'. iFrame.
-      }
-      iIntros (m) "Hmap".
-      iDestruct "Hmap" as (m') "[Hmap %Hfmap]".
-      iAaccIntro with "Hmap".
-      { iIntros "?"; iSplitR ""; last by (iModIntro; iIntros). iExists m'; by iFrame. }
-      iIntros "Hmap".
-
-      iModIntro. iExists m'. iFrame. iIntros "Hmap".
-      iRight. iExists (opt_to_val (m' !! k)). 
+      iIntros "%Φ AI". wp_apply get_spec; first done.
+      iApply (ainv_ainv with "AI"); try done.
+      iIntros "!>" (m) "[%m' [Hmap %Hfmap]]".
+      iModIntro. iExists m'. iFrame. iSplit; first by iIntros; iFrame.
+      iIntros "Hmap". iModIntro. iRight. iExists (opt_to_val (m' !! k)).
       iSplitR ""; first iSplit; first (by iExists m'; iFrame);
-        last by (iIntros "AP"; iMod (atomic_post_commit with "AP") as "HΦ").
+        last by (iIntros "AR"; iMod (ares_commit with "AR") as "HΦ").
       rewrite Hfmap lookup_fmap. destruct (m' !! k) as [[[v t] vl]|]; last done.
       iPureIntro; exists ({[v]} ∪ tset vl t), v, t; set_solver.
     Qed.
 
     Theorem ts_put_spec (p: loc) (k v t: Z) (mΓ: gmap Z lazy_gname)
       (Hrange: INT_MIN < k < INT_MAX) :
-      ⊢ <<<
-        ∀∀ m, ts_map p m mΓ |
-        ts_map p (m ⋅ {[ k := ArgMax {[v]} t]}) mΓ;
-        RET #()
-      >>> @ ∅
-      {{{ emp }}} put #p #k #v #t {{{ emp }}}.
+      ⊢ <<{ ∀∀ m, ts_map p m mΓ }>> put #p #k #v #t @ ∅
+        <<{ ts_map p (m ⋅ {[ k := ArgMax {[v]} t]}) mΓ | RET #() }>>.
     Proof.
-      iIntros "!> %Φ _ AU". awp_apply (put_spec with "[$]"); first done.
-      iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
-      { 
-        iIntros "!> %m Hmap". iDestruct "Hmap" as (m') "[? ?]". 
-        iExists m'. iFrame. iIntros. iExists m'. iFrame.
-      }
-      iIntros (m) "Hmap".
-      iDestruct "Hmap" as (m') "[Hmap %Hfmap]".
-      iAaccIntro with "Hmap".
-      { iIntros "?"; iSplitR ""; last by (iModIntro; iIntros). iExists m'; by iFrame. }
-      iIntros "Hmap".
-
-      iModIntro. iExists (case_map m' k v t). iFrame. iIntros "Hmap".
-      assert (m ⋅ {[k := ArgMax {[v]} t]} = f_vs <$> case_map m' k v t) 
-        as Heq; last (rewrite Heq; clear Heq).
+      iIntros "%Φ AI". wp_apply put_spec; first done.
+      iApply (ainv_ainv with "AI"); try done.
+      iIntros "!>" (m) "[%m' [Hmap %Hfmap]]".
+      iModIntro. iExists m'. iFrame. iSplit; first by iIntros; iFrame.
+      iIntros "Hmap". iModIntro. iRight.
+      
+      assert (m ⋅ {[k := ArgMax {[v]} t]} = f_vs <$> case_map m' k v t) as ->.
       { 
         rewrite Hfmap. destruct ((f_vs <$> m') !! k) eqn:Hopt.
         + rewrite comm_L -(insert_singleton_op_Some_L _ _ _ _ Hopt).
@@ -226,8 +200,9 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           rewrite /case_map Hopt fmap_insert.
           rewrite {2}/f_vs //= right_id_L //.
       }
-      iRight. iFrame. iSplit; first done. iIntros "AP".
-      iMod (atomic_post_commit with "AP") as "HΦ". done.
+
+      iFrame. iSplit; first done. iIntros "AR".
+      by iMod (ares_commit with "AR") as "HΦ".
     Qed.
 
     Theorem const_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
@@ -238,43 +213,30 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       {{{ opt, RET opt; const_map m q Γ ∗ opt_equiv opt (m !! k) }}}.
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hconst HΦ".
-      iAssert (<<<
-        ∀∀ m, const_map m q Γ |
-        ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k);
-        RET opt
-      >>> @ ↑mapN
-      {{{ emp }}} get #p #k {{{ emp }}}
+      iAssert (<<{ ∀∀ m, const_map m q Γ }>> get #p #k @ ↑mapN
+      <<{ ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k) | RET opt }>>
       )%I as "Hread".
       { 
-        iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-        clear m Φ; iIntros "!> %Φ _ AU".
+        iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
+        clear m Φ; iIntros "%Φ AI".
 
-        awp_apply (ts_get_spec with "[$]"); first done.
-        iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
-        { 
-          iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
-          iExists m'. iFrame. iIntros. iExists m'. iFrame.
-        }
-        iIntros (m) "[Hmap Hagr◯]".
-        iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hmut◯)".
-        iAaccIntro with "Hmap".
-        { do 2 (iIntros "?"; iModIntro; iFrame). }
+        wp_apply ts_get_spec; first done.
+        iApply (ainv_ainv with "AI"); try done.
+        iIntros "!> %m [>[%m' (Hmap & Hmut● & Hagr● & Hmut◯)] Hagr◯]".
+        iModIntro. iExists m'. iFrame "Hmap". iSplit; first by iIntros; iFrame.
         iIntros (opt) "[Hmap Hopt]".
 
         iDestruct (own_valid_2 with "Hagr● Hagr◯") as %Heq%frac_auth_included.
         rewrite Some_included_total to_agree_included leibniz_equiv_iff in Heq;
           rewrite Heq; clear Heq.
+        iModIntro.
 
-        iModIntro. iExists m'. iFrame. iIntros "Hmap".
-        iRight. iExists opt. 
-        iSplitR ""; first iSplit; first iExists m'; iFrame.
-        iIntros "AP". iMod (atomic_post_commit with "AP") as "HΦ".
-        by iModIntro.
+        iFrame. iRight. iExists opt. iFrame.
+        iIntros "AR". rewrite difference_diag_L.
+        iApply (ares_commit with "AR").
       }
-      iDestruct (atomic_wp_seq_step with "Hread") as "Hwp".
-      iApply ("Hwp" with "[$] Hconst [HΦ]").
-      + iNext; iIntros; iApply "HΦ"; by iFrame.
-      + iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
+      iApply (atomic_wp_seq_step with "Hread Hconst [] HΦ").
+      iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
     Qed.
 
     Theorem mut_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
@@ -285,27 +247,17 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       {{{ RET #(); mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ }}}.
     Proof.
       iIntros "[%Γl #Hinv] %Φ !> Hmut HΦ".
-      iAssert (<<<
-        ∀∀ m, mut_map m q Γ |
-        mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ;
-        RET #()
-      >>> @ ↑mapN
-      {{{ emp }}} put #p #k #v #t {{{ emp }}}
+      iAssert (<<{ ∀∀ m, mut_map m q Γ }>> put #p #k #v #t @ ↑mapN
+      <<{ mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ | RET #() }>>
       )%I as "Hwrite".
       {
-        iApply (atomic_wp_inv_timeless with "[] Hinv"); first solve_ndisj.
-        clear m Φ; iIntros "!> %Φ _ AU".
+        iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
+        clear m Φ; iIntros "%Φ AI".
 
-        awp_apply (ts_put_spec with "[$]"); first done.
-        iApply (aacc_aupd_sub with "[] AU"); first solve_ndisj; first done.
-        { 
-          iIntros "!> %m [Hmap ?]". iDestruct "Hmap" as (m') "[? ?]". 
-          iExists m'. iFrame. iIntros. iExists m'. iFrame.
-        }
-        iIntros (m) "[Hmap Hmut◯]".
-        iDestruct "Hmap" as (m') "(Hmap & Hmut● & Hagr● & Hagr◯)".
-        iAaccIntro with "Hmap".
-        { do 2 (iIntros "?"; iModIntro; iFrame). }
+        wp_apply ts_put_spec; first done.
+        iApply (ainv_ainv with "AI"); try done.
+        iIntros "!> %m [>[%m' (Hmap & Hmut● & Hagr● & Hagr◯)] Hmut◯]".
+        iModIntro. iExists m'. iFrame "Hmap". iSplit; first by iIntros; iFrame.
         iIntros "Hmap".
 
         iMod (own_update_2 with "Hmut● Hmut◯") as "[Hmut● Hmut◯]".
@@ -322,16 +274,14 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         { by iDestruct (own_valid_2 with "Hmut◯ Hfalse") as %[Hfalse%Qp.not_add_le_r _]%frac_auth_frag_valid. }
         iMod (own_update_2 with "Hagr● Hagr◯") as "[Hagr● Hagr◯]".
         { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := ArgMax {[v]} t]}))). }
+        iModIntro.
 
-        iModIntro. iExists (m' ⋅ {[k := ArgMax {[v]} t]}). iFrame. iIntros "Hmap".
-        iRight. iFrame. iIntros "AP".
-        iMod (atomic_post_commit with "AP") as "HΦ".
-        by iModIntro.
+        iFrame. iRight. iFrame.
+        iIntros "AR". rewrite difference_diag_L.
+        iApply (ares_commit with "AR").
       }
-      iDestruct (atomic_wp_seq_step with "Hwrite") as "Hwp".
-      iApply ("Hwp" with "[$] Hmut [HΦ]").
-      + iNext; iIntros; iApply "HΦ"; by iFrame.
-      + iIntros; iExists _; iFrame; by iIntros.
+      iApply (atomic_wp_seq_step with "Hwrite Hmut [] HΦ").
+      iIntros "?"; iExists _; iFrame; by iIntros.
     Qed.
   End proofs.
 End RWSpec.

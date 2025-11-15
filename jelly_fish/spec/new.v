@@ -1,10 +1,9 @@
 From iris.algebra Require Import auth gset.
 From iris.base_logic.lib Require Import ghost_map.
-From iris.heap_lang Require Import notation.
-
-From SkipList.lib Require Import zrange.
-From SkipList.atomic Require Import weakestpre proofmode lock.
-From SkipList.jelly_fish Require Import code inv.
+From AtomicInvariant.lib Require Import zrange.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.atomic Require Import triple lock.
+From AtomicInvariant.jelly_fish Require Import code inv.
 
 
 Module NewSpec (Params: SKIP_LIST_PARAMS).

@@ -1,12 +1,11 @@
--Q . SkipList
+-Q . AtomicInvariant
 
 lib/argmax.v
 lib/gmap.v
 lib/zrange.v
 
-atomic/update.v
-atomic/weakestpre.v
-atomic/proofmode.v
+atomic/invariant.v
+atomic/triple.v
 atomic/lock.v
 
 lazy_list/code.v

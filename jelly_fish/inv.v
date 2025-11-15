@@ -1,11 +1,9 @@
 From iris.algebra Require Import auth gset.
 From iris.base_logic.lib Require Import ghost_map.
-From iris.heap_lang Require Import notation.
-Import derived_laws_later.bi.
-
-From SkipList.lib Require Import zrange.
-From SkipList.atomic Require Import proofmode lock.
-From SkipList.jelly_fish Require Import code.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.lib Require Import zrange.
+From AtomicInvariant.atomic Require Import lock.
+From AtomicInvariant.jelly_fish Require Import code.
 
 
 Definition tval : Type := Z * Z.
@@ -28,8 +26,8 @@ Global Instance lazy_gname_inhabited : Inhabited lazy_gname :=
 
 Module SkipListInv (Params: SKIP_LIST_PARAMS).
   Import Params.
-  Module SkipList := SkipList Params.
-  Export SkipList.
+  Module AtomicInvariant := AtomicInvariant Params.
+  Export AtomicInvariant.
 
   Section invariant.
     Context `{!heapGS Σ, !skipG Σ}.

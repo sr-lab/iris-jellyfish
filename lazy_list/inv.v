@@ -1,9 +1,8 @@
 From iris.algebra Require Import auth gset.
-From iris.heap_lang Require Import notation.
-
-From SkipList.lib Require Import zrange.
-From SkipList.atomic Require Import proofmode lock.
-From SkipList.lazy_list Require Import code.
+From AtomicInvariant.lib Require Import zrange.
+From iris.heap_lang Require Import proofmode notation.
+From AtomicInvariant.atomic Require Import lock.
+From AtomicInvariant.lazy_list Require Import code.
 
 
 Class lazyG Σ := LazyG { 
@@ -67,6 +66,7 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
 
   Section proofs.
     Context `{!heapGS Σ, !lazyG Σ}.
+    Local Open Scope Z.
 
     Lemma singleton_frag_in (h n s: node_rep) (S: gset node_rep) (Γ: lazy_gname) :
       ⌜ n = s ⌝ ∨ own Γ.(auth_gname) (◯ {[n]}) -∗ lazy_list h S Γ -∗ ⌜ n ∈ {[s]} ∪ S ⌝.
@@ -142,5 +142,68 @@ Module LazyListInv (Params: LAZY_LIST_PARAMS).
       iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
       iExists S. iFrame "Hlazy". iIntros "Hlazy". iExists head, S. iFrame.
     Qed. 
+
+    Lemma set_update (p: loc) (head pred node succ: node_rep) (s: gset Z) (Γ: lazy_gname) :
+      (* The ranges for the new key *)
+      INT_MIN < node_key node < INT_MAX →
+      node_key pred < node_key node < node_key succ →
+      (* Ownership of the full set *)
+      p ↦□ rep_to_node head -∗ set p s Γ -∗
+      (* Ownership of the link between pred and succ after acquiring pred's lock *)
+      ⌜ pred = head ⌝ ∨ own Γ.(auth_gname) (◯ {[pred]}) -∗
+      ⌜ succ = tail ⌝ ∨ own Γ.(auth_gname) (◯ {[succ]}) -∗
+      node_next pred ↦{#1 / 2} rep_to_node succ -∗
+      (* Ownership of the allocated resources for the new node *)
+      node_next node ↦ rep_to_node succ -∗ node_lock node ↦ #false -∗
+      (* We obtain the right to update pred and to update the set accordingly *)
+      node_next pred ↦ rep_to_node succ ∗ (node_next pred ↦ rep_to_node node ==∗
+      set p (s ∪ {[node_key node]}) Γ ∗ node_next pred ↦{#1 / 2} rep_to_node node).
+    Proof.
+      iIntros (Hrange Hkey) "Hhead Hset #Hpred #Hsucc Hnext [Hn Hn'] Hl".
+      
+      (* Destruct set resources *)
+      iDestruct "Hset" as (h' S) "(H & %Hmin & %Hkeys & Hlazy)".
+      iDestruct (pointsto_agree with "Hhead H") as %<-%rep_to_node_inj; iClear "H".
+      iDestruct (singleton_frag_in with "Hpred Hlazy") as %Hpred.
+      iDestruct "Hlazy" as "(Hauth & Hdisj & Hnexts & Hlocks)".
+      (* Assert ownership of pred's successor pointer and assume update *)
+      rewrite (big_sepS_delete (has_next _) _ pred) //.
+      iDestruct "Hnexts" as "[Hnext' Hnexts]".
+      iDestruct "Hnext'" as (succ') "(Hnext' & _ & Hkeys)".
+      iDestruct (pointsto_agree with "Hnext Hnext'") as %<-%rep_to_node_inj.
+      iFrame. iIntros "[Hnext Hnext']".
+
+      (* Update authoritative ghost state *)
+      iMod (own_update with "Hauth") as "[Hauth Hfrag]".
+      { by apply auth_update_alloc, (op_local_update_discrete _ _ {[node]}). }
+      rewrite right_id (comm op {[node]} S).
+      (* Update sublist tokens *)
+      rewrite (ZRange_split (node_key node)); last done.
+      iDestruct "Hkeys" as "((Hkeys & Hkey) & Hkeys')".
+      iDestruct (own_valid_2 with "Hdisj Hkey") as %Hdisj%gset_disj_valid_op.
+      iCombine "Hdisj Hkey" as "Hdisj"; rewrite gset_disj_union //.
+      (* Ghost updates done *)
+      iModIntro.
+
+      (* Add pred resources back to set *)
+      iAssert (has_next _ pred) with "[Hnext Hfrag Hkeys]"
+        as "Hnext". { iExists node; iFrame. }
+      iCombine "Hnext Hnexts" as "Hnexts". rewrite -big_sepS_delete //.
+      (* Add new node resources to set *)
+      iAssert (has_next _ node) with "[Hn Hkeys']" as "Hnext".
+      { iExists succ; iFrame "# ∗". }
+      iCombine "Hnext Hnexts" as "Hnexts".
+      (* Add lock resources of the new node to set *)
+      iAssert (has_lock node) with "[Hn' Hl]" as "Hlock".
+      { iExists Free. iSplitR "Hn'"; last by iExists succ. iExists _. by iFrame. }
+      iCombine "Hlock Hlocks" as "Hlocks".
+      (* Simplify [∗ set] *)
+      assert (node_key node ≠ node_key head) by lia.
+      assert (node ∉ {[head]} ∪ S) by set_solver.
+      do 2 rewrite -big_sepS_insert // (comm_L _ _ ({[head]} ∪ S)) -assoc_L.
+
+      (* Assert update to set *)
+      iFrame. rewrite Hkeys set_map_union_L set_map_singleton_L. by iFrame.
+    Qed.
   End proofs.
 End LazyListInv.

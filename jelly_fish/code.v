@@ -1,6 +1,5 @@
+From AtomicInvariant.atomic Require Import lock.
 From iris.heap_lang Require Import notation.
-
-From SkipList.atomic Require Import proofmode lock.
 
 
 Section node_rep.
@@ -69,7 +68,7 @@ Module Type SKIP_LIST_PARAMS.
   Parameter (HMAX_HEIGHT: 0 ≤ MAX_HEIGHT).
 End SKIP_LIST_PARAMS.
 
-Module SkipList (Params: SKIP_LIST_PARAMS).
+Module AtomicInvariant (Params: SKIP_LIST_PARAMS).
   Import Params.
 
   Definition tail : node_rep := (INT_MAX, dummy_null, dummy_null, dummy_null).
@@ -185,4 +184,4 @@ Module SkipList (Params: SKIP_LIST_PARAMS).
       let: "h" := randomLevel #() in
         putH "p" "k" "v" "t" "h".
 
-End SkipList.
+End AtomicInvariant.
