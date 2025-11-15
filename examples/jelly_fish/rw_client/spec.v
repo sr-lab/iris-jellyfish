@@ -217,10 +217,12 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<{ ∃∃ opt, const_map m q Γ ∗ opt_equiv opt (m !! k) | RET opt }>>
       )%I as "Hread".
       { 
-        iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
         clear m Φ; iIntros "%Φ AI".
-
+        iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑mapN) with "AI")
+          as "AI"; first solve_ndisj.
+        iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
         wp_apply ts_get_spec; first done.
+
         iApply (ainv_ainv with "AI"); try done.
         iIntros "!> %m [>[%m' (Hmap & Hmut● & Hagr● & Hmut◯)] Hagr◯]".
         iModIntro. iExists m'. iFrame "Hmap". iSplit; first by iIntros; iFrame.
@@ -231,9 +233,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
           rewrite Heq; clear Heq.
         iModIntro.
 
-        iFrame. iRight. iExists opt. iFrame.
-        iIntros "AR". rewrite difference_diag_L.
-        iApply (ares_commit with "AR").
+        iFrame. iRight. iExists opt. iFrame. iIntros "AR".
+        rewrite difference_empty_L. iApply (ares_commit with "AR").
       }
       iApply (atomic_wp_seq_step with "Hread Hconst HΦ").
       iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
@@ -251,10 +252,12 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
       <<{ mut_map (m ⋅ {[ k := ArgMax {[v]} t]}) q Γ | RET #() }>>
       )%I as "Hwrite".
       {
-        iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
         clear m Φ; iIntros "%Φ AI".
-
+        iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑mapN) with "AI")
+          as "AI"; first solve_ndisj.
+        iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
         wp_apply ts_put_spec; first done.
+
         iApply (ainv_ainv with "AI"); try done.
         iIntros "!> %m [>[%m' (Hmap & Hmut● & Hagr● & Hagr◯)] Hmut◯]".
         iModIntro. iExists m'. iFrame "Hmap". iSplit; first by iIntros; iFrame.
@@ -276,9 +279,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         { by apply (frac_auth_update_1 _ _ (to_agree (m' ⋅ {[k := ArgMax {[v]} t]}))). }
         iModIntro.
 
-        iFrame. iRight. iFrame.
-        iIntros "AR". rewrite difference_diag_L.
-        iApply (ares_commit with "AR").
+        iFrame. iRight. iFrame. iIntros "AR".
+        rewrite difference_empty_L. iApply (ares_commit with "AR").
       }
       iApply (atomic_wp_seq_step with "Hwrite Hmut HΦ").
       iIntros "?"; iExists _; iFrame; by iIntros.

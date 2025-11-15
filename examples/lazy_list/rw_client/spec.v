@@ -128,9 +128,12 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
         contains #p #k @ ↑N
       <<{ ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝ | RET #b }>>.
     Proof.
-      iIntros "[%Γl #Hinv]".
-      iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
-      iIntros "%Φ AI". iApply (contains_spec with "[AI]"); first done.
+      iIntros "[%Γl #Hinv]" (Φ) "AI".
+      iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
+        as "AI"; first solve_ndisj.
+      iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
+      iApply (contains_spec with "[AI]"); first done.
+
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!> %s %q [>[%s' (Hset & Hmut● & Hagr● & Hmut◯)] Hagr◯] !>".
       iExists s'. iFrame "Hset". iSplit. { iIntros "Hset". iFrame. }
@@ -142,9 +145,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro.
       
       iRight. iExists b. iFrame. iIntros "AR".
-      iMod (fupd_mask_subseteq (⊤ ∖ (↑N ∖ ↑rw_lazyN N))) as "Hclose";
-        first solve_ndisj. iMod (ares_commit with "AR") as "HΦ".
-      iMod "Hclose" as "_". by iModIntro.
+      rewrite difference_empty_L. iApply (ares_commit with "AR").
     Qed.
 
     Theorem write_spec (p: loc) (Γ: rw_gname)
@@ -153,9 +154,12 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
         add #p #k @ ↑N
       <<{ mut_set (s ⋅ {[ k ]}) q Γ | RET #() }>>.
     Proof.
-      iIntros "[%Γl #Hinv]".
-      iApply (atomic_wp_inv with "[] Hinv"); first solve_ndisj.
-      iIntros "%Φ AI". iApply (add_spec with "[AI]"); first done.
+      iIntros "[%Γl #Hinv]" (Φ) "AI".
+      iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
+        as "AI"; first solve_ndisj.
+      iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
+      iApply (add_spec with "[AI]"); first done.
+
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!> %s %q [>[%s' (Hset & Hmut● & Hagr● & Hagr◯)] Hmut◯] !>".
       iExists s'. iFrame "Hset". iSplit. { iIntros "Hset". iFrame. }
@@ -171,9 +175,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro.
 
       iRight. iFrame. iIntros "AR".
-      iMod (fupd_mask_subseteq (⊤ ∖ (↑N ∖ ↑rw_lazyN N))) as "Hclose";
-        first solve_ndisj. iMod (ares_commit with "AR") as "HΦ".
-      iMod "Hclose" as "_". by iModIntro.
+      rewrite difference_empty_L. iApply (ares_commit with "AR").
     Qed.
   End proofs.
 End RWSpec.
