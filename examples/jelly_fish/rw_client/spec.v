@@ -236,8 +236,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iFrame. iRight. iExists opt. iFrame. iIntros "AR".
         rewrite difference_empty_L. iApply (ares_commit with "AR").
       }
-      iApply (atomic_wp_seq_step with "Hread Hconst HΦ").
-      iIntros (?) "[? ?]"; iExists m; iFrame; by iIntros.
+      iApply (atomic_wp_seq_step with "Hread Hconst [] HΦ").
+      iIntros ([]) "[? ?]"; iExists _; iFrame; by iIntros.
     Qed.
 
     Theorem mut_spec (p: loc) (Γ: rw_gname) (q: frac) (m: gmap Z (argmax Z))
@@ -282,8 +282,8 @@ Module RWSpec (Params: SKIP_LIST_PARAMS).
         iFrame. iRight. iFrame. iIntros "AR".
         rewrite difference_empty_L. iApply (ares_commit with "AR").
       }
-      iApply (atomic_wp_seq_step with "Hwrite Hmut HΦ").
-      iIntros "?"; iExists _; iFrame; by iIntros.
+      iApply (atomic_wp_seq_step with "Hwrite Hmut [] HΦ").
+      iIntros ([]) "?"; iExists _; iFrame; by iIntros.
     Qed.
   End proofs.
 End RWSpec.

@@ -17,6 +17,8 @@ Section definition.
     atomic_update Eo Ei α (λ (x : TA) (_ : TA), α x) (λ (_ : TA) (_ : TA), Ψ).
   Definition atomic_invariant Eo Ei α β Φ :=
     atomic_update Eo Ei α β (λ x y, atomic_resource Eo Ei α (Φ x y)).
+  Definition updated_invariant Ψ α :=
+    (∀.. (y : TB), Ψ y -∗ ∃.. x, α x ∗ (α x -∗ Ψ y))%I.
 
   Local Lemma ainv_aupd Eo Ei α β Φ :
     atomic_update Eo Ei α β (λ x y, atomic_resource Eo Ei α (Φ x y)) -∗
@@ -96,6 +98,42 @@ Notation "'AR' '<{' α '}>' @ Eo , Ei '<{' Ψ '}>'" :=
   (at level 20, Eo, Ei, α, Ψ at level 200,
   format "'[hv   ' 'AR'  '<{'  '[' α  ']' '}>'  '/' @  '[' Eo ,  '/' Ei ']'  '/' '<{'  '['  Ψ  ']' '}>' ']'") : bi_scope.
 
+(** Notation: Updated invariants *)
+Notation "'UPD' '<{' ∀∀ y1 .. yn , β '}>' '<{' ∃∃ x1 .. xn , α '}>'" :=
+  (updated_invariant (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+                (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
+                (tele_app $ λ y1, .. (λ yn, β%I) ..)
+                (tele_app $ λ x1, .. (λ xn, α%I) ..)
+  )
+  (at level 20, α, β at level 200, x1 binder, xn binder, y1 binder, yn binder,
+  format "'[hv   ' 'UPD'  '<{'  '[' ∀∀  y1  ..  yn ,  '/' β  ']' '}>'  '/' '<{'  '[' ∃∃  x1  ..  xn ,  '/' α  ']' '}>' ']'") : bi_scope.
+
+Notation "'UPD' '<{' β '}>' '<{' ∃∃ x1 .. xn , α '}>'" :=
+  (updated_invariant (TA:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+                (TB:=TeleO)
+                (tele_app β%I)
+                (tele_app $ λ x1, .. (λ xn, α%I) ..)
+  )
+  (at level 20, α, β at level 200, x1 binder, xn binder,
+  format "'[hv   ' 'UPD'  '<{'  '[' β  ']' '}>'  '/' '<{'  '[' ∃∃  x1  ..  xn ,  '/' α  ']' '}>' ']'") : bi_scope.
+
+Notation "'UPD' '<{' ∀∀ y1 .. yn , β '}>' '<{' α '}>'" :=
+  (updated_invariant (TA:=TeleO)
+                (TB:=TeleS (λ y1, .. (TeleS (λ yn, TeleO)) .. ))
+                (tele_app $ λ y1, .. (λ yn, β%I) ..)
+                (tele_app α%I)
+  )
+  (at level 20, α, β at level 200, y1 binder, yn binder,
+  format "'[hv   ' 'UPD'  '<{'  '[' ∀∀  y1  ..  yn ,  '/' β  ']' '}>'  '/' '<{'  '[' α  ']' '}>' ']'") : bi_scope.
+
+Notation "'UPD' '<{' β '}>' '<{' α '}>'" :=
+  (updated_invariant (TA:=TeleO) (TB:=TeleO)
+                (tele_app β%I)
+                (tele_app α%I)
+  )
+  (at level 20, α, β at level 200,
+  format "'[hv   ' 'UPD'  '<{'  '[' β  ']' '}>'  '/' '<{'  '[' α  ']' '}>' ']'") : bi_scope.
+
 Section properties.
   Context `{!irisGS_gen hlc Λ Σ} {TA TB : tele}.
   Notation iProp := (iProp Σ).
@@ -103,17 +141,17 @@ Section properties.
 
   Lemma ainv_intro Eo Ei α β Φ :
     Ei ⊆ Eo →
-    (∃.. x, α x ∗ (∀.. y, β x y -∗ ∃.. z, α z ∗ (α z -∗ (Φ x y)))) -∗
+    (∃.. x, α x ∗ updated_invariant (β x) α ∗ (∀.. y, (β x y -∗ (Φ x y)))) -∗
     atomic_invariant Eo Ei α β Φ.
   Proof.
-    iIntros (HE) "(%x & Hα & HΦ)".
+    iIntros (HE) "(%x & Hα & Hupd & HΦ)".
     iApply ainv_aupd. iAuIntro. iAaccIntro with "Hα".
     + iIntros "Hα". iModIntro. iFrame.
     + iIntros (y) "Hβ". iModIntro.
-      iDestruct ("HΦ" with "Hβ") as (z) "[Hα HΦ]".
+      iDestruct ("Hupd" with "Hβ") as (z) "[Hα Hβ]".
       iApply ares_aupd. iAuIntro. iAaccIntro with "Hα".
       - iIntros "Hα". iModIntro. iFrame.
-      - iIntros (?) "Hα". iModIntro. by iApply "HΦ".
+      - iIntros (?) "Hα". iModIntro. iApply "HΦ". by iApply "Hβ".
   Qed.
 
   Lemma ainv_ainv_frame {TA' TB' : tele} E1 E1' E2 E3

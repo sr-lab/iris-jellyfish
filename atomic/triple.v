@@ -251,17 +251,12 @@ Section lemmas.
   (* Atomic triples imply sequential triples. *)
   Lemma atomic_wp_seq e E α β POST f :
     atomic_wp e E α β POST f -∗
-    ∀ Φ, ∀.. x, α x -∗ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
-    (∀.. y, β x y -∗ ∃.. z, α z ∗ (α z -∗ (β x y))) -∗
+    ∀ Φ, ∀.. x, α x -∗ updated_invariant (β x) α -∗ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
     WP e {{ Φ }}.
   Proof.
-    iIntros "Hwp" (Φ x) "Hα HΦ Hαβ".
+    iIntros "Hwp" (Φ x) "Hα Hupd HΦ".
     iApply (wp_frame_wand with "HΦ"). iApply "Hwp".
-    iApply ainv_intro; first by set_solver.
-    iExists x. iFrame. iIntros (y) "Hβ".
-    iDestruct ("Hαβ" with "Hβ") as (z) "[Hα Hβ]".
-    iExists z. iFrame. iIntros "Hα".
-    iDestruct ("Hβ" with "Hα") as "Hβ"; clear z.
+    iApply ainv_intro; first by set_solver. iExists x. iFrame. iIntros (y) "Hβ".
     (* FIXME: Using ssreflect rewrite does not work, see Coq bug #7773. *)
     rewrite -> !tele_app_bind. iIntros (z) "Hpost HΦ". iApply ("HΦ" with "Hβ Hpost").
   Qed.
@@ -271,14 +266,13 @@ Section lemmas.
   Lemma atomic_wp_seq_step e E α β POST f :
     TCEq (to_val e) None →
     atomic_wp e E α β POST f -∗
-    ∀ Φ, ∀.. x, α x -∗ ▷ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
-    (∀.. y, β x y -∗ ∃.. z, α z ∗ (α z -∗ (β x y))) -∗
+    ∀ Φ, ∀.. x, α x -∗ updated_invariant (β x) α -∗ ▷ (∀.. y, β x y -∗ ∀.. z, POST x y z -∗? Φ (f x y z)) -∗
     WP e {{ Φ }}.
   Proof.
-    iIntros (?) "H"; iIntros (Φ x) "Hα HΦ Hαβ".
+    iIntros (?) "H"; iIntros (Φ x) "Hα Hupd HΦ".
     iApply (wp_step_fupd _ _ ⊤ _ (∀.. y : TB, _)
       with "[$HΦ //]"); first done.
-    iApply (atomic_wp_seq with "H Hα [] Hαβ").
+    iApply (atomic_wp_seq with "H Hα Hupd").
     iIntros "%y Hβ %z Hpost HΦ". iApply ("HΦ" with "Hβ Hpost").
   Qed.
 

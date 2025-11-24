@@ -122,6 +122,10 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
     Context `{!heapGS Σ, !rwG Σ} (N: namespace).
     Local Open Scope Z.
 
+    Lemma read_updates_invariant (Γ: rw_gname) (k: Z) (s: gset Z) (q: frac) :
+      ⊢ UPD <{ ∀∀ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝ }>
+        <{ ∃∃ (s : gset Z) (q : Qp), const_set s q Γ }>.
+    Proof. iIntros ([]) "[? ?]"; iExists _, _; iFrame; by iIntros. Qed.
     Theorem read_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_set N p Γ ⊢ <<{ ∀∀ (s: gset Z) (q: frac), const_set s q Γ }>>
@@ -148,6 +152,10 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       rewrite difference_empty_L. iApply (ares_commit with "AR").
     Qed.
 
+    Lemma write_updates_invariant (Γ: rw_gname) (k: Z) (s: gset Z) (q: frac) :
+      ⊢ UPD <{ mut_set (s ⋅ {[ k ]}) q Γ }>
+        <{ ∃∃ (s : gset Z) (q : Qp), mut_set s q Γ }>.
+    Proof. iIntros ([]) "?"; iExists _, _; iFrame; by iIntros. Qed.
     Theorem write_spec (p: loc) (Γ: rw_gname)
       (k: Z) (Hrange: INT_MIN < k < INT_MAX) :
       is_set N p Γ ⊢ <<{ ∀∀ (s: gset Z) (q: frac), mut_set s q Γ }>>

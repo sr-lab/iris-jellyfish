@@ -43,22 +43,22 @@ Section Proofs.
     rewrite -(Qp.div_2 1); iDestruct (mut_set_sep with "Hmut") as "[Hmut1 Hmut2]".
     wp_smart_apply (wp_par (λ _, mut_set _ _ _) (λ _, mut_set _ _ _) with "[Hmut1] [Hmut2]").
     {
-      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj. do 2 (iExists _, _; iFrame; iIntros).
-      wp_pures.
+      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply write_updates_invariant. iIntros. wp_pures.
 
-      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj. do 2 (iExists _, _; iFrame; iIntros).
-      done.
+      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply write_updates_invariant. iIntros. done.
     }
     { 
-      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj. do 2 (iExists _, _; iFrame; iIntros).
-      wp_pures.
+      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply write_updates_invariant. iIntros. wp_pures.
 
-      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj. do 2 (iExists _, _; iFrame; iIntros).
-      done.
+      wp_apply (write_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply write_updates_invariant. iIntros. done.
     }
     iIntros (? ?) "Hmut". rewrite ?left_id_L.
     iDestruct (mut_set_join with "Hmut") as "Hmut".
@@ -68,18 +68,16 @@ Section Proofs.
     rewrite -(Qp.div_2 1); iDestruct (const_set_sep with "Hconst") as "[Hconst1 Hconst2]".
     wp_smart_apply (wp_par (λ v, ⌜ v = #true ⌝%I) (λ v, ⌜ v = #true ⌝%I) with "[Hconst1] [Hconst2]").
     {
-      wp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj.
-      iExists _, _. iFrame. iIntros (b) "[? %]".
-      iExists _, _. iFrame. iIntros.
-      iIntros; iPureIntro. destruct (b); first done; last set_solver.
+      wp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply read_updates_invariant. iIntros (b) "[? %]". iPureIntro.
+      destruct (b); first done; last set_solver.
     }
     {
-      wp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//.
-      iApply ainv_intro; first solve_ndisj.
-      iExists _, _. iFrame. iIntros (b) "[? %]".
-      iExists _, _. iFrame. iIntros.
-      iIntros; iPureIntro. destruct (b); first done; last set_solver.
+      wp_apply (read_spec with "Hinv"); first rewrite /Params.INT_MIN/Params.INT_MAX//; simpl.
+      iApply ainv_intro; first solve_ndisj. iExists _, _. iFrame.
+      iSplitR; first iApply read_updates_invariant. iIntros (b) "[? %]". iPureIntro.
+      destruct (b); first done; last set_solver.
     }
     iIntros (? ?) "[-> ->]"; iNext; by iApply "HΦ".
   Qed.
