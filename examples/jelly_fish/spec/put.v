@@ -32,7 +32,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iLöb as "IH"; iIntros (lvl curr Hk Hlvl Hh) "#Hcurr AI".
       wp_lam; wp_pures.
 
-      wp_apply (find_spec with "Hcurr"); first done.
+      wp_bind (find _ _ _).
+      iApply (find_spec with "Hcurr"); first done.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (S m) "Hskip".
       iDestruct (skip_has_lazy lvl with "Hskip")
@@ -42,7 +43,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iModIntro. iDestruct ("Hskip" with "Hlazy") as "Hskip".      
       destruct (decide (lvl = h)) as [->|Hneq].
       + iRight. iExists pred. iFrame "Hskip".
-        iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+        iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
         iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
         wp_pures.
         case_bool_decide; last congruence; wp_if.
@@ -88,13 +89,13 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
 
       case_bool_decide as Hcase; wp_if.
       + replace lvl with 0 by congruence.
-        wp_apply (tryInsert_spec with "Hcurr"); try done; first lia.
+        iApply (tryInsert_spec with "Hcurr"); try done; first lia.
         iApply (ainv_ainv with "AI"); try done.
         iIntros "!>" (S m) "[Hmap Hskip]".
         iModIntro. iExists S, m. iFrame "Hmap". iSplit; first by iIntros; iFrame.
         iIntros (opt S') "[Hmap Hmatch]".
         iModIntro. iFrame. iRight. iExists opt, S'. iFrame.
-        iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+        iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
         iModIntro. iIntros "H". iApply "HΦ". iIntros (n) "#Hopt".
         iDestruct ("H" with "Hopt") as (new) "H"; iExists new.
         replace (h - 0) with h by lia; rewrite ?Loc.add_0 //.
@@ -104,7 +105,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         wp_op. iMod ("Hclose" with "Hskip") as "AI". 
         clear dependent S m. iModIntro.
 
-        wp_apply (find_spec with "Hcurr'"); first lia.
+        wp_bind (find _ _ _).
+        iApply (find_spec with "Hcurr'"); first lia.
         iApply (ainv_ainv with "AI"); try done.
         iIntros "!>" (S m) "Hskip".
         iDestruct (skip_has_lazy (lvl - 1) with "Hskip") as (S') "[Hlazy [Hskip _]]"; first lia.
@@ -128,7 +130,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
         destruct (m !! k).
         - iDestruct "Hmatch" as "[-> _]". wp_pures.
           rewrite difference_empty_L.
-          iMod (ares_commit with "AR") as "HΦ".
+          iMod (ares_elim with "AR") as "HΦ".
           iModIntro. iApply "HΦ". iIntros. congruence.
         - iDestruct "Hmatch" as (n new) "(Hopt & #Hn & _)".
           iDestruct ("Hres" with "Hopt") as (new') "(#Hn' & <- & Hsub & Hnexts & Hlocks)".
@@ -141,7 +143,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           iDestruct "Hnexts" as "[Hnext Hnexts]".
           iDestruct "Hlocks" as "[Hlock Hlocks]".
 
-          wp_apply (insert_spec with "Hcurr Hn Hnext Hlock Hsub"); try lia.
+          wp_bind (insert _ _ _).
+          iApply (insert_spec with "Hcurr Hn Hnext Hlock Hsub"); try lia.
           iCombine "Hnexts Hlocks" as "HR".
           iApply (ainv_ares_frame with "AR HR"); try done.
           
@@ -162,7 +165,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
           }
           clear dependent S'' S''' m'.
 
-          iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+          iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
           iModIntro. iIntros "Hsub".
           wp_pures. iModIntro.
           iApply "HΦ". iIntros (n' ?); replace n' with n by congruence.
@@ -189,7 +192,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       { iExists head, S; by iFrame "# ∗". }
       iModIntro; clear dependent m S.
 
-      wp_apply findLevel_spec; try lia; first by iLeft.
+      wp_bind (findLevel _ _ _ _).
+      iApply findLevel_spec; try lia; first by iLeft.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (m) "Hmap".
       iDestruct (map_has_skip with "Hhead Hmap") as (S) "[Hskip Hmap]".
@@ -199,7 +203,8 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iIntros "AI". iModIntro. iIntros "[Hnode %Hk]".
       wp_pures.
 
-      wp_apply (insertAll_spec with "Hnode"); try lia.
+      wp_bind (insertAll _ _ _ _ _ _).
+      iApply (insertAll_spec with "Hnode"); try lia.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (m) "Hmap".
       iDestruct "Hmap" as (head' S) "(H & _ & Hskip)".
@@ -208,7 +213,7 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
       iIntros (opt S') "[Hskip #Hmatch]". iModIntro.
       iRight. iExists (m !! k). iSplitL.
       { by iSplit; first iExists head, S'; iFrame "# ∗". }
-      iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+      iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
 
       iModIntro. iIntros "Hres".
       wp_pures. iModIntro. iApply "HΦ".
@@ -226,12 +231,12 @@ Module PutSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros "%Φ AI". pose proof HMAX_HEIGHT.
       wp_lam; wp_pures; wp_lam; wp_pures.
-      wp_apply putH_spec; try lia.
+      iApply putH_spec; try lia.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (m) "Hmap".
       iModIntro. iExists m. iFrame "Hmap". iSplit; first by iIntros.
       iIntros (?) "[Hmap _ ]". iModIntro. iRight. iFrame.
-      iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+      iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
       iModIntro. iIntros "_". by iApply "HΦ".
     Qed.
   End Proofs.

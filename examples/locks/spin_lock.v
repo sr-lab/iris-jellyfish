@@ -70,13 +70,13 @@ Section proof.
       rewrite -Qp.quarter_three_quarter; iDestruct "Hl" as "(Hl & Hl')".
       iMod ("Hclose" $! true with "[Hl]") as "AR".
       { iSplit; last done. iExists l. by iFrame. }
-      iMod (ares_commit with "AR") as "HΦ".
+      iMod (ares_elim with "AR") as "HΦ".
       iModIntro; wp_pures. iApply "HΦ".
       iExists l. by iFrame.
     + iDestruct "Hlock" as (l) "[-> Hl]". wp_cmpxchg_fail.
       iMod ("Hclose" $! false with "[Hl]") as "AR".
       { iSplit; last done. iExists l. by iFrame. }
-      iMod (ares_commit with "AR") as "HΦ".
+      iMod (ares_elim with "AR") as "HΦ".
       iModIntro; wp_pures. by iApply "HΦ".
   Qed.
 
@@ -85,13 +85,14 @@ Section proof.
     <<{ lock lk Locked ∗ ⌜ st = Free ⌝ | RET #(); acquired lk }>>.
   Proof.
     iIntros "" (Φ) "AI". iLöb as "IH".
-    wp_lam. wp_apply try_acquire_spec.
+    wp_lam. wp_bind (try_acquire _).
+    iApply try_acquire_spec.
     iApply (ainv_ainv with "AI"); try done.
     iIntros "!>" (st) "Hlock !>". iExists st. iFrame.
     iSplit; first by iIntros. iIntros ([]) "[Hlock ->]".
     + iRight. iFrame. iModIntro. iSplit; first done.
       iIntros "AR !> Hacq". wp_pures.
-      rewrite difference_empty_L; iMod (ares_commit with "AR") as "HΦ".
+      rewrite difference_empty_L; iMod (ares_elim with "AR") as "HΦ".
       iModIntro. by iApply "HΦ".
     + iLeft. iFrame. iIntros "!> AI".
       iIntros "!> _". wp_pures. by iApply "IH".
@@ -109,6 +110,6 @@ Section proof.
     iCombine "Hl Hl'" as "Hl"; rewrite Qp.three_quarter_quarter. wp_store.
     iMod ("Hclose" with "[Hl]") as "AR".
     { iExists l. by iFrame. }
-    by rewrite difference_empty_L; iMod (ares_commit with "AR") as "HΦ".
+    by rewrite difference_empty_L; iMod (ares_elim with "AR") as "HΦ".
   Qed.
 End proof.

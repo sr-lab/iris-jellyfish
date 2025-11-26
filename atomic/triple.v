@@ -309,7 +309,7 @@ Section lemmas.
     E1 ⊆ E2 → atomic_wp e E1 α β POST f -∗ atomic_wp e E2 α β POST f.
   Proof.
     iIntros (HE) "Hwp". iIntros (Φ) "AU". iApply "Hwp".
-    iApply atomic_invariant_mask_weaken; last done. set_solver.
+    iApply ainv_mask_weaken; last done. set_solver.
   Qed.
 
   (** We can open invariants around atomic triples.

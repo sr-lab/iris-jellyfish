@@ -1,13 +1,11 @@
 From stdpp Require Import namespaces.
 From iris.bi.lib Require Export atomic.
 From iris.proofmode Require Import proofmode.
-From iris.program_logic Require Export weakestpre.
-From iris.base_logic Require Import invariants.
 
 Section definition.
   Context {PROP : bi} `{!BiFUpd PROP} {TA TB : tele}.
   Implicit Types
-    (E : coPset) (* outer/inner masks *)
+    (Eo Ei : coPset) (* outer/inner masks *)
     (α : TA → PROP) (* atomic pre-condition *)
     (β : TA → TB → PROP) (* atomic post-condition *)
     (Φ : TA → TB → PROP) (* post-condition *)
@@ -30,6 +28,9 @@ Section definition.
     atomic_resource Eo Ei α Ψ.
   Proof. by iIntros. Qed.
 End definition.
+
+Local Tactic Notation "iAiIntro" := iApply ainv_aupd; iAuIntro.
+Local Tactic Notation "iArIntro" := iApply ares_aupd; iAuIntro.
 
 (** Notation: Atomic invariants *)
 Notation "'AI' '<{' ∃∃ x1 .. xn , α '}>' @ Eo , Ei '<{' ∀∀ y1 .. yn , β , 'COMM' Φ '}>'" :=
@@ -135,31 +136,36 @@ Notation "'UPD' '<{' β '}>' '<{' α '}>'" :=
   format "'[hv   ' 'UPD'  '<{'  '[' β  ']' '}>'  '/' '<{'  '[' α  ']' '}>' ']'") : bi_scope.
 
 Section properties.
-  Context `{!irisGS_gen hlc Λ Σ} {TA TB : tele}.
-  Notation iProp := (iProp Σ).
-  Implicit Types (α : TA → iProp) (β : TA → TB → iProp) (Φ : TA → TB → iProp) (Ψ : iProp).
+  Context `{BiFUpd PROP} {TA TB : tele}.
+  Implicit Types (α : TA → PROP) (β Φ : TA → TB → PROP).
 
   Lemma ainv_intro Eo Ei α β Φ :
     Ei ⊆ Eo →
     (∃.. x, α x ∗ updated_invariant (β x) α ∗ (∀.. y, (β x y -∗ (Φ x y)))) -∗
     atomic_invariant Eo Ei α β Φ.
   Proof.
-    iIntros (HE) "(%x & Hα & Hupd & HΦ)".
-    iApply ainv_aupd. iAuIntro. iAaccIntro with "Hα".
+    iIntros (HE) "(%x & Hα & Hupd & HΦ)". iAiIntro.
+    iAaccIntro with "Hα".
     + iIntros "Hα". iModIntro. iFrame.
-    + iIntros (y) "Hβ". iModIntro.
-      iDestruct ("Hupd" with "Hβ") as (z) "[Hα Hβ]".
-      iApply ares_aupd. iAuIntro. iAaccIntro with "Hα".
+    + iIntros (y) "Hβ". iDestruct ("Hupd" with "Hβ") as (z) "[Hα Hβ]".
+      iModIntro. iArIntro. iAaccIntro with "Hα".
       - iIntros "Hα". iModIntro. iFrame.
       - iIntros (?) "Hα". iModIntro. iApply "HΦ". by iApply "Hβ".
   Qed.
 
+  Lemma ares_elim Eo Ei α Ψ :
+    atomic_resource Eo Ei α Ψ ={Eo}=∗ Ψ.
+  Proof.
+    iIntros ">[%z [Hα [_ Hclose]]]".
+    iMod ("Hclose" $! z with "Hα") as "HΦ".
+    by iModIntro.
+  Qed.
+
   Lemma ainv_ainv_frame {TA' TB' : tele} E1 E1' E2 E3
         α β Φ R
-        (α' : TA' → iProp) (β' Φ' : TA' → TB' → iProp) :
+        (α' : TA' → PROP) (β' Φ' : TA' → TB' → PROP) :
     E1' ⊆ E1 → E3 ⊆ E2 →
-    atomic_invariant E1' E2 α β Φ -∗
-    R -∗
+    atomic_invariant E1' E2 α β Φ -∗ R -∗
     (□ ∀.. x, α x ={E2}=∗ ∃.. x', α' x' ∗ (
       (α' x' -∗ α x) ∧ (∀.. y', β' x' y' ={E2}=∗ R -∗
         (α x ∗ (atomic_invariant E1' E2 α β Φ ={E1}=∗ Φ' x' y')) ∨
@@ -167,7 +173,7 @@ Section properties.
     )) -∗
     atomic_invariant E1 E3 α' β' Φ'.
   Proof.
-    iIntros (HE HE') "AI HR #Hinv". iApply ainv_aupd. iAuIntro.
+    iIntros (HE HE') "AI HR #Hinv". iAiIntro.
     iApply (aacc_aupd with "AI"); first done.
     iIntros (x) "Hα". iMod ("Hinv" with "Hα") as "[%x' [Hα' Hstep]]".
     iAaccIntro with "Hα'".
@@ -177,30 +183,29 @@ Section properties.
     + iIntros (y') "Hβ'". iDestruct ("Hstep") as "[_ HΦ']".
       iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. rewrite ->!tele_app_bind.
       iDestruct ("HΦ'" with "HR") as "[[Hα HΦ'] | [%y [Hβ HΦ']]]".
-      - iLeft. iFrame. iIntros "AI". iModIntro.
-        unfold atomic_resource. iAuIntro.
+      - iLeft. iFrame. iIntros "AI".
+        iModIntro. iArIntro.
         iApply (aacc_aupd with "AI"); first done.
         iIntros (z) "Hα". iMod ("Hinv" with "Hα") as "[%z' [Hα' [Hα _]]]".
         iAaccIntro with "Hα'".
         * iIntros "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
           iModIntro. iFrame. iIntros. iModIntro. iFrame.
         * iIntros (?) "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
-          iModIntro. rewrite ->!tele_app_bind.
-          iLeft. iFrame.
-      - iRight. iExists y. iFrame. iIntros "AR". iModIntro.
-        unfold atomic_resource. iAuIntro.
+          iModIntro. rewrite ->!tele_app_bind. iLeft. iFrame.
+      - iRight. iExists y. iFrame. iIntros "AR".
+        iModIntro. iArIntro.
         iApply (aacc_aupd with "AR"); first done.
         iIntros (z) "Hα". iMod ("Hinv" with "Hα") as "[%z' [Hα' [Hα _]]]".
         iAaccIntro with "Hα'".
         * iIntros "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
           iModIntro. iFrame. iIntros. iModIntro. iFrame.
         * iIntros (?) "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
-          iModIntro. rewrite ->!tele_app_bind. iFrame.
+          iModIntro. rewrite ->!tele_app_bind. iLeft. iFrame.
   Qed.
 
   Lemma ainv_ainv {TA' TB' : tele} E1 E1' E2 E3
         α β Φ
-        (α' : TA' → iProp) (β' Φ' : TA' → TB' → iProp) :
+        (α' : TA' → PROP) (β' Φ' : TA' → TB' → PROP) :
     E1' ⊆ E1 → E3 ⊆ E2 →
     atomic_invariant E1' E2 α β Φ -∗
     (□ ∀.. x, α x ={E2}=∗ ∃.. x', α' x' ∗ (
@@ -221,27 +226,18 @@ Section properties.
     iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. by iIntros.
   Qed.
 
-  Lemma ares_commit Eo Ei α Ψ :
-    atomic_resource Eo Ei α Ψ ={Eo}=∗ Ψ.
-  Proof.
-    iIntros ">[%z [Hα [_ Hclose]]]".
-    iMod ("Hclose" $! z with "Hα") as "HΦ".
-    by iModIntro.
-  Qed.
-
   Lemma ainv_ares_frame {TA' TB' : tele} E1 E1' E2 E3
         α Ψ R
-        (α' : TA' → iProp) (β' Φ' : TA' → TB' → iProp) :
+        (α' : TA' → PROP) (β' Φ' : TA' → TB' → PROP) :
     E1' ⊆ E1 → E3 ⊆ E2 →
-    atomic_resource E1' E2 α Ψ -∗
-    R -∗
+    atomic_resource E1' E2 α Ψ -∗ R -∗
     (□ ∀.. x, α x ={E2}=∗ ∃.. x', α' x' ∗ (
       (α' x' -∗ α x) ∧ (∀.. y', β' x' y' ={E2}=∗ R -∗
         α x ∗ (atomic_resource E1' E2 α Ψ ={E1}=∗ Φ' x' y'))
     )) -∗
     atomic_invariant E1 E3 α' β' Φ'.
   Proof.
-    iIntros (HE HE') "AR HR #Hinv". iApply ainv_aupd. iAuIntro.
+    iIntros (HE HE') "AR HR #Hinv". iAiIntro.
     iApply (aacc_aupd with "AR"); first done.
     iIntros (x) "Hα". iMod ("Hinv" with "Hα") as "[%x' [Hα' Hstep]]".
     iAaccIntro with "Hα'".
@@ -251,21 +247,20 @@ Section properties.
     + iIntros (y') "Hβ'". iDestruct ("Hstep") as "[_ HΦ']".
       iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. rewrite ->!tele_app_bind.
       iDestruct ("HΦ'" with "HR") as "[Hα HΦ']".
-      iLeft. iFrame. iIntros "AR". iModIntro.
-      unfold atomic_resource. iAuIntro.
+      iLeft. iFrame. iIntros "AR".
+      iModIntro. iArIntro.
       iApply (aacc_aupd with "AR"); first done.
       iIntros (w) "Hα". iMod ("Hinv" with "Hα") as "[%w' [Hα' [Hα _]]]".
       iAaccIntro with "Hα'".
       * iIntros "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
         iModIntro. iFrame. iIntros. iModIntro. iFrame.
       * iIntros (?) "Hα'". iDestruct ("Hα" with "Hα'") as "Hα".
-        iModIntro. rewrite ->!tele_app_bind.
-        iLeft. iFrame.
+        iModIntro. rewrite ->!tele_app_bind. iLeft. iFrame.
   Qed.
 
   Lemma ainv_ares {TA' TB' : tele} E1 E1' E2 E3
         α Ψ
-        (α' : TA' → iProp) (β' Φ' : TA' → TB' → iProp) :
+        (α' : TA' → PROP) (β' Φ' : TA' → TB' → PROP) :
     E1' ⊆ E1 → E3 ⊆ E2 →
     atomic_resource E1' E2 α Ψ -∗
     (□ ∀.. x, α x ={E2}=∗ ∃.. x', α' x' ∗ (
@@ -285,7 +280,7 @@ Section properties.
     iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. by iIntros.
   Qed.
 
-  Lemma atomic_invariant_mask_weaken Eo1 Eo2 Ei α β Φ :
+  Lemma ainv_mask_weaken Eo1 Eo2 Ei α β Φ :
     Eo1 ⊆ Eo2 →
     atomic_invariant Eo1 Ei α β Φ -∗ atomic_invariant Eo2 Ei α β Φ.
   Proof.
@@ -298,13 +293,39 @@ Section properties.
     by iApply ("Hclose" $! z).
   Qed.
 
+  Lemma aupd_ainv Eo Ei α β Φ :
+    atomic_invariant Eo Ei α β Φ -∗ atomic_update Eo Ei α β Φ.
+  Proof.
+    iIntros "AI". iAuIntro. unfold atomic_acc.
+    iMod "AI" as (x) "[Hα Hclose]".
+    iModIntro. iExists x. iFrame. iSplit.
+    + iIntros "Hα". iMod ("Hclose" with "Hα") as "AI".
+      by iModIntro.
+    + iIntros (y) "Hβ". iMod ("Hclose" with "Hβ") as "AR".
+      by iApply ares_elim.
+  Qed.
+End properties.
+
+(** I would like to avoid:
+  - importing these modules to avoid circular dependencies
+  - exposing the internal structure of atomic_invariant
+
+  Maybe this could be solved by proving ElimAcc for atomic_invariant,
+  but I don't know how to do that yet.
+*)
+From iris.program_logic Require Export weakestpre.
+From iris.base_logic Require Import invariants.
+Section lemmas.
+  Context `{!irisGS_gen hlc Λ Σ} {TA TB TP : tele}.
+  Notation iProp := (iProp Σ).
+  Implicit Types (α : TA → iProp) (β : TA → TB → iProp) (POST : TA → TB → TP → option iProp) (f : TA → TB → TP → val Λ).
+
   Lemma atomic_invariant_inv Eo Ei α β Φ N I :
     ↑N ⊆ Eo →
     atomic_invariant (Eo ∖ ↑N) Ei α β Φ -∗ inv N I -∗
     atomic_invariant Eo Ei (λ.. x, ▷ I ∗ α x) (λ.. x y, ▷ I ∗ β x y) Φ.
   Proof.
-    intros ?. iIntros "AI #Hinv".
-    iApply ainv_aupd. iAuIntro. iInv N as "HI".
+    intros ?. iIntros "AI #Hinv". iAiIntro. iInv N as "HI".
     iApply (aacc_aupd with "AI"); first solve_ndisj.
     iIntros (x) "Hα". iAaccIntro with "[HI Hα]"; rewrite ->!tele_app_bind; first by iFrame.
     - (* abort *)
@@ -312,7 +333,7 @@ Section properties.
     - (* commit *)
       iIntros (y). rewrite ->!tele_app_bind. iIntros "[HI Hβ]".
       iModIntro. iRight. iExists y. iFrame. iIntros "AR".
-      iModIntro. iApply ares_aupd. iAuIntro. iInv N as "HI".
+      iModIntro. iArIntro. iInv N as "HI".
       iApply (aacc_aupd with "AR"); first solve_ndisj.
       iIntros (z) "Hα". iAaccIntro with "[HI Hα]";
         rewrite ->!tele_app_bind; first by iFrame.
@@ -322,4 +343,4 @@ Section properties.
         rewrite ->!tele_app_bind. iRight.
         iExists w. iFrame. by iIntros.
   Qed.
-End properties.
+End lemmas.

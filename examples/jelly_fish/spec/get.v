@@ -33,7 +33,8 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       rewrite difference_empty_L.
       wp_lam. wp_let. wp_let.
 
-      wp_apply (find_spec with "Hcurr"); first done.
+      wp_bind (find _ _ _).
+      iApply (find_spec with "Hcurr"); first done.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (S m) "Hskip".
       iDestruct (skip_has_lazy with "Hskip") as (S') "[Hlazy [Hskip %Hdom]]"; first done.
@@ -53,7 +54,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
           as (val vl) "(Hval & %Heq & Hskip)"; first done.
         wp_load. iDestruct ("Hskip" with "Hval") as "Hskip".
         iMod ("Hclose" with "Hskip") as "AR".
-        iMod (ares_commit with "AR") as "HΦ".
+        iMod (ares_elim with "AR") as "HΦ".
         iModIntro. wp_let; wp_lam; wp_pures.
         destruct val as [[]]; rewrite Heq.
         by iApply "HΦ".
@@ -62,7 +63,7 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
           iModIntro. iIntros "(Hpred & Hsucc & %Hk')".
           wp_pures; wp_lam; wp_pures.
           case_bool_decide; first congruence.
-          iMod (ares_commit with "AR") as "HΦ".
+          iMod (ares_elim with "AR") as "HΦ".
           assert (m !! k = None) as ->.
           { by apply not_elem_of_dom; rewrite Hdom //= -Hkin. }
           wp_pures. by iApply "HΦ".
@@ -93,14 +94,14 @@ Module GetSpec (Params: SKIP_LIST_PARAMS).
       { iExists head, S; by iFrame "# ∗". }
       iModIntro; clear dependent m S.
 
-      wp_apply findAll_spec; first lia; first (pose HMAX_HEIGHT; lia); first by iLeft.
+      iApply findAll_spec; first lia; first (pose HMAX_HEIGHT; lia); first by iLeft.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>"  (m) "Hmap".
       iDestruct (map_has_skip with "Hhead Hmap") as (S) "[Hskip Hmap]".
       iModIntro. iExists S, m. iFrame "Hskip". iSplit; first done.
       iIntros "Hskip". iDestruct ("Hmap" with "Hskip") as "Hmap".
       iModIntro. iFrame. iRight. iIntros "AR".
-      iMod (ares_commit with "AR") as "HΦ".
+      iMod (ares_elim with "AR") as "HΦ".
       by iModIntro.
     Qed.
   End Proofs.

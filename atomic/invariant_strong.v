@@ -199,7 +199,7 @@ Section properties.
     iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. by iIntros.
   Qed.
 
-  Lemma ares_commit Eo Ei α Ψ :
+  Lemma ares_elim Eo Ei α Ψ :
     atomic_resource Eo Ei α Ψ ={Eo}=∗ Ψ.
   Proof.
     iIntros ">[%z [Hα [_ Hclose]]]".
@@ -263,7 +263,7 @@ Section properties.
     iMod ("HΦ'" with "Hβ'") as "HΦ'". iModIntro. by iIntros.
   Qed.
 
-  Lemma atomic_invariant_mask_weaken Eo1 Eo2 Ei α β Φ :
+  Lemma ainv_mask_weaken Eo1 Eo2 Ei α β Φ :
     Eo1 ⊆ Eo2 →
     atomic_invariant Eo1 Ei α β Φ -∗ atomic_invariant Eo2 Ei α β Φ.
   Proof.

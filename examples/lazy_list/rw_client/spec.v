@@ -133,7 +133,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<{ ∃∃ (b: bool), const_set s q Γ ∗ ⌜ if b then k ∈ s else k ∉ s ⌝ | RET #b }>>.
     Proof.
       iIntros "[%Γl #Hinv]" (Φ) "AI".
-      iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
+      iDestruct (ainv_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
         as "AI"; first solve_ndisj.
       iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
       iApply (contains_spec with "[AI]"); first done.
@@ -149,7 +149,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro.
       
       iRight. iExists b. iFrame. iIntros "AR".
-      rewrite difference_empty_L. iApply (ares_commit with "AR").
+      rewrite difference_empty_L. iApply (ares_elim with "AR").
     Qed.
 
     Lemma write_updates_invariant (Γ: rw_gname) (k: Z) (s: gset Z) (q: frac) :
@@ -163,7 +163,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       <<{ mut_set (s ⋅ {[ k ]}) q Γ | RET #() }>>.
     Proof.
       iIntros "[%Γl #Hinv]" (Φ) "AI".
-      iDestruct (atomic_invariant_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
+      iDestruct (ainv_mask_weaken _ (⊤ ∖ ↑rw_lazyN N) with "AI")
         as "AI"; first solve_ndisj.
       iDestruct (atomic_invariant_inv with "AI Hinv") as "AI"; first done.
       iApply (add_spec with "[AI]"); first done.
@@ -183,7 +183,7 @@ Module RWSpec (Params: LAZY_LIST_PARAMS).
       iModIntro.
 
       iRight. iFrame. iIntros "AR".
-      rewrite difference_empty_L. iApply (ares_commit with "AR").
+      rewrite difference_empty_L. iApply (ares_elim with "AR").
     Qed.
   End proofs.
 End RWSpec.

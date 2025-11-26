@@ -40,8 +40,9 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
     Proof.
       iIntros "%Hlvl %Hk %Hk' #Hcurr #Hn Hnew Hlock Hsub %Φ AI".
       wp_lam; wp_pures. wp_load. wp_lam; wp_pures.
-
-      wp_apply (findLock_spec with "Hcurr"); first lia.
+  
+      wp_bind (findLock _ _ _).
+      iApply (findLock_spec with "Hcurr"); first lia.
       iCombine "Hnew Hlock Hsub" as "HR".
       iApply (ainv_ainv_frame with "AI HR"); try done.
       iIntros "!>" (S) "Hlazy".
@@ -114,7 +115,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       }
       iModIntro. wp_pures.
 
-      wp_apply (release_spec with "Hacq").
+      iApply (release_spec with "Hacq").
       iCombine "Hpt Htok" as "HR".
       iApply (ainv_ares_frame with "AR HR"); try done.
       iIntros "!> %S' Hlazy". iModIntro.
@@ -124,7 +125,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iIntros "Hlock !> [Hpt Htok]".
       iSplitR "Htok Hin". { iApply "Hlazy". iExists Free. iFrame. by destruct lvl; first lia. }
       clear dependent S'.
-      iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+      iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
       iModIntro. iApply "HΦ". iFrame "# ∗".
     Qed.
 
@@ -154,7 +155,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
       iIntros "%Hk %Hk' %Hh #Hcurr %Φ AI".
       wp_lam; wp_pures.
 
-      wp_apply (findLock_spec with "Hcurr"); first lia.
+      wp_bind (findLock _ _ _).
+      iApply (findLock_spec with "Hcurr"); first lia.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (S m) "[Hlazy Hmap]".
       iModIntro. iExists S. iFrame "Hlazy". iSplit; first by iIntros; iFrame.
@@ -208,14 +210,15 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val. }
           rewrite -{2}(Loc.add_0 (node_lock pred)).
 
-          wp_apply (release_spec with "Hacq").
+          wp_bind (release _).
+          iApply (release_spec with "Hacq").
           iApply (ainv_ares_frame with "AR Hin"); try done.
           iIntros "!> %S' %m' [Hlazy ?]". iModIntro.
           iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
           iDestruct "Hlock" as (st) "[Hlock Hin]". iExists st. iFrame.
           iSplit. { iIntros. iApply "Hlazy". iFrame. } iClear "Hin".
           iIntros "Hlock !> Hin". iSplitL. { iApply "Hlazy". by iFrame. }
-          iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+          iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
           iModIntro. wp_pures. iModIntro. iApply "HΦ".
           iIntros. congruence.
         - (* The key already exists but with an outdated timestamp *)
@@ -261,14 +264,15 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
           { iExists s; iFrame "Hpt". iExists succ; iFrame "Hs". iRight; by iExists val'. }
           rewrite -{2}(Loc.add_0 (node_lock pred)).
 
-          wp_apply (release_spec with "Hacq").
+          wp_bind (release _).
+          iApply (release_spec with "Hacq").
           iApply (ainv_ares_frame with "AR Hin"); try done.
           iIntros "!> %S' %m' [Hlazy ?]". iModIntro.
           iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
           iDestruct "Hlock" as (st) "[Hlock Hin]". iExists st. iFrame.
           iSplit. { iIntros. iApply "Hlazy". iFrame. } iClear "Hin".
           iIntros "Hlock !> Hin". iSplitL. { iApply "Hlazy". by iFrame. }
-          iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+          iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
           iModIntro. wp_pures. iModIntro. iApply "HΦ".
           iIntros. congruence.
       + (* The key does not exists in the map *)
@@ -354,7 +358,8 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         { iExists n; iFrame "Hpt". iExists new. iFrame "Hn". iRight. by iExists val. }
         rewrite -(Loc.add_0 (node_lock pred)).
 
-        wp_apply (release_spec with "Hacq").
+        wp_bind (release _).
+        iApply (release_spec with "Hacq").
         iCombine "Hns Hls Htok Hin" as "HR".
         iApply (ainv_ares_frame with "AR HR"); try done.
         iIntros "!> %S' %m' [Hlazy ?]". iModIntro.
@@ -363,7 +368,7 @@ Module InsertSpec (Params: SKIP_LIST_PARAMS).
         iSplit. { iIntros. iApply "Hlazy". iFrame. } iClear "Hin".
         iIntros "Hlock !> (Hns & Hls & Htok & Hin)".
         iSplitL "Hlazy Hlock Hin". { iApply "Hlazy". by iFrame. }
-        iIntros "AR". iMod (ares_commit with "AR") as "HΦ".
+        iIntros "AR". iMod (ares_elim with "AR") as "HΦ".
         iModIntro. wp_pures. iModIntro. iApply "HΦ".
         iIntros (n' ?); replace n' with n by congruence.
         iExists new. by iFrame "# ∗".

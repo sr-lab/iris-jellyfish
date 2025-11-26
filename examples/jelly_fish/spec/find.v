@@ -53,7 +53,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
           + intros Hin. destruct (decide (node_key succ = k)); first done.
             exfalso. by apply (Hdisj k); last (rewrite zrange_spec; lia).
         }
-        iMod (ares_commit with "AR") as "HΦ".
+        iMod (ares_elim with "AR") as "HΦ".
         iModIntro. wp_load; wp_let; wp_lam; wp_pures.
         case_bool_decide; last lia; wp_if.
         wp_pure. iApply "HΦ".
@@ -98,7 +98,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       rewrite difference_empty_L.
       wp_lam. wp_let. wp_let.
 
-      wp_apply (find_spec with "Hcurr"); first done.
+      wp_bind (find _ _ _).
+      iApply (find_spec with "Hcurr"); first done.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (S) "Hlazy !>". iExists S. iFrame.
       iSplit; first by iIntros. iIntros (pred succ') "[Hlazy _]".
@@ -106,7 +107,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
       iIntros "!> AI !> (#Hpred & _ & [%Hk' _])".
       wp_pures; wp_lam; wp_pures. clear dependent succ'.
 
-      wp_apply acquire_spec.
+      wp_bind (acquire _).
+      iApply acquire_spec.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!>" (S) "Hlazy !>".
       iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".
@@ -137,7 +139,7 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
             exfalso. by apply (Hdisj k); last (rewrite zrange_spec; lia).
         }
 
-        iMod (ares_commit with "AR") as "HΦ".
+        iMod (ares_elim with "AR") as "HΦ".
         iModIntro. wp_load; wp_let; wp_lam; wp_pures.
         case_bool_decide; last lia; wp_if.
         wp_pure. iModIntro. iApply "HΦ".
@@ -149,7 +151,8 @@ Module FindSpec (Params: SKIP_LIST_PARAMS).
         case_bool_decide; first lia; wp_if.
 
         iCombine "Hnext' Hval" as "Hnext".
-        wp_apply (release_spec with "Hacq").
+        wp_bind (release _).
+        iApply (release_spec with "Hacq").
         iApply (ainv_ainv_frame with "AI Hnext"); try done.
         iIntros "!> %S Hlazy !>".
         iDestruct (node_has_lock with "Hpred Hlazy") as "[Hlock Hlazy]".

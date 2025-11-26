@@ -62,7 +62,8 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       { iExists head, S; by iFrame "# ∗". }
       iModIntro. clear dependent s S.
 
-      wp_apply find_spec; first lia; first by iLeft.
+      wp_bind (find _ _).
+      iApply find_spec; first lia; first by iLeft.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!> %s Hset !>".
       iDestruct "Hset" as (? S) "(#H & _ & %Hkeys & Hlazy)".
@@ -77,7 +78,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         case_bool_decide; subst; rewrite -Hkin //.
       }
       iIntros "HΦ !> _". wp_pures; wp_lam; wp_pures.
-      iMod (ares_commit with "HΦ") as "HΦ".
+      iMod (ares_elim with "HΦ") as "HΦ".
       by do 2 case_bool_decide; try congruence.
     Qed.
 
@@ -94,7 +95,8 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
       { by iExists head, S; iFrame "# ∗". }
       iModIntro; clear dependent s S.
 
-      wp_apply findLock_spec; first lia; first by iLeft.
+      wp_bind (findLock _ _).
+      iApply findLock_spec; first lia; first by iLeft.
       iApply (ainv_ainv with "AI"); try done.
       iIntros "!> %s Hset !>".
       iDestruct "Hset" as (? S) "(#H & _ & %Hkeys & Hlazy)".
@@ -113,7 +115,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         case_bool_decide; last congruence; wp_if.
 
         (* We access the shared state after the linearization point to release the lock *)
-        wp_apply (release_spec with "Hacq").
+        iApply (release_spec with "Hacq").
         iApply (ainv_ares_frame with "AR Hnext'"); try done.
         iIntros "!> %s' Hset !>".
         iDestruct "Hset" as (? S') "(#H & _ & %Hkeys' & Hlazy)".
@@ -133,7 +135,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
           iFrame "#". do 2 (iSplit; first done).
           iApply "Hlazy". iExists Free. iFrame.
         }
-        iIntros "AR". by iMod (ares_commit with "AR") as "HΦ".
+        iIntros "AR". by iMod (ares_elim with "AR") as "HΦ".
       + (* The key does not exist, so the linearization point will come later *)
         iLeft. iSplitL "Hlazy". { by iExists head, S; iFrame "# ∗". }
         clear dependent s S.
@@ -156,7 +158,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
         iModIntro; wp_pures.
 
         (* We access the shared state after the linearization point to release the lock *)
-        wp_apply (release_spec with "Hacq").
+        iApply (release_spec with "Hacq").
         iApply (ainv_ares_frame with "AR Hnext"); try done.
         iIntros "!> %s' Hset !>".
         iDestruct "Hset" as (? S') "(#H & _ & %Hkeys' & Hlazy)".
@@ -176,7 +178,7 @@ Module LASpec (Params: LAZY_LIST_PARAMS).
           iFrame "#". do 2 (iSplit; first done).
           iApply "Hlazy". iExists Free. iFrame.
         }
-        iIntros "AR". by iMod (ares_commit with "AR") as "HΦ".
+        iIntros "AR". by iMod (ares_elim with "AR") as "HΦ".
     Qed.
   End proofs.
 End LASpec.
